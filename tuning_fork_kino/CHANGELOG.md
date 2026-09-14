@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1
+## 0.1.2
 
 * `composer.livemd` is one tune written three ways — the Compose grid on a recorded kit, a
   TF Patterns cell in strudel.cc's own syntax, TF Loops — the live two taking it through an
