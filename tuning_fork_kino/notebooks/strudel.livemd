@@ -1,0 +1,125 @@
+# TuningFork, the Strudel way
+
+```elixir
+Mix.install([
+  {:tuning_fork, "~> 0.1"},
+  {:tuning_fork_samples, "~> 0.1"},
+  {:tuning_fork_kino, "~> 0.1"}
+])
+```
+
+## Paste and play
+
+A **TF Patterns** cell takes a piece from strudel.cc as it is written: `$:` rows, method
+chains, `let` variables, `setcps`, `samples('github:…')`. Press **Evaluate** (or ctrl+enter)
+and it plays; the cps field takes the tempo the piece sets. A word it cannot read is
+reported under its line.
+
+<!-- livebook:{"attrs":"eyJjcHMiOiIwLjc1IiwidGV4dCI6Ii8vIFwiY29hc3RsaW5lXCIgQGJ5IGVkZHlmbHV4XG4vLyBAdmVyc2lvbiAxLjBcbnNhbXBsZXMoJ2dpdGh1YjplZGR5Zmx1eC9jcmF0ZScpXG5zZXRjcHMoLjc1KVxubGV0IGNob3JkcyA9IGNob3JkKFwiPEJibTkgRm05Pi80XCIpLmRpY3QoJ2lyZWFsJylcbnN0YWNrKFxuICBzdGFjayggLy8gRFJVTVNcbiAgICBzKFwiYmRcIikuc3RydWN0KFwiPFt4KjwxIDI+IFt+QDMgeF1dIHg+XCIpLFxuICAgIHMoXCJ+IFtyaW0sIHNkOjwyIDM+XVwiKS5yb29tKFwiPDAgLjI+XCIpLFxuICAgIG4oXCJbMCA8MSAzPl0qPDIhMyA0PlwiKS5zKFwiaGhcIiksXG4gICAgcyhcInJkOjwxITMgMj4qMlwiKS5tYXNrKFwiPDAgMCAxIDE+LzE2XCIpLmdhaW4oLjUpXG4gICkuYmFuaygnY3JhdGUnKVxuICAubWFzayhcIjxbMCAxXSAxIDEgMT4vMTZcIi5lYXJseSguNSkpXG4gICwgLy8gQ0hPUkRTXG4gIGNob3Jkcy5vZmZzZXQoLTEpLnZvaWNpbmcoKS5zKFwiZ21fZXBpYW5vMToxXCIpXG4gIC5waGFzZXIoNCkucm9vbSguNSlcbiAgLCAvLyBNRUxPRFlcbiAgbihcIjwwITMgMSoyPlwiKS5zZXQoY2hvcmRzKS5tb2RlKFwicm9vdDpnMlwiKVxuICAudm9pY2luZygpLnMoXCJnbV9hY291c3RpY19iYXNzXCIpLFxuICBjaG9yZHMubihcIlswIDw0IDMgPDIgNT4+KjJdKDwzIDU+LDgpXCIpXG4gIC5hbmNob3IoXCJENVwiKS52b2ljaW5nKClcbiAgLnNlZ21lbnQoNCkuY2xpcChyYW5kLnJhbmdlKC40LC44KSlcbiAgLnJvb20oLjc1KS5zaGFwZSguMykuZGVsYXkoLjI1KVxuICAuZm0oc2luZS5yYW5nZSgzLDgpLnNsb3coOCkpXG4gIC5scGYoc2luZS5yYW5nZSg1MDAsMTAwMCkuc2xvdyg4KSkubHBxKDUpXG4gIC5yYXJlbHkocGx5KFwiMlwiKSkuY2h1bmsoNCwgZmFzdCgyKSlcbiAgLmdhaW4ocGVybGluLnJhbmdlKC42LCAuOSkpXG4gIC5tYXNrKFwiPDAgMSAxIDA+LzE2XCIpXG4pXG4ubGF0ZShcIlswIC4wMV0qNFwiKS5sYXRlKFwiWzAgLjAxXSoyXCIpLnNpemUoNCkifQ","chunks":null,"kind":"Elixir.KinoTuningFork.LivePatternsCell","livebook_object":"smart_cell"} -->
+
+```elixir
+unless Process.whereis(TuningFork.Stage), do: Kino.render(KinoTuningFork.stage())
+
+rows = [
+  %{source: "// \"coastline\" @by eddyflux"},
+  %{source: "// @version 1.0"},
+  %{source: "samples('github:eddyflux/crate')"},
+  %{source: "setcps(.75)"},
+  %{source: "let chords = chord(\"<Bbm9 Fm9>/4\").dict('ireal')"},
+  %{source: "stack("},
+  %{source: "  stack( // DRUMS"},
+  %{source: "    s(\"bd\").struct(\"<[x*<1 2> [~@3 x]] x>\"),"},
+  %{source: "    s(\"~ [rim, sd:<2 3>]\").room(\"<0 .2>\"),"},
+  %{source: "    n(\"[0 <1 3>]*<2!3 4>\").s(\"hh\"),"},
+  %{source: "    s(\"rd:<1!3 2>*2\").mask(\"<0 0 1 1>/16\").gain(.5)"},
+  %{source: "  ).bank('crate')"},
+  %{source: "  .mask(\"<[0 1] 1 1 1>/16\".early(.5))"},
+  %{source: "  , // CHORDS"},
+  %{source: "  chords.offset(-1).voicing().s(\"gm_epiano1:1\")"},
+  %{source: "  .phaser(4).room(.5)"},
+  %{source: "  , // MELODY"},
+  %{source: "  n(\"<0!3 1*2>\").set(chords).mode(\"root:g2\")"},
+  %{source: "  .voicing().s(\"gm_acoustic_bass\"),"},
+  %{source: "  chords.n(\"[0 <4 3 <2 5>>*2](<3 5>,8)\")"},
+  %{source: "  .anchor(\"D5\").voicing()"},
+  %{source: "  .segment(4).clip(rand.range(.4,.8))"},
+  %{source: "  .room(.75).shape(.3).delay(.25)"},
+  %{source: "  .fm(sine.range(3,8).slow(8))"},
+  %{source: "  .lpf(sine.range(500,1000).slow(8)).lpq(5)"},
+  %{source: "  .rarely(ply(\"2\")).chunk(4, fast(2))"},
+  %{source: "  .gain(perlin.range(.6, .9))"},
+  %{source: "  .mask(\"<0 1 1 0>/16\")"},
+  %{source: ")"},
+  %{source: ".late(\"[0 .01]*4\").late(\"[0 .01]*2\").size(4)"}
+]
+
+pattern = TuningFork.Session.combined(rows)
+
+if TuningFork.Stage.cycle() do
+  TuningFork.Stage.update_pattern(pattern, at: :cycle)
+else
+  TuningFork.Stage.start_pattern(pattern, cps: 0.75)
+end
+```
+
+<!-- livebook:{"attrs":"eyJjcHMiOiIwLjUiLCJ0ZXh0Ijoic2V0Y3BzKC41KVxuJDogcyhcImJkKjIsIGhoKjQsIH4gc2RcIikuZ2FpbiguOClcbiQ6IG5vdGUoXCI8YzIgZWIyIGcyIGJiMj4qMlwiKS5zKFwiZ21fYWNvdXN0aWNfYmFzc1wiKS5jbGlwKC44KVxuJDogbihcIjwwIDIgNCA3Pio0XCIpLnNjYWxlKFwiYzptaW5vclwiKS5zKFwiZ21fZXBpYW5vMVwiKS5yb29tKC4zKS5nYWluKHBlcmxpbi5yYW5nZSguNSwuOCkpIn0","chunks":null,"kind":"Elixir.KinoTuningFork.LivePatternsCell","livebook_object":"smart_cell"} -->
+
+```elixir
+unless Process.whereis(TuningFork.Stage), do: Kino.render(KinoTuningFork.stage())
+
+rows = [
+  %{source: "setcps(.5)"},
+  %{source: "$: s(\"bd*2, hh*4, ~ sd\").gain(.8)"},
+  %{source: "$: note(\"<c2 eb2 g2 bb2>*2\").s(\"gm_acoustic_bass\").clip(.8)"},
+  %{
+    source:
+      "$: n(\"<0 2 4 7>*4\").scale(\"c:minor\").s(\"gm_epiano1\").room(.3).gain(perlin.range(.5,.8))"
+  }
+]
+
+pattern = TuningFork.Session.combined(rows)
+
+if TuningFork.Stage.cycle() do
+  TuningFork.Stage.update_pattern(pattern, at: :cycle)
+else
+  TuningFork.Stage.start_pattern(pattern, cps: 0.5)
+end
+```
+
+## Coastline, by eddyflux
+
+The piece as published, with its sample pack. `samples('github:eddyflux/crate')` fetches
+`strudel.json` from the repo and each recording the first time it is played, so the first
+evaluate needs the network and takes a moment. The drums are masked until cycle 8 and the
+melody until cycle 16 — at 0.75 cps that is ten and twenty seconds of chords first, as on
+strudel.cc.
+
+## The same from code
+
+`TuningFork.Strudel` is what the cell uses. `to_rows/1` shows the translation, and
+`pattern/1` gives a pattern to start on a stage.
+
+```elixir
+KinoTuningFork.stage()
+```
+
+```elixir
+js = """
+setcps(.5)
+$: s("bd*2, hh*4, ~ sd").gain(.8)
+$: note("<c2 eb2 g2 bb2>*2").s("gm_acoustic_bass").clip(.8)
+$: n("<0 2 4 7>*4").scale("c:minor").s("gm_epiano1").room(.3).gain(perlin.range(.5,.8))
+"""
+
+{:ok, rows} = TuningFork.Strudel.to_rows(js)
+IO.puts(Enum.join(rows, "\n"))
+```
+
+```elixir
+{:ok, pattern} = TuningFork.Strudel.pattern(js)
+TuningFork.Stage.start_pattern(pattern, cps: 0.5)
+```
+
+```elixir
+TuningFork.Stage.stop_pattern()
+```

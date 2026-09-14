@@ -1,0 +1,96 @@
+# TuningFork in a notebook
+
+```elixir
+Mix.install([
+  {:tuning_fork, "~> 0.1"},
+  {:tuning_fork_samples, "~> 0.1"},
+  {:tuning_fork_kino, "~> 0.1"}
+])
+```
+
+## Compose
+
+A step sequencer you click. Each row is a track — a drum, a synth note or a recording — and
+each cell a step; **Play** loops it, and the cell writes the same music out as
+`TuningFork` source underneath, so a grid becomes code you can keep editing by hand.
+
+<!-- livebook:{"attrs":"eyJiYXJzIjoyLCJicG0iOjk2LCJkaXZpc2lvbiI6NCwiZ2FpbiI6MC41LCJtZXRlciI6NCwibmFtZSI6InNvbmciLCJyZXZlcmIiOjAuMCwicm9vdCI6ImEyIiwic2NhbGUiOiJtaW5vcl9wZW50YXRvbmljIiwidHJhY2tzIjpbeyJnYWluIjowLjksImtpbmQiOiJkcnVtIiwibXV0ZWQiOmZhbHNlLCJwYXRoIjpudWxsLCJyaW5nIjoyLjAsInJvb3QiOm51bGwsInNvdW5kIjoia2ljayIsInN0ZXBzIjpbMSwwLDAsMCwxLDAsMCwwLDEsMCwwLDAsMSwwLDAsMF19LHsiZ2FpbiI6MC42LCJraW5kIjoiZHJ1bSIsIm11dGVkIjpmYWxzZSwicGF0aCI6bnVsbCwicmluZyI6Mi4wLCJyb290IjpudWxsLCJzb3VuZCI6InNuYXJlIiwic3RlcHMiOlswLDAsMCwwLDEsMCwwLDAsMCwwLDAsMCwxLDAsMCwwXX0seyJnYWluIjowLjM1LCJraW5kIjoiZHJ1bSIsIm11dGVkIjpmYWxzZSwicGF0aCI6bnVsbCwicmluZyI6Mi4wLCJyb290IjpudWxsLCJzb3VuZCI6ImhhdCIsInN0ZXBzIjpbMSwwLDEsMCwxLDAsMSwwLDEsMCwxLDAsMSwwLDEsMF19LHsiZ2FpbiI6MC41LCJraW5kIjoicGl0Y2hlZCIsIm11dGVkIjpmYWxzZSwicGF0aCI6bnVsbCwicmluZyI6MS41LCJyb290IjpudWxsLCJzb3VuZCI6ImJhc3MiLCJzdGVwcyI6WzEsMCwwLDAsMSwwLDAsMCw0LDAsMCwwLDMsMCwwLDBdfV19","chunks":null,"kind":"Elixir.KinoTuningFork.ComposerCell","livebook_object":"smart_cell"} -->
+
+```elixir
+
+```
+
+## Live patterns, the Strudel way
+
+One pattern a row, stacked and played on a loop. Edit a row and press **Evaluate** (or
+ctrl+enter): the change lands at the next cycle line. A row behind `--` is switched off;
+a row ending in `|> scope()` or `|> pianoroll()` draws itself. A piece pasted from
+strudel.cc plays as written — see `strudel.livemd`.
+
+<!-- livebook:{"attrs":"eyJjcHMiOiIwLjUiLCJ0ZXh0IjoicyhcImJkKjRcIikgfD4gZ2FpbigwLjgpXG5zKFwiW2hoXSo4PzAuMlwiKSB8PiBnYWluKDAuNSlcbn4gfiBjcCB+XG5uKFwiPDAgNCAwIDkgNz4qOFwiKSB8PiBzY2FsZShcImc6bWlub3JcIikgfD4gc2hhcGUoOnNhdykgfD4gY3V0b2ZmKDQwMCkgfD4gcmVzb25hbmNlKDYpIHw+IGdhaW4oMC40KVxuLS0gfD4gc2NvcGUoKSJ9","chunks":null,"kind":"Elixir.KinoTuningFork.LivePatternsCell","livebook_object":"smart_cell"} -->
+
+```elixir
+
+```
+
+## Live loops, the Sonic Pi way
+
+Named loops, each on its own length, written as `TuningFork.Part` code or in Sonic Pi's
+words. Evaluate a loop and it swaps in when it next comes round; the counters and state a
+loop reads (`tick()`, `get/1`) are worked out afresh each round, so a loop can walk.
+
+<!-- livebook:{"attrs":"eyJsb29wcyI6W3sibmFtZSI6ImRydW1zIiwic291cmNlIjoicGFydChicG06IDEyMCwgc3ludGg6IEtpdC52b2ljZShcImJkXCIsIDAuMykpXG58PiBzdGVwcyhcInguLi54Li4ueC4uLnguLi5cIikifSx7Im5hbWUiOiJiYXNzIiwic291cmNlIjoicGFydChicG06IDEyMCwgc3ludGg6IEtpdC52b2ljZSgle25vdGU6IFwiYzJcIiwgc2hhcGU6IDpzYXd9LCAwLjQpKVxufD4gcGxheSg6YzIsIDIpIHw+IHBsYXkoOmcyLCAyKSJ9XX0","chunks":null,"kind":"Elixir.KinoTuningFork.LiveLoopsCell","livebook_object":"smart_cell"} -->
+
+```elixir
+
+```
+
+## A MIDI file, heard
+
+Point the cell at a `.mid` file and it becomes a `TuningFork.Score` — tempo map, note
+lengths, velocity and pitch bend kept, drums guessed by channel — and plays. The written
+source shows the `TuningFork.Midi.read!/1` and `to_score/2` calls it stands for.
+
+<!-- livebook:{"attrs":"e30","chunks":null,"kind":"Elixir.KinoTuningFork.MidiCell","livebook_object":"smart_cell"} -->
+
+```elixir
+
+```
+
+## The same things from code
+
+Everything a cell does is a call in `TuningFork`. A stage in the notebook:
+
+```elixir
+KinoTuningFork.stage()
+```
+
+A pattern started on it, swapped at the cycle line, and stopped:
+
+```elixir
+import TuningFork.Pattern.Control
+
+TuningFork.Stage.start_pattern(s("bd*4, hh*8") |> gain(0.8), cps: 0.5)
+```
+
+```elixir
+TuningFork.Stage.update_pattern(n("0 4 7") |> scale("c:minor") |> s("sawtooth"), at: :cycle)
+```
+
+```elixir
+TuningFork.Stage.stop_pattern()
+```
+
+A score rendered to a WAV the notebook plays without any stage:
+
+```elixir
+import TuningFork.Part
+
+part(bpm: 112, synth: TuningFork.Voice.new(shape: :saw, cutoff: 0.2))
+|> play(:d2, 1)
+|> play(:a2, 1)
+|> then(&TuningFork.Score.from_parts([&1], beats: 2))
+|> TuningFork.Score.render(44_100)
+|> TuningFork.Wav.encode(rate: 44_100)
+|> Kino.Audio.new(:wav)
+```

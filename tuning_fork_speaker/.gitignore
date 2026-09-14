@@ -1,0 +1,12 @@
+/_build/
+/cover/
+/deps/
+/doc/
+/tmp/
+erl_crash.dump
+*.ez
+*.tar
+*.wav
+.DS_Store
+/priv/*.so
+/priv/*.dSYM/

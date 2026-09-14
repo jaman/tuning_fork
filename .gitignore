@@ -1,0 +1,9 @@
+.DS_Store
+**/_build/
+**/deps/
+**/doc/
+**/tmp/
+**/cover/
+*.tar
+*.wav
+erl_crash.dump
