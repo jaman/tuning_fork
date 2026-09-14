@@ -19,20 +19,7 @@ Start with [`tuning_fork/README.md`](tuning_fork/README.md).
 
 Each package is an ordinary Mix project in its own directory; `mix test`, `mix credo --strict`
 and `mix docs` run inside each. Within the repository the packages depend on each other by
-path, so an edit in `tuning_fork` is seen by the others at once. Set `TUNING_FORK_HEX=1` to
-make them depend on the hex.pm releases instead, which is how they are published:
-
-```
-cd tuning_fork && mix hex.publish
-cd ../tuning_fork_composer && TUNING_FORK_HEX=1 mix hex.publish
-cd ../tuning_fork_samples && TUNING_FORK_HEX=1 mix hex.publish
-cd ../tuning_fork_speaker && TUNING_FORK_HEX=1 mix hex.publish
-cd ../tuning_fork_midi && TUNING_FORK_HEX=1 mix hex.publish
-cd ../tuning_fork_kino && TUNING_FORK_HEX=1 mix hex.publish
-```
-
-`tuning_fork` goes first, since the others depend on its release. `tuning_fork_drafter` depends
-on Drafter and french_curve, which are not on hex.pm, and is not published.
+path, so an edit in `tuning_fork` is seen by the others at once.
 
 ## Licence
 
