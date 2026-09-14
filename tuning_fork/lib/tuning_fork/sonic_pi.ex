@@ -11,6 +11,7 @@ defmodule TuningFork.SonicPi do
   """
 
   alias TuningFork.{
+    Kit,
     Mixer,
     Part,
     Rand,
@@ -207,9 +208,19 @@ defmodule TuningFork.SonicPi do
   @spec use_bpm(number()) :: :ok
   def use_bpm(bpm) when bpm > 0, do: Current.update(&%{&1 | bpm: bpm / 1.0})
 
-  @doc "The synth `play/2` uses from here on: a name from `TuningFork.SonicPi.Synth.names/0` or a `TuningFork.Voice`."
-  @spec use_synth(atom() | Voice.t()) :: :ok
+  @doc """
+  The synth `play/2` uses from here on: a name from `TuningFork.SonicPi.Synth.names/0`, a
+  `TuningFork.Voice`, or a sound name `TuningFork.Kit.known?/1` accepts, such as `"gm_epiano1"`,
+  played at each note through the kit.
+  """
+  @spec use_synth(atom() | String.t() | Voice.t()) :: :ok
   def use_synth(%Voice{} = voice), do: Current.update(&%{&1 | synth: voice})
+
+  def use_synth(name) when is_binary(name) do
+    if Kit.known?(name),
+      do: Current.update(&%{&1 | synth: name}),
+      else: raise(ArgumentError, "no sound named #{inspect(name)}")
+  end
 
   def use_synth(name) when is_atom(name) do
     if Synth.known?(name),

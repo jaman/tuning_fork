@@ -22,9 +22,39 @@ defmodule TuningFork.Kit do
     "AkaiLinn" => {0.9, 0.95, 0.9}
   }
 
+  @waveforms %{
+    "sine" => :sine,
+    "sawtooth" => :saw,
+    "saw" => :saw,
+    "square" => :square,
+    "triangle" => :triangle,
+    "tri" => :triangle,
+    "white" => :noise,
+    "pink" => :noise,
+    "brown" => :noise,
+    "noise" => :noise
+  }
+
   @doc "The drum names `voice/2` knows, sorted."
   @spec drums() :: [String.t()]
   def drums, do: Enum.sort(@drums)
+
+  @doc """
+  Whether `voice/3` plays `name` as a sound rather than a pitch: a drum, a waveform, a GM
+  instrument or a loaded bank, with or without an index after a colon.
+
+      iex> TuningFork.Kit.known?("gm_epiano1:2")
+      true
+      iex> TuningFork.Kit.known?("c4")
+      false
+  """
+  @spec known?(String.t()) :: boolean()
+  def known?(name) when is_binary(name) do
+    base = name |> String.split(":", parts: 2) |> hd()
+
+    base in @drums or is_map_key(@waveforms, base) or Names.program(base) != nil or
+      Bank.has?(base)
+  end
 
   @doc """
   The drum names grouped by what they are, short name first.
@@ -105,9 +135,28 @@ defmodule TuningFork.Kit do
     |> Enum.each(&warm/1)
   end
 
-  defp sound_of(%{} = controls), do: Map.get(controls, :sound) || Map.get(controls, :s)
+  defp sound_of(%{} = controls) do
+    controls = from_bank(controls)
+
+    Map.get(controls, :sound) || Map.get(controls, :s)
+  end
+
   defp sound_of(name) when is_binary(name), do: name
   defp sound_of(_other), do: nil
+
+  defp from_bank(%{bank: bank} = controls) when is_binary(bank) do
+    with sound when is_binary(sound) <- Map.get(controls, :sound) || Map.get(controls, :s),
+         [base | index] <- String.split(sound, ":", parts: 2),
+         true <- Bank.has?(bank <> "_" <> base) do
+      controls
+      |> Map.drop([:bank, :s])
+      |> Map.put(:sound, Enum.join([bank <> "_" <> base | index], ":"))
+    else
+      _not_recorded -> controls
+    end
+  end
+
+  defp from_bank(controls), do: controls
 
   defp warm(name) do
     {base, index} =
@@ -134,10 +183,13 @@ defmodule TuningFork.Kit do
   A voice from a map of controls.
 
   `:sound` or `:note` says what to play and is passed to `voice/2`; every other key changes the
-  voice that comes back. A map with neither is `nil`.
+  voice that comes back. A map with neither is `nil`. A `:bank` plays the recording registered
+  as `bank_sound` when `TuningFork.Sample.Bank` has one, and is otherwise an adjustment to the
+  kit's drum (`banks/0`).
   """
   @spec from_map(map(), number(), keyword()) :: Voice.t() | nil
   def from_map(controls, seconds, opts \\ []) do
+    controls = from_bank(controls)
     sound = Map.get(controls, :sound) || Map.get(controls, :s)
 
     case indexed(sound, controls) do
@@ -182,19 +234,6 @@ defmodule TuningFork.Kit do
         end
     end
   end
-
-  @waveforms %{
-    "sine" => :sine,
-    "sawtooth" => :saw,
-    "saw" => :saw,
-    "square" => :square,
-    "triangle" => :triangle,
-    "tri" => :triangle,
-    "white" => :noise,
-    "pink" => :noise,
-    "brown" => :noise,
-    "noise" => :noise
-  }
 
   defp instrument(controls, voice, note, seconds, opts) do
     sound = Map.get(controls, :sound) || Map.get(controls, :s)
@@ -478,10 +517,10 @@ defmodule TuningFork.Kit do
       iex> "RolandTR909" in TuningFork.Kit.banks()
       true
 
-  A bank is not a set of recordings — nothing here is recorded — but a set of adjustments to
-  the drums this kit synthesises, so `bank("RolandTR808")` gives the long booming kick that
-  name is known for. A name it does not know changes nothing, so a pattern written for a bank
-  that is not here still plays.
+  These are adjustments to the drums this kit synthesises, so `bank("RolandTR808")` gives the
+  long booming kick that name is known for while the recording registered as
+  `RolandTR808_bd` has not arrived, or where there is none. A name not here changes nothing,
+  so a pattern written for a bank that is not loaded still plays.
   """
   @spec banks() :: [String.t()]
   def banks, do: @banks |> Map.keys() |> Enum.sort()

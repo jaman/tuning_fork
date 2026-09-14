@@ -98,19 +98,14 @@ defmodule TuningFork.Pattern.Control do
   def struct(%Pattern{} = pattern, source) do
     structure = as_pattern(source)
 
-    Pattern.new(fn span ->
-      structure
-      |> Pattern.query(span)
-      |> Enum.filter(&(truthy?(&1.value) and not is_nil(&1.whole)))
-      |> Enum.flat_map(&structured(pattern, &1))
-    end)
-  end
+    steps =
+      Pattern.new(fn span ->
+        structure
+        |> Pattern.query(span)
+        |> Enum.filter(&(truthy?(&1.value) and not is_nil(&1.whole)))
+      end)
 
-  defp structured(pattern, %{whole: {from, _to}} = event) do
-    case Pattern.value_at(pattern, from) do
-      nil -> []
-      value -> [%{event | value: value}]
-    end
+    Pattern.app_left(steps, pattern, fn _step, value -> value end)
   end
 
   @doc """
@@ -324,28 +319,12 @@ defmodule TuningFork.Pattern.Control do
   end
 
   @doc """
-  Which bank the sounds come from.
-
-  A name in `TuningFork.Kit.banks/0` adjusts the kit's synthesised drums. Any other name is
-  put in front of each sound with an underscore, as Strudel does — `s("bd") |> bank("crate")`
-  plays `crate_bd` — for recordings registered under such names.
+  Which bank the sounds come from: `s("bd") |> bank("crate")` plays the recording registered
+  as `crate_bd` once `TuningFork.Sample.Bank` has it, as Strudel does, and until then the
+  kit's own drum, adjusted for a name in `TuningFork.Kit.banks/0`.
   """
   @spec bank(Pattern.t(), String.t() | Pattern.t()) :: Pattern.t()
-  def bank(pattern, %Pattern{} = names), do: set(pattern, :bank, names)
-
-  def bank(pattern, name) when is_binary(name) do
-    if name in TuningFork.Kit.banks() do
-      set(pattern, :bank, name)
-    else
-      Pattern.with_value(pattern, fn
-        %{sound: sound} = controls when is_binary(sound) ->
-          %{controls | sound: name <> "_" <> sound}
-
-        other ->
-          other
-      end)
-    end
-  end
+  def bank(pattern, name), do: set(pattern, :bank, name)
 
   @doc """
   How fast a sample or oscillator runs, 1.0 being as written: 2.0 is an octave up and half as

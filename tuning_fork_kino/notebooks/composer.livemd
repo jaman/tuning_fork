@@ -8,89 +8,640 @@ Mix.install([
 ])
 ```
 
+## One tune, three ways
+
+A tune in D minor at 100 bpm: kick, snare and hats from a Roland TR-909, a fingered bass,
+electric piano stabs on Dm, B♭, F and C, a flute line over the top and strings underneath.
+The three cells below are it written three ways, so the spellings can be compared with the
+sound held constant. The grid holds its two-bar core; the two live spellings take that core
+through an arrangement — strings and chords alone, then drums and bass, the flute over them,
+a breakdown with an echoing line, then everything with an arpeggio on top — about seventy
+seconds before it comes round again. Press **▶ listen** on a cell's stage once, then play.
+
 ## Compose
 
-A step sequencer you click. Each row is a track — a drum, a synth note or a recording — and
-each cell a step; **Play** loops it, and the cell writes the same music out as
-`TuningFork` source underneath, so a grid becomes code you can keep editing by hand.
+A step sequencer you click. Each row is a track — a drum, an instrument or a recording — and
+each cell a step: a number is a scale degree, a longer cell a held note. **Play** loops the
+grid, and the cell writes the same music out as `TuningFork` source underneath, so a grid
+becomes code you can keep editing by hand. The grid is eight beats of four steps.
 
-<!-- livebook:{"attrs":"eyJiYXJzIjoyLCJicG0iOjk2LCJkaXZpc2lvbiI6NCwiZ2FpbiI6MC41LCJtZXRlciI6NCwibmFtZSI6InNvbmciLCJyZXZlcmIiOjAuMCwicm9vdCI6ImEyIiwic2NhbGUiOiJtaW5vcl9wZW50YXRvbmljIiwidHJhY2tzIjpbeyJnYWluIjowLjksImtpbmQiOiJkcnVtIiwibXV0ZWQiOmZhbHNlLCJwYXRoIjpudWxsLCJyaW5nIjoyLjAsInJvb3QiOm51bGwsInNvdW5kIjoia2ljayIsInN0ZXBzIjpbMSwwLDAsMCwxLDAsMCwwLDEsMCwwLDAsMSwwLDAsMF19LHsiZ2FpbiI6MC42LCJraW5kIjoiZHJ1bSIsIm11dGVkIjpmYWxzZSwicGF0aCI6bnVsbCwicmluZyI6Mi4wLCJyb290IjpudWxsLCJzb3VuZCI6InNuYXJlIiwic3RlcHMiOlswLDAsMCwwLDEsMCwwLDAsMCwwLDAsMCwxLDAsMCwwXX0seyJnYWluIjowLjM1LCJraW5kIjoiZHJ1bSIsIm11dGVkIjpmYWxzZSwicGF0aCI6bnVsbCwicmluZyI6Mi4wLCJyb290IjpudWxsLCJzb3VuZCI6ImhhdCIsInN0ZXBzIjpbMSwwLDEsMCwxLDAsMSwwLDEsMCwxLDAsMSwwLDEsMF19LHsiZ2FpbiI6MC41LCJraW5kIjoicGl0Y2hlZCIsIm11dGVkIjpmYWxzZSwicGF0aCI6bnVsbCwicmluZyI6MS41LCJyb290IjpudWxsLCJzb3VuZCI6ImJhc3MiLCJzdGVwcyI6WzEsMCwwLDAsMSwwLDAsMCw0LDAsMCwwLDMsMCwwLDBdfV19","chunks":null,"kind":"Elixir.KinoTuningFork.ComposerCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJiYXJzIjoyLCJicG0iOjEwMCwiZGl2aXNpb24iOjQsImdhaW4iOjAuNSwibWV0ZXIiOjgsIm5hbWUiOiJzb25nIiwicmV2ZXJiIjowLjI1LCJyb290IjoiZDIiLCJzY2FsZSI6Im1pbm9yIiwidHJhY2tzIjpbeyJnYWluIjowLjksImtpbmQiOiJkcnVtIiwibXV0ZWQiOmZhbHNlLCJwYXRoIjoibmlsIiwicmluZyI6Mi4wLCJyb290IjoibmlsIiwic291bmQiOiJraWNrIiwic3RlcHMiOlsxLDAsMCwwLDAsMCwwLDAsMSwwLDEsMCwwLDAsMCwwLDEsMCwwLDAsMCwwLDAsMCwxLDAsMSwwLDAsMSwwLDBdfSx7ImdhaW4iOjAuNiwia2luZCI6ImRydW0iLCJtdXRlZCI6ZmFsc2UsInBhdGgiOiJuaWwiLCJyaW5nIjoyLjAsInJvb3QiOiJuaWwiLCJzb3VuZCI6InNuYXJlIiwic3RlcHMiOlswLDAsMCwwLDEsMCwwLDAsMCwwLDAsMCwxLDAsMCwwLDAsMCwwLDAsMSwwLDAsMCwwLDAsMCwwLDEsMCwwLDBdfSx7ImdhaW4iOjAuNCwia2luZCI6ImRydW0iLCJtdXRlZCI6ZmFsc2UsInBhdGgiOiJuaWwiLCJyaW5nIjoyLjAsInJvb3QiOiJuaWwiLCJzb3VuZCI6ImNsYXAiLCJzdGVwcyI6WzAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDEsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMSwwLDAsMF19LHsiZ2FpbiI6MC4zNSwia2luZCI6ImRydW0iLCJtdXRlZCI6ZmFsc2UsInBhdGgiOiJuaWwiLCJyaW5nIjoyLjAsInJvb3QiOiJuaWwiLCJzb3VuZCI6ImhhdCIsInN0ZXBzIjpbMSwwLDEsMCwxLDAsMSwwLDEsMCwxLDAsMSwwLDAsMCwxLDAsMSwwLDEsMCwxLDAsMSwwLDEsMCwxLDAsMCwwXX0seyJnYWluIjowLjMsImtpbmQiOiJkcnVtIiwibXV0ZWQiOmZhbHNlLCJwYXRoIjoibmlsIiwicmluZyI6Mi4wLCJyb290IjoibmlsIiwic291bmQiOiJvcGVuX2hhdCIsInN0ZXBzIjpbMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDEsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMSwwXX0seyJnYWluIjowLjYsImtpbmQiOiJwaXRjaGVkIiwibXV0ZWQiOmZhbHNlLCJwYXRoIjoibmlsIiwicmluZyI6MS4wLCJyb290IjoibmlsIiwic291bmQiOiJiYXNzIiwic3RlcHMiOlt7ImQiOjEsIm4iOjJ9LDAsMCwxLHsiZCI6MSwibiI6Mn0sMCw1LDAseyJkIjo2LCJuIjoyfSwwLDAsNix7ImQiOjYsIm4iOjJ9LDAsMywwLHsiZCI6MywibiI6Mn0sMCwwLDMseyJkIjozLCJuIjoyfSwwLDcsMCx7ImQiOjcsIm4iOjJ9LDAsMCw3LHsiZCI6NywibiI6Mn0sMCw0LDBdfSx7ImdhaW4iOjAuNDUsImtpbmQiOiJwaXRjaGVkIiwibXV0ZWQiOmZhbHNlLCJwYXRoIjoibmlsIiwicmluZyI6MS4wLCJyb290IjoibmlsIiwic291bmQiOiJwaWFubyIsInN0ZXBzIjpbeyJkIjo4LCJuIjo0fSwwLDAsMCwwLDAseyJkIjo4LCJuIjoyfSwwLHsiZCI6OCwibiI6NH0sMCwwLDAsMCwwLHsiZCI6OCwibiI6Mn0sMCx7ImQiOjcsIm4iOjR9LDAsMCwwLDAsMCx7ImQiOjcsIm4iOjJ9LDAseyJkIjo3LCJuIjo0fSwwLDAsMCwwLDAseyJkIjo3LCJuIjoyfSwwXX0seyJnYWluIjowLjQ1LCJraW5kIjoicGl0Y2hlZCIsIm11dGVkIjpmYWxzZSwicGF0aCI6Im5pbCIsInJpbmciOjEuMCwicm9vdCI6Im5pbCIsInNvdW5kIjoicGlhbm8iLCJzdGVwcyI6W3siZCI6MTAsIm4iOjR9LDAsMCwwLDAsMCx7ImQiOjEwLCJuIjoyfSwwLHsiZCI6MTAsIm4iOjR9LDAsMCwwLDAsMCx7ImQiOjEwLCJuIjoyfSwwLHsiZCI6MTAsIm4iOjR9LDAsMCwwLDAsMCx7ImQiOjEwLCJuIjoyfSwwLHsiZCI6OSwibiI6NH0sMCwwLDAsMCwwLHsiZCI6OSwibiI6Mn0sMF19LHsiZ2FpbiI6MC40NSwia2luZCI6InBpdGNoZWQiLCJtdXRlZCI6ZmFsc2UsInBhdGgiOiJuaWwiLCJyaW5nIjoxLjAsInJvb3QiOiJuaWwiLCJzb3VuZCI6InBpYW5vIiwic3RlcHMiOlt7ImQiOjEyLCJuIjo0fSwwLDAsMCwwLDAseyJkIjoxMiwibiI6Mn0sMCx7ImQiOjEzLCJuIjo0fSwwLDAsMCwwLDAseyJkIjoxMywibiI6Mn0sMCx7ImQiOjEyLCJuIjo0fSwwLDAsMCwwLDAseyJkIjoxMiwibiI6Mn0sMCx7ImQiOjExLCJuIjo0fSwwLDAsMCwwLDAseyJkIjoxMSwibiI6Mn0sMF19LHsiZ2FpbiI6MC41LCJraW5kIjoicGl0Y2hlZCIsIm11dGVkIjpmYWxzZSwicGF0aCI6Im5pbCIsInJpbmciOjAuOCwicm9vdCI6Im5pbCIsInNvdW5kIjoicGlwZSIsInN0ZXBzIjpbeyJkIjoxOSwibiI6M30sMCwwLDE3LHsiZCI6MTUsIm4iOjJ9LDAseyJkIjoxNywibiI6Mn0sMCx7ImQiOjE4LCJuIjozfSwwLDAsMTcseyJkIjoxNSwibiI6NH0sMCwwLDAseyJkIjoxNywibiI6Mn0sMCx7ImQiOjE5LCJuIjoyfSwwLHsiZCI6MjEsIm4iOjN9LDAsMCwxOSx7ImQiOjE4LCJuIjo0fSwwLDAsMCx7ImQiOjE2LCJuIjoyfSwwLDAsMF19LHsiZ2FpbiI6MC4yNSwia2luZCI6InBpdGNoZWQiLCJtdXRlZCI6ZmFsc2UsInBhdGgiOiJuaWwiLCJyaW5nIjoyLjAsInJvb3QiOiJuaWwiLCJzb3VuZCI6InN0cmluZ3MiLCJzdGVwcyI6W3siZCI6OCwibiI6OH0sMCwwLDAsMCwwLDAsMCx7ImQiOjEzLCJuIjo4fSwwLDAsMCwwLDAsMCwwLHsiZCI6MTAsIm4iOjh9LDAsMCwwLDAsMCwwLDAseyJkIjoxNCwibiI6OH0sMCwwLDAsMCwwLDAsMF19XX0","chunks":null,"kind":"Elixir.KinoTuningFork.ComposerCell","livebook_object":"smart_cell"} -->
 
 ```elixir
+import TuningFork.Part
 
+alias TuningFork.{Gm, Score, Voice}
+
+base =
+  Voice.new(
+    shape: :saw,
+    gain: 0.5,
+    cutoff: 0.45,
+    envelope: TuningFork.Envelope.new(attack: 0.006, sustain: 0.3, release: 0.12)
+  )
+
+kit = Gm.drums()
+bass = Gm.for_program(33, base)
+piano = Gm.for_program(0, base)
+pipe = Gm.for_program(73, base)
+strings = Gm.for_program(48, base)
+
+drum_kick =
+  part(bpm: 100, synth: kit[36], gain: 0.9)
+  |> repeat(2, fn bar -> steps(bar, "x.......x.x.....x.......x.x..x..", 1 / 4) end)
+
+drum_snare =
+  part(bpm: 100, synth: kit[38], gain: 0.6)
+  |> repeat(2, fn bar -> steps(bar, "....x.......x.......x.......x...", 1 / 4) end)
+
+drum_clap =
+  part(bpm: 100, synth: kit[39], gain: 0.4)
+  |> repeat(2, fn bar -> steps(bar, "............x...............x...", 1 / 4) end)
+
+drum_hat =
+  part(bpm: 100, synth: kit[42], gain: 0.35)
+  |> repeat(2, fn bar -> steps(bar, "x.x.x.x.x.x.x...x.x.x.x.x.x.x...", 1 / 4) end)
+
+drum_open_hat =
+  part(bpm: 100, synth: kit[46], gain: 0.3)
+  |> repeat(2, fn bar -> steps(bar, "..............x...............x.", 1 / 4) end)
+
+pitched_bass =
+  part(bpm: 100, synth: bass, gain: 0.6)
+  |> repeat(2, fn bar ->
+    steps(
+      bar,
+      [
+        {:d2, release: 2 / 4},
+        nil,
+        nil,
+        :d2,
+        {:d2, release: 2 / 4},
+        nil,
+        :a2,
+        nil,
+        {:as2, release: 2 / 4},
+        nil,
+        nil,
+        :as2,
+        {:as2, release: 2 / 4},
+        nil,
+        :f2,
+        nil,
+        {:f2, release: 2 / 4},
+        nil,
+        nil,
+        :f2,
+        {:f2, release: 2 / 4},
+        nil,
+        :c3,
+        nil,
+        {:c3, release: 2 / 4},
+        nil,
+        nil,
+        :c3,
+        {:c3, release: 2 / 4},
+        nil,
+        :g2,
+        nil
+      ],
+      1 / 4,
+      release: 1.0
+    )
+  end)
+
+pitched_piano =
+  part(bpm: 100, synth: piano, gain: 0.45)
+  |> repeat(2, fn bar ->
+    steps(
+      bar,
+      [
+        {:d3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:d3, release: 2 / 4},
+        nil,
+        {:d3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:d3, release: 2 / 4},
+        nil,
+        {:c3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:c3, release: 2 / 4},
+        nil,
+        {:c3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:c3, release: 2 / 4},
+        nil
+      ],
+      1 / 4,
+      release: 1.0
+    )
+  end)
+
+pitched_piano_2 =
+  part(bpm: 100, synth: piano, gain: 0.45)
+  |> repeat(2, fn bar ->
+    steps(
+      bar,
+      [
+        {:f3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:f3, release: 2 / 4},
+        nil,
+        {:f3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:f3, release: 2 / 4},
+        nil,
+        {:f3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:f3, release: 2 / 4},
+        nil,
+        {:e3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:e3, release: 2 / 4},
+        nil
+      ],
+      1 / 4,
+      release: 1.0
+    )
+  end)
+
+pitched_piano_3 =
+  part(bpm: 100, synth: piano, gain: 0.45)
+  |> repeat(2, fn bar ->
+    steps(
+      bar,
+      [
+        {:a3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:a3, release: 2 / 4},
+        nil,
+        {:as3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:as3, release: 2 / 4},
+        nil,
+        {:a3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:a3, release: 2 / 4},
+        nil,
+        {:g3, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:g3, release: 2 / 4},
+        nil
+      ],
+      1 / 4,
+      release: 1.0
+    )
+  end)
+
+pitched_pipe =
+  part(bpm: 100, synth: pipe, gain: 0.5)
+  |> repeat(2, fn bar ->
+    steps(
+      bar,
+      [
+        {:a4, release: 3 / 4},
+        nil,
+        nil,
+        :f4,
+        {:d4, release: 2 / 4},
+        nil,
+        {:f4, release: 2 / 4},
+        nil,
+        {:g4, release: 3 / 4},
+        nil,
+        nil,
+        :f4,
+        {:d4, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        {:f4, release: 2 / 4},
+        nil,
+        {:a4, release: 2 / 4},
+        nil,
+        {:c5, release: 3 / 4},
+        nil,
+        nil,
+        :a4,
+        {:g4, release: 4 / 4},
+        nil,
+        nil,
+        nil,
+        {:e4, release: 2 / 4},
+        nil,
+        nil,
+        nil
+      ],
+      1 / 4,
+      release: 0.8
+    )
+  end)
+
+pitched_strings =
+  part(bpm: 100, synth: strings, gain: 0.25)
+  |> repeat(2, fn bar ->
+    steps(
+      bar,
+      [
+        {:d3, release: 8 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:as3, release: 8 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:f3, release: 8 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        {:c4, release: 8 / 4},
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil
+      ],
+      1 / 4,
+      release: 2.0
+    )
+  end)
+
+song =
+  Score.from_parts(
+    [
+      drum_kick,
+      drum_snare,
+      drum_clap,
+      drum_hat,
+      drum_open_hat,
+      pitched_bass,
+      pitched_piano,
+      pitched_piano_2,
+      pitched_piano_3,
+      pitched_pipe,
+      pitched_strings
+    ],
+    bpm: 100,
+    beats: 16
+  )
+
+song
+|> Score.render(44100)
+|> TuningFork.Fx.reverb(44100, room: 0.25, mix: 0.2)
+|> TuningFork.Wav.encode(rate: 44100)
+|> Kino.Audio.new(:wav)
 ```
 
 ## Live patterns, the Strudel way
 
-One pattern a row, stacked and played on a loop. Edit a row and press **Evaluate** (or
-ctrl+enter): the change lands at the next cycle line. A row behind `--` is switched off;
-a row ending in `|> scope()` or `|> pianoroll()` draws itself. A piece pasted from
+One pattern a row, stacked and looped. Here a cycle is two beats — one chord — so `<a b c d>`
+walks the four chords and `cps` 0.8333 is 100 bpm. The arrangement is in the masks: each
+digit of `mask("<0 1 1 1 0 1 1>/8")` switches its row on or off for eight cycles, so the
+seven digits are the seven sections. Edit a row and press **Evaluate** (or ctrl+enter): the
+change lands at the next cycle line. A row behind `--` is switched off; a row ending in
+`|> scope()` or `|> pianoroll()` draws itself. `bank("RolandTR909")` plays the drum machine's
+recordings once they have arrived, the kit's own drums until then. A piece pasted from
 strudel.cc plays as written — see `strudel.livemd`.
 
-<!-- livebook:{"attrs":"eyJjcHMiOiIwLjUiLCJ0ZXh0IjoicyhcImJkKjRcIikgfD4gZ2FpbigwLjgpXG5zKFwiW2hoXSo4PzAuMlwiKSB8PiBnYWluKDAuNSlcbn4gfiBjcCB+XG5uKFwiPDAgNCAwIDkgNz4qOFwiKSB8PiBzY2FsZShcImc6bWlub3JcIikgfD4gc2hhcGUoOnNhdykgfD4gY3V0b2ZmKDQwMCkgfD4gcmVzb25hbmNlKDYpIHw+IGdhaW4oMC40KVxuLS0gfD4gc2NvcGUoKSJ9","chunks":null,"kind":"Elixir.KinoTuningFork.LivePatternsCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJjcHMiOiIwLjgzMzMiLCJ0ZXh0IjoicyhcIjxbYmQgfl0gW1tiZCB+IGJkIH5dIH5dIFtiZCB+XSBbW2JkIH4gYmQgfl0gW34gYmQgfiB+XV0+LCB+IHNkLCA8fiBbfiBjcF0gfiBbfiBjcF0+XCIpXG58PiBiYW5rKFwiUm9sYW5kVFI5MDlcIikgfD4gbWFzayhcIjwwIDEgMSAxIDAgMSAxPi84XCIpIHw+IGdhaW4oMC4zNSlcbnMoXCI8aGgqNCBbaGggaGggaGggb2hdPlwiKSB8PiBiYW5rKFwiUm9sYW5kVFI5MDlcIikgfD4gbWFzayhcIjxbMCAxXSAxIDEgMSAxIDEgMT4vOFwiKSB8PiBnYWluKDAuMjUpXG5uKFwiPFswIDAgNF0gWzUgNSAyXSBbMiAyIDZdIFs2IDYgM10+XCIpIHw+IHNjYWxlKFwiZDI6bWlub3JcIikgfD4gc3RydWN0KFwieEAyIH4geCB4QDIgeCB+XCIpXG58PiBzKFwiZ21fZWxlY3RyaWNfYmFzc19maW5nZXJcIikgfD4gbWFzayhcIjwwIDEgMSAxIDEgMSAxPi84XCIpIHw+IGdhaW4oMC41KVxubm90ZShcIjxbZDMsZjMsYTNdIFtkMyxmMyxiYjNdIFtjMyxmMyxhM10gW2MzLGUzLGczXT5cIikgfD4gc3RydWN0KFwieEA0IH5AMiB4QDJcIilcbnw+IHMoXCJnbV9lcGlhbm8xXCIpIHw+IHBoYXNlcigyKSB8PiByb29tKDAuNCkgfD4gZ2FpbigwLjMpXG5ub3RlKFwiPFthNEAzIGY0IGQ0QDIgZjRAMl0gW2c0QDMgZjQgZDRANF0gW2Y0QDIgYTRAMiBjNUAzIGE0XSBbZzRANCBlNEAyIH5AMl0+XCIpXG58PiBzKFwiZ21fZmx1dGVcIikgfD4gbWFzayhcIjwwIDAgMSAxIDAgMSAxPi84XCIpIHw+IHJvb20oMC4zKSB8PiBnYWluKDAuNClcbm5vdGUoXCI8W2Q1QDIgfiBhNCB+QDMgZjRAMl0gW35AMyBlNCBmNEAyIGQ0QDJdPlwiKSB8PiBzKFwiZ21fZmx1dGVcIikgfD4gZGVsYXkoMC4zKSB8PiByb29tKDAuNilcbnw+IG1hc2soXCI8MCAwIDAgMCAxIDAgMD4vOFwiKSB8PiBnYWluKDAuNClcbm5vdGUoXCI8W2Q0IGY0IGE0IGQ1XSBbZDQgZjQgYmI0IGQ1XSBbYzQgZjQgYTQgYzVdIFtjNCBlNCBnNCBjNV0+KjJcIikgfD4gcyhcImdtX2VwaWFubzFcIilcbnw+IG1hc2soXCI8MCAwIDAgMCAwIDEgMT4vOFwiKSB8PiBwYW4oXCI8MC4zIC0wLjM+XCIpIHw+IGdhaW4oMC4yKVxubm90ZShcIjxkMyBiYjMgZjMgYzQ+XCIpIHw+IHMoXCJnbV9zdHJpbmdfZW5zZW1ibGVfMVwiKSB8PiByb29tKDAuNSkgfD4gZ2FpbigwLjMpXG4tLSB8PiBwaWFub3JvbGwoKSJ9","chunks":null,"kind":"Elixir.KinoTuningFork.LivePatternsCell","livebook_object":"smart_cell"} -->
 
 ```elixir
+unless Process.whereis(TuningFork.Stage), do: Kino.render(KinoTuningFork.stage())
 
+rows = [
+  %{
+    source:
+      "s(\"<[bd ~] [[bd ~ bd ~] ~] [bd ~] [[bd ~ bd ~] [~ bd ~ ~]]>, ~ sd, <~ [~ cp] ~ [~ cp]>\")"
+  },
+  %{source: "|> bank(\"RolandTR909\") |> mask(\"<0 1 1 1 0 1 1>/8\") |> gain(0.35)"},
+  %{
+    source:
+      "s(\"<hh*4 [hh hh hh oh]>\") |> bank(\"RolandTR909\") |> mask(\"<[0 1] 1 1 1 1 1 1>/8\") |> gain(0.25)"
+  },
+  %{
+    source:
+      "n(\"<[0 0 4] [5 5 2] [2 2 6] [6 6 3]>\") |> scale(\"d2:minor\") |> struct(\"x@2 ~ x x@2 x ~\")"
+  },
+  %{source: "|> s(\"gm_electric_bass_finger\") |> mask(\"<0 1 1 1 1 1 1>/8\") |> gain(0.5)"},
+  %{
+    source: "note(\"<[d3,f3,a3] [d3,f3,bb3] [c3,f3,a3] [c3,e3,g3]>\") |> struct(\"x@4 ~@2 x@2\")"
+  },
+  %{source: "|> s(\"gm_epiano1\") |> phaser(2) |> room(0.4) |> gain(0.3)"},
+  %{source: "note(\"<[a4@3 f4 d4@2 f4@2] [g4@3 f4 d4@4] [f4@2 a4@2 c5@3 a4] [g4@4 e4@2 ~@2]>\")"},
+  %{source: "|> s(\"gm_flute\") |> mask(\"<0 0 1 1 0 1 1>/8\") |> room(0.3) |> gain(0.4)"},
+  %{
+    source:
+      "note(\"<[d5@2 ~ a4 ~@3 f4@2] [~@3 e4 f4@2 d4@2]>\") |> s(\"gm_flute\") |> delay(0.3) |> room(0.6)"
+  },
+  %{source: "|> mask(\"<0 0 0 0 1 0 0>/8\") |> gain(0.4)"},
+  %{
+    source:
+      "note(\"<[d4 f4 a4 d5] [d4 f4 bb4 d5] [c4 f4 a4 c5] [c4 e4 g4 c5]>*2\") |> s(\"gm_epiano1\")"
+  },
+  %{source: "|> mask(\"<0 0 0 0 0 1 1>/8\") |> pan(\"<0.3 -0.3>\") |> gain(0.2)"},
+  %{source: "note(\"<d3 bb3 f3 c4>\") |> s(\"gm_string_ensemble_1\") |> room(0.5) |> gain(0.3)"},
+  %{source: "-- |> pianoroll()"}
+]
+
+pattern = TuningFork.Session.combined(rows)
+
+if TuningFork.Stage.cycle() do
+  TuningFork.Stage.update_pattern(pattern, at: :cycle)
+else
+  TuningFork.Stage.start_pattern(pattern, cps: 0.8333)
+end
 ```
 
 ## Live loops, the Sonic Pi way
 
-Named loops, each on its own length, written as `TuningFork.Part` code or in Sonic Pi's
-words. Evaluate a loop and it swaps in when it next comes round; the counters and state a
-loop reads (`tick()`, `get/1`) are worked out afresh each round, so a loop can walk.
+Named loops, each on its own length, in Sonic Pi's words — `sample`, `play`, `sleep`,
+`play_pattern_timed`, `with_fx` — and ordinary Elixir around them. Every loop but the pad is
+two bars long and reads its section from `tick()`, its own round counter, against the same
+`"ABCCDEE"` the masks spell above. Evaluate a loop and it swaps in when it next comes round.
+`use_synth "gm_epiano1"` plays a General MIDI instrument through the kit; `use_synth :tb303`
+and the other synths are there too.
 
-<!-- livebook:{"attrs":"eyJsb29wcyI6W3sibmFtZSI6ImRydW1zIiwic291cmNlIjoicGFydChicG06IDEyMCwgc3ludGg6IEtpdC52b2ljZShcImJkXCIsIDAuMykpXG58PiBzdGVwcyhcInguLi54Li4ueC4uLnguLi5cIikifSx7Im5hbWUiOiJiYXNzIiwic291cmNlIjoicGFydChicG06IDEyMCwgc3ludGg6IEtpdC52b2ljZSgle25vdGU6IFwiYzJcIiwgc2hhcGU6IDpzYXd9LCAwLjQpKVxufD4gcGxheSg6YzIsIDIpIHw+IHBsYXkoOmcyLCAyKSJ9XX0","chunks":null,"kind":"Elixir.KinoTuningFork.LiveLoopsCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJsb29wcyI6W3sibmFtZSI6ImRydW1zIiwic291cmNlIjoidXNlX2JwbSAxMDBcbnNlY3Rpb24gPSBTdHJpbmcuYXQoXCJBQkNDREVFXCIsIGRpdihyZW0odGljaygpLCAxNCksIDIpKVxudXNlX3NhbXBsZV9kZWZhdWx0cyBhbXA6IChpZiBzZWN0aW9uIGluIH53KEIgQyBFKSwgZG86IDAuNiwgZWxzZTogMC4wKVxuZm9yIF9iYXIgPC0gMS4uMiBkb1xuICBzYW1wbGUgOmJkX2hhdXNcbiAgc2xlZXAgMVxuICBzYW1wbGUgOnNuX2RvbGZcbiAgc2xlZXAgMVxuICBzYW1wbGUgOmJkX2hhdXNcbiAgc2xlZXAgMC41XG4gIHNhbXBsZSA6YmRfaGF1c1xuICBzbGVlcCAwLjVcbiAgc2FtcGxlIDpzbl9kb2xmXG4gIHNhbXBsZSA6cGVyY19zbmFwXG4gIHNsZWVwIDFcbmVuZCJ9LHsibmFtZSI6ImhhdHMiLCJzb3VyY2UiOiJ1c2VfYnBtIDEwMFxuc2VjdGlvbiA9IFN0cmluZy5hdChcIkFCQ0NERUVcIiwgZGl2KHJlbSh0aWNrKCksIDE0KSwgMikpXG5sZXZlbCA9IGlmIHNlY3Rpb24gPT0gXCJBXCIsIGRvOiAwLjIsIGVsc2U6IDAuNFxuZm9yIHN0ZXAgPC0gMC4uMTUgZG9cbiAgc2FtcGxlIChpZiBzdGVwID09IDE1LCBkbzogOmRydW1fY3ltYmFsX29wZW4sIGVsc2U6IDpkcnVtX2N5bWJhbF9jbG9zZWQpLCBhbXA6IGxldmVsXG4gIHNsZWVwIDAuNVxuZW5kIn0seyJuYW1lIjoiYmFzcyIsInNvdXJjZSI6InVzZV9icG0gMTAwXG51c2Vfc3ludGggXCJnbV9lbGVjdHJpY19iYXNzX2ZpbmdlclwiXG5zZWN0aW9uID0gU3RyaW5nLmF0KFwiQUJDQ0RFRVwiLCBkaXYocmVtKHRpY2soKSwgMTQpLCAyKSlcbmlmIHNlY3Rpb24gPT0gXCJBXCIgZG9cbiAgc2xlZXAgOFxuZWxzZVxuICBwbGF5X3BhdHRlcm5fdGltZWQgWzpkMiwgOmQyLCA6ZDIsIDphMiwgOmJiMiwgOmJiMiwgOmJiMiwgOmYyLCA6ZjIsIDpmMiwgOmYyLCA6YzMsIDpjMywgOmMzLCA6YzMsIDpnMl0sXG4gICAgICAgICAgICAgICAgICAgICBbMC43NSwgMC4yNSwgMC41LCAwLjVdLCByZWxlYXNlOiAwLjNcbmVuZCJ9LHsibmFtZSI6ImNob3JkcyIsInNvdXJjZSI6InVzZV9icG0gMTAwXG51c2Vfc3ludGggXCJnbV9lcGlhbm8xXCJcbnVzZV9zeW50aF9kZWZhdWx0cyBhbXA6IDAuNlxuZm9yIG5vdGVzIDwtIFtbOmQzLCA6ZjMsIDphM10sIFs6ZDMsIDpmMywgOmJiM10sIFs6YzMsIDpmMywgOmEzXSwgWzpjMywgOmUzLCA6ZzNdXSBkb1xuICBwbGF5X2Nob3JkIG5vdGVzLCByZWxlYXNlOiAxXG4gIHNsZWVwIDEuNVxuICBwbGF5X2Nob3JkIG5vdGVzLCByZWxlYXNlOiAwLjVcbiAgc2xlZXAgMC41XG5lbmQifSx7Im5hbWUiOiJtZWxvZHkiLCJzb3VyY2UiOiJ1c2VfYnBtIDEwMFxudXNlX3N5bnRoIFwiZ21fZmx1dGVcIlxudHVuZSA9IFs6YTQsIDpmNCwgOmQ0LCA6ZjQsIDpnNCwgOmY0LCA6ZDQsIDpmNCwgOmE0LCA6YzUsIDphNCwgOmc0LCA6ZTRdXG50aW1lcyA9IFswLjc1LCAwLjI1LCAwLjUsIDAuNSwgMC43NSwgMC4yNSwgMSwgMC41LCAwLjUsIDAuNzUsIDAuMjUsIDEsIDFdXG5jYXNlIFN0cmluZy5hdChcIkFCQ0NERUVcIiwgZGl2KHJlbSh0aWNrKCksIDE0KSwgMikpIGRvXG4gIFwiQ1wiIC0+IHBsYXlfcGF0dGVybl90aW1lZCB0dW5lLCB0aW1lcywgcmVsZWFzZTogMC40XG4gIFwiRVwiIC0+IHBsYXlfcGF0dGVybl90aW1lZCB0dW5lLCB0aW1lcywgcmVsZWFzZTogMC40LCBhbXA6IDEuMlxuICBcIkRcIiAtPiB3aXRoX2Z4IDplY2hvLCBwaGFzZTogMC4zNzUsIG1peDogMC4zIGRvXG4gICAgICAgICAgIHBsYXlfcGF0dGVybl90aW1lZCBbOmQ1LCA6YTQsIDpmNCwgOmU0LCA6ZjQsIDpkNF0sIFsxLCAwLjUsIDIuNSwgMC41LCAxLCAyLjVdLCByZWxlYXNlOiAwLjVcbiAgICAgICAgIGVuZFxuICBfIC0+IHNsZWVwIDhcbmVuZCJ9LHsibmFtZSI6ImFycGVnZ2lvIiwic291cmNlIjoidXNlX2JwbSAxMDBcbnVzZV9zeW50aCBcImdtX2VwaWFubzFcIlxuaWYgU3RyaW5nLmF0KFwiQUJDQ0RFRVwiLCBkaXYocmVtKHRpY2soKSwgMTQpLCAyKSkgPT0gXCJFXCIgZG9cbiAgZm9yIGFycCA8LSBbWzpkNCwgOmY0LCA6YTQsIDpkNV0sIFs6ZDQsIDpmNCwgOmJiNCwgOmQ1XSwgWzpjNCwgOmY0LCA6YTQsIDpjNV0sIFs6YzQsIDplNCwgOmc0LCA6YzVdXSBkb1xuICAgIHBsYXlfcGF0dGVybl90aW1lZCBhcnAgKysgYXJwLCAwLjI1LCBhbXA6IDAuNCwgcmVsZWFzZTogMC4yXG4gIGVuZFxuZWxzZVxuICBzbGVlcCA4XG5lbmQifSx7Im5hbWUiOiJwYWQiLCJzb3VyY2UiOiJ1c2VfYnBtIDEwMFxudXNlX3N5bnRoIFwiZ21fc3RyaW5nX2Vuc2VtYmxlXzFcIlxucGxheSB0aWNrKFs6ZDMsIDpiYjMsIDpmMywgOmM0XSksIHJlbGVhc2U6IDIsIGFtcDogMC44XG5zbGVlcCAyIn1dfQ","chunks":null,"kind":"Elixir.KinoTuningFork.LiveLoopsCell","livebook_object":"smart_cell"} -->
 
 ```elixir
+unless Process.whereis(TuningFork.Stage), do: Kino.render(KinoTuningFork.stage())
 
+use TuningFork.SonicPi
+
+live_loop :drums do
+  use_bpm 100
+  section = String.at("ABCCDEE", div(rem(tick(), 14), 2))
+  use_sample_defaults amp: if(section in ~w(B C E), do: 0.6, else: 0.0)
+
+  for _bar <- 1..2 do
+    sample :bd_haus
+    sleep 1
+    sample :sn_dolf
+    sleep 1
+    sample :bd_haus
+    sleep 0.5
+    sample :bd_haus
+    sleep 0.5
+    sample :sn_dolf
+    sample :perc_snap
+    sleep 1
+  end
+end
+
+live_loop :hats do
+  use_bpm 100
+  section = String.at("ABCCDEE", div(rem(tick(), 14), 2))
+  level = if section == "A", do: 0.2, else: 0.4
+
+  for step <- 0..15 do
+    sample if(step == 15, do: :drum_cymbal_open, else: :drum_cymbal_closed), amp: level
+    sleep 0.5
+  end
+end
+
+live_loop :bass do
+  use_bpm 100
+  use_synth "gm_electric_bass_finger"
+  section = String.at("ABCCDEE", div(rem(tick(), 14), 2))
+
+  if section == "A" do
+    sleep 8
+  else
+    play_pattern_timed [
+                         :d2,
+                         :d2,
+                         :d2,
+                         :a2,
+                         :bb2,
+                         :bb2,
+                         :bb2,
+                         :f2,
+                         :f2,
+                         :f2,
+                         :f2,
+                         :c3,
+                         :c3,
+                         :c3,
+                         :c3,
+                         :g2
+                       ],
+                       [0.75, 0.25, 0.5, 0.5], release: 0.3
+  end
+end
+
+live_loop :chords do
+  use_bpm 100
+  use_synth "gm_epiano1"
+  use_synth_defaults amp: 0.6
+
+  for notes <- [[:d3, :f3, :a3], [:d3, :f3, :bb3], [:c3, :f3, :a3], [:c3, :e3, :g3]] do
+    play_chord notes, release: 1
+    sleep 1.5
+    play_chord notes, release: 0.5
+    sleep 0.5
+  end
+end
+
+live_loop :melody do
+  use_bpm 100
+  use_synth "gm_flute"
+  tune = [:a4, :f4, :d4, :f4, :g4, :f4, :d4, :f4, :a4, :c5, :a4, :g4, :e4]
+  times = [0.75, 0.25, 0.5, 0.5, 0.75, 0.25, 1, 0.5, 0.5, 0.75, 0.25, 1, 1]
+
+  case String.at("ABCCDEE", div(rem(tick(), 14), 2)) do
+    "C" ->
+      play_pattern_timed tune, times, release: 0.4
+
+    "E" ->
+      play_pattern_timed tune, times, release: 0.4, amp: 1.2
+
+    "D" ->
+      with_fx :echo, phase: 0.375, mix: 0.3 do
+        play_pattern_timed [:d5, :a4, :f4, :e4, :f4, :d4], [1, 0.5, 2.5, 0.5, 1, 2.5],
+          release: 0.5
+      end
+
+    _ ->
+      sleep 8
+  end
+end
+
+live_loop :arpeggio do
+  use_bpm 100
+  use_synth "gm_epiano1"
+
+  if String.at("ABCCDEE", div(rem(tick(), 14), 2)) == "E" do
+    for arp <- [
+          [:d4, :f4, :a4, :d5],
+          [:d4, :f4, :bb4, :d5],
+          [:c4, :f4, :a4, :c5],
+          [:c4, :e4, :g4, :c5]
+        ] do
+      play_pattern_timed arp ++ arp, 0.25, amp: 0.4, release: 0.2
+    end
+  else
+    sleep 8
+  end
+end
+
+live_loop :pad do
+  use_bpm 100
+  use_synth "gm_string_ensemble_1"
+  play tick([:d3, :bb3, :f3, :c4]), release: 2, amp: 0.8
+  sleep 2
+end
 ```
 
 ## A MIDI file, heard
 
 Point the cell at a `.mid` file and it becomes a `TuningFork.Score` — tempo map, note
-lengths, velocity and pitch bend kept, drums guessed by channel — and plays. The written
-source shows the `TuningFork.Midi.read!/1` and `to_score/2` calls it stands for.
+lengths, velocity and pitch bend kept, drums guessed by channel — rendered to audio. A
+relative path is taken from the notebook's own directory; `bwv971.mid` sits next to this
+one. The written source shows the `TuningFork.Midi.read!/1` and `Gm.score/2` calls it
+stands for.
 
-<!-- livebook:{"attrs":"e30","chunks":null,"kind":"Elixir.KinoTuningFork.MidiCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJicG0iOiIiLCJkcnVtX2dhaW4iOiIxLjAiLCJkcnVtcyI6ImF1dG8iLCJnYWluIjoiMC4yIiwibG9vcHMiOiIxIiwicGF0aCI6ImJ3djk3MS5taWQiLCJwbGFpbiI6ZmFsc2UsInJldmVyYiI6IjAuMiIsInZhcmlhYmxlIjoic2NvcmUifQ","chunks":null,"kind":"Elixir.KinoTuningFork.MidiCell","livebook_object":"smart_cell"} -->
 
 ```elixir
+score =
+  "bwv971.mid"
+  |> TuningFork.Midi.read!()
+  |> TuningFork.Gm.score(gain: 0.2, drum_gain: 1, drum_channels: :auto)
 
+score
+|> TuningFork.Score.render(44100)
+|> TuningFork.Fx.reverb(44100, room: 0.2, mix: 0.22)
+|> TuningFork.Wav.encode(rate: 44100)
+|> Kino.Audio.new(:wav)
 ```
 
 ## The same things from code
 
-Everything a cell does is a call in `TuningFork`. A stage in the notebook:
+Everything a cell does is a call in `TuningFork`. Module names are written out below because
+the cells above have already imported `TuningFork.Part` and `TuningFork.SonicPi`, whose
+`gain`, `note` and `scale` would clash with `TuningFork.Pattern.Control`'s. A stage in the
+notebook:
 
 ```elixir
 KinoTuningFork.stage()
 ```
 
-A pattern started on it, swapped at the cycle line, and stopped:
+The tune's drums started on it as a pattern, the bass added at the next cycle line, and
+stopped:
 
 ```elixir
-import TuningFork.Pattern.Control
+alias TuningFork.Pattern.Control
 
-TuningFork.Stage.start_pattern(s("bd*4, hh*8") |> gain(0.8), cps: 0.5)
+drums =
+  Control.s("<[bd ~] [[bd ~ bd ~] ~] [bd ~] [[bd ~ bd ~] [~ bd ~ ~]]>, ~ sd, <hh*4 [hh hh hh oh]>")
+  |> Control.bank("RolandTR909")
+  |> Control.gain(0.4)
+
+TuningFork.Stage.start_pattern(drums, cps: 0.8333)
 ```
 
 ```elixir
-TuningFork.Stage.update_pattern(n("0 4 7") |> scale("c:minor") |> s("sawtooth"), at: :cycle)
+bass =
+  Control.n("<[0 0 4] [5 5 2] [2 2 6] [6 6 3]>")
+  |> Control.scale("d2:minor")
+  |> Control.struct("x@2 ~ x x@2 x ~")
+  |> Control.s("gm_electric_bass_finger")
+  |> Control.gain(0.5)
+
+TuningFork.Stage.update_pattern(TuningFork.Pattern.stack([drums, bass]), at: :cycle)
 ```
 
 ```elixir
 TuningFork.Stage.stop_pattern()
 ```
 
-A score rendered to a WAV the notebook plays without any stage:
+The flute line and the chords as a score, rendered to a WAV the notebook plays without any
+stage:
 
 ```elixir
-import TuningFork.Part
+alias TuningFork.{Gm, Part, Score, Voice, Wav}
 
-part(bpm: 112, synth: TuningFork.Voice.new(shape: :saw, cutoff: 0.2))
-|> play(:d2, 1)
-|> play(:a2, 1)
-|> then(&TuningFork.Score.from_parts([&1], beats: 2))
-|> TuningFork.Score.render(44_100)
-|> TuningFork.Wav.encode(rate: 44_100)
+base = Voice.new(shape: :saw, gain: 0.4, cutoff: 0.45)
+
+flute =
+  Part.part(bpm: 100, synth: Gm.for_program(73, base))
+  |> Part.pattern([:a4, :f4, :d4, :f4], [0.75, 0.25, 0.5, 0.5])
+  |> Part.pattern([:g4, :f4, :d4], [0.75, 0.25, 1.0])
+  |> Part.pattern([:f4, :a4, :c5, :a4], [0.5, 0.5, 0.75, 0.25])
+  |> Part.pattern([:g4, :e4], [1.0, 1.0])
+
+chords =
+  [[:d3, :f3, :a3], [:d3, :f3, :bb3], [:c3, :f3, :a3], [:c3, :e3, :g3]]
+  |> Enum.reduce(Part.part(bpm: 100, synth: Gm.for_program(4, base)), fn notes, part ->
+    part |> Part.chord(notes, 1.5) |> Part.chord(notes, 0.5)
+  end)
+
+Score.from_parts([flute, chords], bpm: 100, beats: 8)
+|> Score.render(44_100)
+|> Wav.encode(rate: 44_100)
 |> Kino.Audio.new(:wav)
 ```

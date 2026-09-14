@@ -445,6 +445,13 @@ defmodule TuningFork.ComposerTest do
       assert Json.from_map(%{"scale" => "not_a_scale"}).scale == :minor_pentatonic
     end
 
+    test "every note name it knows reads, whether or not the atom exists yet" do
+      for octave <- 0..8, name <- ~w(c cs d ds e f fs g gs a as b) do
+        root = "#{name}#{octave}"
+        assert Json.from_map(%{"root" => root}).root == String.to_atom(root)
+      end
+    end
+
     test "steps survive in both their forms" do
       p =
         Composer.new()

@@ -12,7 +12,7 @@ defmodule TuningFork.StrudelControlsTest do
   import TuningFork.Pattern.Control
 
   alias TuningFork.{Kit, Pattern, Voice}
-  alias TuningFork.Pattern.{Control, Player}
+  alias TuningFork.Pattern.Player
 
   doctest TuningFork.Reverb
 

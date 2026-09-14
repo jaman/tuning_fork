@@ -19,7 +19,7 @@ defmodule TuningFork.SonicPi.Thread do
   @type t :: %__MODULE__{
           now: float(),
           bpm: float(),
-          synth: atom() | Voice.t(),
+          synth: atom() | String.t() | Voice.t(),
           synth_defaults: keyword(),
           sample_defaults: keyword(),
           transpose: integer(),

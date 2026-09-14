@@ -290,6 +290,12 @@ defmodule TuningFork.Pattern.ControlStrudelTest do
       pattern = s("bd sn") |> struct("x*4")
       assert values(pattern) == [%{sound: "bd"}, %{sound: "bd"}, %{sound: "sn"}, %{sound: "sn"}]
     end
+
+    test "keeps every note sounding at a structural event" do
+      pattern = chord("Dm") |> voicing() |> struct("x ~ ~ x")
+      assert onsets(pattern) == [0.0, 0.0, 0.0, 0.0, 0.0, 0.75, 0.75, 0.75, 0.75, 0.75]
+      assert pattern |> values() |> Enum.map(& &1.note) |> Enum.sort() == [50, 50, 57, 57, 62, 62, 65, 65, 69, 69]
+    end
   end
 
   describe "mask" do
@@ -425,14 +431,12 @@ defmodule TuningFork.Pattern.ControlStrudelTest do
   end
 
   describe "sample banks" do
-    test "bank puts its name in front of the sound" do
+    test "bank names the bank each sound comes from" do
       assert values(s("bd sd:2") |> bank("crate")) == [
-               %{sound: "crate_bd"},
-               %{sound: "crate_sd:2"}
+               %{sound: "bd", bank: "crate"},
+               %{sound: "sd:2", bank: "crate"}
              ]
-    end
 
-    test "a synthesised-drum bank still adjusts the kit's drums" do
       assert values(s("bd") |> bank("RolandTR808")) == [%{sound: "bd", bank: "RolandTR808"}]
     end
   end

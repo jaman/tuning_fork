@@ -31,15 +31,16 @@ defmodule KinoTuningFork.Stage do
     * any other `TuningFork.Stage.start_link/1` option
 
   A stage already registered under `:name` is stopped first, so re-running the cell gives a
-  fresh one. The widget is linked to the stage: closing one closes the other.
+  fresh one; the widget that stage belonged to stays on the page, silent, with its stage
+  shown as closed.
   """
   @spec new(keyword()) :: Live.t()
   def new(opts \\ []) do
     Live.new(__MODULE__, opts)
   end
 
-  @doc "The stage behind a widget."
-  @spec stage(Live.t()) :: pid()
+  @doc "The stage behind a widget, or `nil` once that stage has stopped."
+  @spec stage(Live.t()) :: pid() | nil
   def stage(kino), do: Live.call(kino, :stage)
 
   @impl true
@@ -58,6 +59,7 @@ defmodule KinoTuningFork.Stage do
       |> Keyword.put(:sink_opts, owner: self())
 
     {:ok, stage} = start_fresh(name, stage_opts)
+    Process.monitor(stage)
     Process.send_after(self(), :tick, @tick_ms)
 
     {:ok, assign(ctx, stage: stage, rate: rate, channels: channels, level: 0.0)}
@@ -77,13 +79,27 @@ defmodule KinoTuningFork.Stage do
     {:noreply, ctx}
   end
 
+  def handle_info(:tick, %{assigns: %{stage: nil}} = ctx), do: {:noreply, ctx}
+
   def handle_info(:tick, ctx) do
     Process.send_after(self(), :tick, @tick_ms)
-    broadcast_event(ctx, "readouts", readouts(ctx.assigns.stage))
+
+    case readouts_if_running(ctx.assigns.stage) do
+      nil -> :ok
+      readouts -> broadcast_event(ctx, "readouts", readouts)
+    end
+
     {:noreply, ctx}
   end
 
+  def handle_info({:DOWN, _ref, :process, stage, _reason}, %{assigns: %{stage: stage}} = ctx) do
+    broadcast_event(ctx, "closed", %{})
+    {:noreply, assign(ctx, stage: nil)}
+  end
+
   @impl true
+  def handle_event("hush", _payload, %{assigns: %{stage: nil}} = ctx), do: {:noreply, ctx}
+
   def handle_event("hush", _payload, ctx) do
     TuningFork.SonicPi.hush(ctx.assigns.stage)
     {:noreply, ctx}
@@ -103,6 +119,12 @@ defmodule KinoTuningFork.Stage do
       |> Enum.sort_by(& &1.name)
 
     %{loops: loops, cycle: Stage.cycle(stage)}
+  end
+
+  defp readouts_if_running(stage) do
+    if Process.alive?(stage), do: readouts(stage)
+  catch
+    :exit, _stopped_meanwhile -> nil
   end
 
   defp start_fresh(name, stage_opts) do
@@ -174,6 +196,14 @@ defmodule KinoTuningFork.Stage do
       ctx.handleEvent("pcm", ([_info, buffer]) => {
         const peak = player.push(buffer);
         meterFill.style.width = `${Math.min(100, Math.round(peak * 100))}%`;
+      });
+
+      ctx.handleEvent("closed", () => {
+        if (player.playing()) player.stop();
+        playBtn.disabled = true;
+        hushBtn.disabled = true;
+        status.textContent = "stage closed · a newer stage took its place";
+        board.textContent = "";
       });
 
       ctx.handleEvent("readouts", ({ loops, cycle }) => {

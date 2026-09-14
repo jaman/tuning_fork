@@ -61,6 +61,19 @@ defmodule KinoTuningFork.StageTest do
     assert Widget.stage(second) == Process.whereis(TuningFork.Stage)
   end
 
+  test "a widget whose stage has gone stays up, quiet, and says so" do
+    first = widget(name: TuningFork.Stage)
+    _second = widget(name: TuningFork.Stage)
+
+    assert_broadcast_event(first, "closed", %{}, 2_000)
+    Process.sleep(600)
+
+    assert Process.alive?(first.pid)
+    assert Widget.stage(first) == nil
+    push_event(first, "hush", %{})
+    assert Process.alive?(first.pid)
+  end
+
   test "hush stops everything" do
     kino = widget()
     stage = Widget.stage(kino)

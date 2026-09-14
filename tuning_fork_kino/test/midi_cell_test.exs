@@ -89,6 +89,14 @@ defmodule KinoTuningFork.MidiCellTest do
       assert MidiCell.to_source(attrs(%{"plain" => true})) =~ "plain: true"
     end
 
+    test "a relative path is taken from the notebook's own directory" do
+      assert MidiCell.to_source(attrs(%{"path" => "song.mid"})) =~
+               ~s|Path.expand("song.mid", __DIR__)|
+
+      assert MidiCell.to_source(attrs(%{"path" => "/tmp/song.mid"})) =~ ~s|"/tmp/song.mid"|
+      refute MidiCell.to_source(attrs(%{"path" => "/tmp/song.mid"})) =~ "Path.expand"
+    end
+
     test "a path with a quote in it is escaped rather than breaking out of the string" do
       source = MidiCell.to_source(attrs(%{"path" => ~s(od"d.mid)}))
 

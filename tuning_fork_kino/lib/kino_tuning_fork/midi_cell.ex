@@ -50,7 +50,7 @@ defmodule KinoTuningFork.MidiCell do
 
   Attributes, all strings unless noted:
 
-    * `"path"` — the MIDI file to read.
+    * `"path"` — the MIDI file to read; a relative path is taken from the notebook's directory.
     * `"variable"` — the variable the score is bound to, default `"score"`. A name that would
       not compile falls back to `"score"`.
     * `"bpm"` — tempo to play at. Blank uses the file's own.
@@ -74,7 +74,7 @@ defmodule KinoTuningFork.MidiCell do
 
     """
     #{variable} =
-      #{inspect(path)}
+      #{located(path)}
       |> TuningFork.Midi.read!()
       |> TuningFork.Gm.score(#{score_opts(attrs)})
 
@@ -85,6 +85,13 @@ defmodule KinoTuningFork.MidiCell do
     """
     |> Code.format_string!()
     |> IO.iodata_to_binary()
+  end
+
+  defp located(path) do
+    case Path.type(path) do
+      :absolute -> inspect(path)
+      _relative -> "Path.expand(#{inspect(path)}, __DIR__)"
+    end
   end
 
   defp score_opts(attrs) do

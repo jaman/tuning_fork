@@ -1,7 +1,9 @@
 defmodule KinoTuningFork.LivePatternsCell do
   @moduledoc """
   A live-coding smart cell: a buffer of `TuningFork.Session` pattern rows on a stage of its
-  own, heard in the browser as it plays.
+  own, heard in the browser as it plays. Opening the cell starts fetching strudel.cc's default
+  sample sets (`TuningFork.Strudel.defaults/0`), so `s("bd") |> bank("RolandTR909")` plays the
+  recording once it has arrived.
   """
 
   use Kino.JS
@@ -36,6 +38,8 @@ defmodule KinoTuningFork.LivePatternsCell do
         checked: [],
         stage: nil
       )
+
+    TuningFork.Strudel.defaults()
 
     {:ok, ctx}
   end

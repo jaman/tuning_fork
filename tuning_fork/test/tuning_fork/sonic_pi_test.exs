@@ -244,6 +244,27 @@ defmodule TuningFork.SonicPiTest do
       end
     end
 
+    test "use_synth takes a sound name, played at each note through the kit" do
+      {:ok, score} =
+        SonicPi.run_round(fn ->
+          use_synth("gm_epiano1")
+          play(:a4, sustain: 0.5, release: 0.2, amp: 0.5)
+          sleep(1)
+        end)
+
+      [voice] = voices(score)
+      assert_in_delta voice.freq, 440.0, 0.01
+      assert voice.envelope.hold == 0.5
+      assert voice.envelope.release == 0.2
+      assert_in_delta voice.gain, 0.15, 0.001
+    end
+
+    test "a sound name the kit does not know says so" do
+      assert_raise ArgumentError, ~r/no sound named "kazoo"/, fn ->
+        SonicPi.run_round(fn -> use_synth("kazoo") && play(:c4) && sleep(1) end)
+      end
+    end
+
     test "use_synth takes a voice of your own" do
       {:ok, score} =
         SonicPi.run_round(fn ->

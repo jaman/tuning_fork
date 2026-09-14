@@ -21,6 +21,31 @@ Each package is an ordinary Mix project in its own directory; `mix test`, `mix c
 and `mix docs` run inside each. Within the repository the packages depend on each other by
 path, so an edit in `tuning_fork` is seen by the others at once.
 
+## Thanks
+
+Two projects shaped this library, and it plays their music as written:
+
+* [Sonic Pi](https://sonic-pi.net) by Sam Aaron and contributors — `live_loop`, `play`,
+  `sleep`, `sample`, `with_fx` and the rest of the vocabulary in `TuningFork.SonicPi`, the
+  synth and effect names, and the 206 public-domain recordings `tuning_fork_samples` fetches.
+* [Strudel](https://strudel.cc) by Felix Roos, Alex McLean and contributors, and
+  [Tidal Cycles](https://tidalcycles.org) by Alex McLean before it — the pattern model, the
+  mini-notation, the control names, the chord dictionaries and voicing rules, and the sound
+  design in [superdough](https://github.com/tidalcycles/strudel/tree/main/packages/superdough)
+  that `TuningFork.Kit` and the effects follow. The sample sets strudel.cc loads —
+  [uzu-drumkit](https://github.com/tidalcycles/uzu-drumkit),
+  [tidal-drum-machines](https://github.com/ritchse/tidal-drum-machines),
+  [Dirt-Samples](https://github.com/tidalcycles/Dirt-Samples),
+  [VCSL](https://github.com/sgossner/VCSL) by Versilian Studios, the
+  [mridangam](https://github.com/yaxu/mrid) recordings and the piano from
+  [dough-samples](https://github.com/felixroos/dough-samples) — are fetched from where they
+  are published, under their own licences.
+
+Also: [WebAudioFont](https://github.com/surikov/webaudiofont) by Sergey Surikov for the
+General MIDI soundfonts behind `gm_` sounds; Jezar at Dreampoint for Freeverb, which the
+reverb is; [miniaudio](https://miniaud.io) by David Reid in `tuning_fork_speaker` and
+[minimidio](https://github.com/octetta/minimidio) by Joseph Stewart in `tuning_fork_midi`.
+
 ## Licence
 
 MIT, see [LICENSE](LICENSE). Sonic Pi's recordings are CC0; the soundfonts and sample sets

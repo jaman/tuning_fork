@@ -56,12 +56,16 @@ defmodule TuningFork.Pattern do
 
   The span end is exclusive. A zero-width span samples continuous patterns and reports nothing
   discrete. An event the span cuts across is returned with its `whole` intact and its `part`
-  shortened to the span.
+  shortened to the span; a part narrower than a rounding error is left out.
   """
   @spec query(t(), span()) :: [event()]
-  def query(%__MODULE__{query: query}, {from, to}) when to >= from do
-    query.({from * 1.0, to * 1.0})
+  def query(%__MODULE__{query: query}, {from, to}) when to > from do
+    {from * 1.0, to * 1.0} |> query.() |> Enum.reject(&sliver?/1)
   end
+
+  def query(%__MODULE__{query: query}, {at, at}), do: query.({at * 1.0, at * 1.0})
+
+  defp sliver?(%{part: {from, to}}), do: to - from < @epsilon / 100
 
   @doc """
   The onsets of cycle `cycle` as `{from, to, value}` tuples, relative to the cycle start,

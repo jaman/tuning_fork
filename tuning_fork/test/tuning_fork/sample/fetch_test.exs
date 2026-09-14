@@ -31,6 +31,15 @@ defmodule TuningFork.Sample.FetchTest do
     assert FileServer.hits(server) <= 2
   end
 
+  @tag :tmp_dir
+  test "a file name with a space in it is fetched", %{server: server} do
+    url = "http://127.0.0.1:#{server.port}/Hat Open.wav"
+
+    assert {:ok, path} = Fetch.fetch(url)
+    assert File.exists?(path)
+    assert Path.extname(path) == ".wav"
+  end
+
   defp settled(check, tries \\ 100)
   defp settled(_check, 0), do: false
 

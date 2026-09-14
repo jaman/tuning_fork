@@ -154,9 +154,10 @@ defmodule TuningFork.SonicPi.Synth do
   @doc """
   The voice or voices `name` plays at `hz` with `opts`.
 
-  `name` is one of `names/0`, or a `TuningFork.Voice` used as it is with the pitch and the
-  options applied. A detuned synth gives a list of voices. Raises `ArgumentError` for a name
-  that is not here.
+  `name` is one of `names/0`, a `TuningFork.Voice` used as it is with the pitch and the
+  options applied, or a string `TuningFork.Kit.known?/1` accepts, played through the kit at
+  the note nearest `hz`. A detuned synth gives a list of voices. Raises `ArgumentError` for a
+  name that is not here.
 
   ## Options
 
@@ -174,12 +175,22 @@ defmodule TuningFork.SonicPi.Synth do
 
   Any other key is ignored.
   """
-  @spec voice(atom() | Voice.t(), float(), keyword()) :: Voice.t() | [Voice.t()]
+  @spec voice(atom() | String.t() | Voice.t(), float(), keyword()) :: Voice.t() | [Voice.t()]
   def voice(%Voice{} = base, hz, opts) do
     base
     |> Map.put(:freq, hz)
     |> Map.put(:envelope, envelope(opts, base.envelope))
     |> shaped(opts, %{})
+  end
+
+  def voice(name, hz, opts) when is_binary(name) do
+    held = Keyword.get(opts, :sustain, 0.0) / 1.0
+    midi = round(Names.hz_to_midi(hz))
+
+    case Kit.voice(%{sound: name, note: midi}, held, wait: false) do
+      nil -> raise ArgumentError, "no sound named #{inspect(name)}"
+      played -> voice(%{played | envelope: %{played.envelope | release: 1.0}}, hz, opts)
+    end
   end
 
   def voice(name, _hz, opts) when is_map_key(@drums, name) do

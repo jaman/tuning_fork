@@ -127,15 +127,14 @@ defmodule TuningFork.Composer.Json do
 
   defp float(_value, default), do: default
 
-  @known MapSet.new(
-           Enum.map(Composer.scales(), &to_string/1) ++
-             ["drum", "pitched", "sample"] ++
-             for(octave <- 0..8, name <- ~w(c cs d ds e f fs g gs a as b), do: "#{name}#{octave}")
+  @known Map.new(
+           Composer.scales() ++
+             [:drum, :pitched, :sample] ++
+             for(octave <- 0..8, name <- ~w(c cs d ds e f fs g gs a as b), do: :"#{name}#{octave}"),
+           &{to_string(&1), &1}
          )
 
-  defp atom(value, default) when is_binary(value) do
-    if MapSet.member?(@known, value), do: String.to_existing_atom(value), else: default
-  end
+  defp atom(value, default) when is_binary(value), do: Map.get(@known, value, default)
 
   defp atom(value, _default) when is_atom(value) and not is_nil(value), do: value
   defp atom(_value, default), do: default

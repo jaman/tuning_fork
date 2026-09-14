@@ -61,4 +61,5 @@ about to play. `TuningFork.Samples.source/1` points the package at another direc
 
 Every recording is under Creative Commons Zero. `priv/SOURCES.md` is Sonic Pi's own list of
 where each came from on freesound.org, and of the sets donated by Uwe Zahn (Arovane) and
-The Black Dog.
+The Black Dog. The collection itself is [Sonic Pi](https://sonic-pi.net)'s, by Sam Aaron and
+contributors, and this package would be nothing without it.

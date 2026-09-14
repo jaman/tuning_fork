@@ -10,6 +10,7 @@ defmodule TuningFork.PatternTest do
   use ExUnit.Case, async: true
 
   alias TuningFork.Pattern, as: P
+  alias TuningFork.Pattern.Mini
 
   doctest TuningFork.Pattern
 
@@ -340,6 +341,17 @@ defmodule TuningFork.PatternTest do
       in_one_go = pattern |> P.query({0.0, 1.0}) |> Enum.filter(&P.onset?/1)
 
       assert length(block_by_block) == length(in_one_go)
+    end
+
+    test "a step whose edge lands a rounding error inside the block is not seen twice" do
+      pattern = Mini.parse("<[0 0 4] [5 5 2] [2 2 6] [6 6 3]>")
+
+      assert Enum.map(P.first_cycle(pattern, 20), &elem(&1, 2)) == [0, 0, 4]
+      assert [%{value: 0}] = P.query(pattern, {20.0, 20.25})
+
+      for cycle <- 0..99 do
+        assert length(P.first_cycle(pattern, cycle)) == 3, "cycle #{cycle}"
+      end
     end
   end
 

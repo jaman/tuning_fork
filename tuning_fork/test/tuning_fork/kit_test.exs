@@ -38,6 +38,15 @@ defmodule TuningFork.KitTest do
       assert "sn" in names
       assert names == Enum.sort(names)
     end
+
+    test "known? says whether a name plays as a drum, a waveform or a GM instrument" do
+      assert Kit.known?("bd")
+      assert Kit.known?("sawtooth")
+      assert Kit.known?("gm_epiano1")
+      assert Kit.known?("gm_epiano1:2")
+      refute Kit.known?("kazoo")
+      refute Kit.known?("c4")
+    end
   end
 
   describe "pitched notes" do

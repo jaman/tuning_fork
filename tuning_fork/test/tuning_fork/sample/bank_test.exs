@@ -73,6 +73,15 @@ defmodule TuningFork.Sample.BankTest do
       assert %Voice{sample: %Sample{name: "bell"}} = Kit.voice(%{s: "bell"}, 0.25)
     end
 
+    test "a bank in front of a sound plays the recording registered under bank_sound" do
+      assert %Voice{sample: nil} = Kit.voice(%{s: "bd", bank: "crate"}, 0.25)
+      :ok = Bank.put(:crate_bd, @flac)
+
+      assert %Voice{sample: %Sample{name: "crate_bd"}} = Kit.voice(%{s: "bd", bank: "crate"}, 0.25)
+      assert %Voice{sample: %Sample{name: "crate_bd"}} = Kit.voice(%{s: "bd:1", bank: "crate"}, 0.25)
+      assert %Voice{sample: nil} = Kit.voice(%{s: "bd", bank: "RolandTR808"}, 0.25)
+    end
+
     test "a bank sample wins over a synthesised drum of the same name" do
       assert %Voice{sample: nil} = Kit.voice("bd", 0.25)
       :ok = Bank.put(:bd, @flac)

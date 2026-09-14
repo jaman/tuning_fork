@@ -250,7 +250,9 @@ defmodule TuningFork.StrudelTest do
                Map.has_key?(value, :note) and value[:sound] == "gm_epiano1:1"
              end)
 
-      assert Enum.any?(events, fn {_f, _t, value} -> value[:sound] == "crate_bd" end)
+      assert Enum.any?(events, fn {_f, _t, value} ->
+               value[:sound] == "bd" and value[:bank] == "crate"
+             end)
 
       pcm = Player.render(pattern, 8_000, cycles: 2, cps: 0.75)
       assert Mixer.peak(pcm) > 500

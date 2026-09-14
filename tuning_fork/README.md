@@ -121,7 +121,7 @@ pcm = TuningFork.SonicPi.render(source, 44_100, 16.0)
 | --- | --- |
 | Notes | `play :e3` `play 52` `play 440.0` `play chord(:e3, :m7)` `play_pattern_timed` `synth :fm, note: :c3` |
 | Time | `sleep 0.5` `use_bpm 120` `with_bpm` `density 2 do … end` `at [1, 2], [:a, :b], fn arg -> … end` |
-| Sound | `use_synth :prophet` `use_synth_defaults` `use_transpose` — every Sonic Pi synth name, `TuningFork.SonicPi.synth_names/0` |
+| Sound | `use_synth :prophet` `use_synth "gm_epiano1"` `use_synth_defaults` `use_transpose` — every Sonic Pi synth name, `TuningFork.SonicPi.synth_names/0`, or any sound the kit plays by name, a General MIDI instrument or a recording, at each note |
 | Recordings | `sample :bd_haus, rate: 0.5, start: 0.25, finish: 0.5, beat_stretch: 2` `sample_duration` `use_sample_bpm` `sample_names(:ambi)` |
 | Effects | `with_fx :echo, phase: 0.25 do … end` — `TuningFork.SonicPi.fx_names/0`; `control node, mix: 0.9` for what follows |
 | Chance | `rrand` `rrand_i` `rand` `choose` `one_in` `dice` `shuffle` `pick` `use_random_seed` `with_random_seed` |
@@ -186,7 +186,7 @@ The words that came with it work in this library's own spelling too:
 | `\|> late("[0 .01]*4")`, `\|> fast("<1 2>")`, `\|> clip(rand() \|> range(0.4, 0.8))` | time words take patterns |
 | `\|> bank("crate")` | prefixes every sound, so `bd` plays `crate_bd` |
 | `s("gm_epiano1:1")`, `s("gm_acoustic_bass")` | Strudel's soundfonts, fetched and decoded on first use; `TuningFork.Gm` synth voices until they arrive or where they cannot |
-| `s("bd sd hh cp")`, `s("piano").note("c4")`, `bank("tr808")` | the sample sets strudel.cc loads before any piece — its drum kit, the drum machines, the piano, VCSL, mridangam — registered the first time a piece is read, files fetched as they play |
+| `s("bd sd hh cp")`, `s("piano").note("c4")`, `bank("tr808")` | the sample sets strudel.cc loads before any piece — its drum kit, the drum machines, the piano, VCSL, mridangam — registered the first time a piece is read or a `TF Patterns` cell opens, files fetched as they play; `bank("RolandTR909")` plays the recording once it has arrived and the kit's drum until then |
 | `s("sd:<2 3>")`, `s("rd:<1!3 2>*2")`, `x*<1 2>`, `.01` | the mini-notation takes a pattern after `:`, after `*` and `/`, and numbers with no leading zero |
 
 Recordings in MP3, OGG or AAC — the soundfonts and the piano are MP3 — are decoded through
@@ -484,3 +484,28 @@ score |> Score.render(44_100) |> TuningFork.Wav.encode(rate: 44_100)
 ```
 
 `TuningFork.Sink.Buffer` records a live stage instead, and outlives the stage that filled it.
+
+## Thanks
+
+Two projects shaped this library, and it plays their music as written:
+
+* [Sonic Pi](https://sonic-pi.net) by Sam Aaron and contributors — `live_loop`, `play`,
+  `sleep`, `sample`, `with_fx` and the rest of the vocabulary in `TuningFork.SonicPi`, the
+  synth and effect names, and the 206 public-domain recordings `tuning_fork_samples` fetches.
+* [Strudel](https://strudel.cc) by Felix Roos, Alex McLean and contributors, and
+  [Tidal Cycles](https://tidalcycles.org) by Alex McLean before it — the pattern model, the
+  mini-notation, the control names, the chord dictionaries and voicing rules, and the sound
+  design in [superdough](https://github.com/tidalcycles/strudel/tree/main/packages/superdough)
+  that `TuningFork.Kit` and the effects follow. The sample sets strudel.cc loads —
+  [uzu-drumkit](https://github.com/tidalcycles/uzu-drumkit),
+  [tidal-drum-machines](https://github.com/ritchse/tidal-drum-machines),
+  [Dirt-Samples](https://github.com/tidalcycles/Dirt-Samples),
+  [VCSL](https://github.com/sgossner/VCSL) by Versilian Studios, the
+  [mridangam](https://github.com/yaxu/mrid) recordings and the piano from
+  [dough-samples](https://github.com/felixroos/dough-samples) — are fetched from where they
+  are published, under their own licences.
+
+Also: [WebAudioFont](https://github.com/surikov/webaudiofont) by Sergey Surikov for the
+General MIDI soundfonts behind `gm_` sounds; Jezar at Dreampoint for Freeverb, which the
+reverb is; [miniaudio](https://miniaud.io) by David Reid in `tuning_fork_speaker` and
+[minimidio](https://github.com/octetta/minimidio) by Joseph Stewart in `tuning_fork_midi`.
