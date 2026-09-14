@@ -27,10 +27,10 @@ defmodule TuningForkDrafter.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork),
-      family(:tuning_fork_composer),
-      family(:tuning_fork_speaker, optional: true),
-      family(:tuning_fork_samples, optional: true),
+      family(:tuning_fork, "~> 0.1", []),
+      family(:tuning_fork_composer, "~> 0.1", []),
+      family(:tuning_fork_speaker, "~> 0.1", optional: true),
+      family(:tuning_fork_samples, "~> 0.1", optional: true),
       {:drafter, path: "../../drafter"},
       {:french_curve, path: "../../french_curve", override: true},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
@@ -38,11 +38,11 @@ defmodule TuningForkDrafter.MixProject do
     ]
   end
 
-  defp family(app, opts \\ []) do
+  defp family(app, requirement, opts) do
     if System.get_env("TUNING_FORK_HEX") == nil and File.dir?("../#{app}") do
       {app, [path: "../#{app}"] ++ opts}
     else
-      {app, "~> 0.1", opts}
+      {app, requirement, opts}
     end
   end
 

@@ -468,6 +468,36 @@ defmodule TuningFork.ComposerTest do
     end
   end
 
+  describe "which bars a track plays" do
+    test "a track plays every bar unless told which, as a string of x and dots" do
+      assert Track.new().plays == nil
+      assert Composer.passes(Track.new(), project(bars: 3)) == "xxx"
+      assert Composer.passes(Track.new(plays: "..x"), project(bars: 3)) == "..x"
+    end
+
+    test "a short string cycles and a long one is cut to the bars" do
+      assert Composer.passes(Track.new(plays: "x."), project(bars: 5)) == "x.x.x"
+      assert Composer.passes(Track.new(plays: "xxxx...."), project(bars: 3)) == "xxx"
+      assert Composer.passes(Track.new(plays: ""), project(bars: 2)) == "xx"
+    end
+
+    test "anything but x is a rest, and the browser's spelling is kept as typed" do
+      p = project(bars: 4) |> with_track(steps: [1]) |> Composer.update_track(0, plays: "..xx")
+
+      assert Composer.to_score(p).notes |> Enum.map(&elem(&1, 0)) |> Enum.sort() == [8.0, 12.0]
+      assert Source.to_source(p) =~ ~s|repeat("..xx", fn bar ->|
+      assert Source.to_source(p) |> run() |> Map.fetch!(:notes) |> length() == 2
+      assert Json.from_map(Json.to_map(p)) == p
+      assert Json.to_map(p)["tracks"] |> hd() |> Map.fetch!("plays") == "..xx"
+    end
+
+    test "a track that plays every bar is written with the count, as before" do
+      p = project(bars: 4) |> with_track(steps: [1])
+
+      assert Source.to_source(p) =~ "repeat(4, fn bar ->"
+    end
+  end
+
   describe "a recorded kit" do
     setup do
       Font.source("http://127.0.0.1:1")

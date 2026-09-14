@@ -89,7 +89,9 @@ note to the right to hold it over the steps that follow.
 
 Per track: **M** mutes it (dimmed, and left out of the generated code — unmuting brings it
 back untouched), **ring** is how long its notes sound by default in beats, and a note dragged
-out overrides that for itself.
+out overrides that for itself. The text box after ring is which bars the track plays, one
+character per repeat of the grid — `x` plays, `.` rests, cycled over the bars — so
+`..xxxxxx..xxxx` waits two bars, drops out for two and comes back; empty plays them all.
 
 ### The source is the artifact
 

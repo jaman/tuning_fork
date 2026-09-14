@@ -294,7 +294,19 @@ defmodule TuningFork.Pattern.ControlStrudelTest do
     test "keeps every note sounding at a structural event" do
       pattern = chord("Dm") |> voicing() |> struct("x ~ ~ x")
       assert onsets(pattern) == [0.0, 0.0, 0.0, 0.0, 0.0, 0.75, 0.75, 0.75, 0.75, 0.75]
-      assert pattern |> values() |> Enum.map(& &1.note) |> Enum.sort() == [50, 50, 57, 57, 62, 62, 65, 65, 69, 69]
+
+      assert pattern |> values() |> Enum.map(& &1.note) |> Enum.sort() == [
+               50,
+               50,
+               57,
+               57,
+               62,
+               62,
+               65,
+               65,
+               69,
+               69
+             ]
     end
   end
 

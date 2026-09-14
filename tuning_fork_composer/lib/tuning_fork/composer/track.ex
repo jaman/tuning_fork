@@ -15,6 +15,7 @@ defmodule TuningFork.Composer.Track do
           gain: float(),
           ring: float(),
           muted: boolean(),
+          plays: String.t() | nil,
           steps: [step()]
         }
 
@@ -25,6 +26,7 @@ defmodule TuningFork.Composer.Track do
             gain: 0.8,
             ring: 2.0,
             muted: false,
+            plays: nil,
             steps: []
 
   @doc """
@@ -35,8 +37,9 @@ defmodule TuningFork.Composer.Track do
   `Composer.instruments/0` (`"kick"`), `:path` WAV file for `:sample` (`nil`), `:root` the
   pitch a `:sample` was recorded at, `nil` playing it as-is (`nil`), `:gain` 0.0–1.0 (`0.8`),
   `:ring` how long notes sound in beats, ignored by `:drum` (`2.0`), `:muted` (`false`),
-  `:steps` one entry per step (`[]`). Any `:steps` given are grown with rests or cut short to
-  `count`.
+  `:plays` which repeats of the grid the track plays, as a string of `x` and `.` cycled over
+  the bars, `nil` for all of them (`nil`), `:steps` one entry per step (`[]`). Any `:steps`
+  given are grown with rests or cut short to `count`.
 
   A step is `0` for silence, a scale degree for a note one step long, or `{degree, length}`
   for a note held over `length` steps. A `:drum` track holds only `0` or `1`.

@@ -93,6 +93,10 @@ For menus: `Composer.drums/0`, `Composer.instruments/0`, `Composer.scales/0`,
 `TuningFork.Kit.banks/0` for the `:kit` setting, and `Composer.settings/0` for what `set/3`
 accepts.
 
+A track's `:plays` says which repeats of the grid it sounds on — `"..xx"` waits two bars —
+as a string of `x` and `.` cycled over the piece's bars; `Composer.passes/2` resolves it,
+and `nil` plays them all.
+
 `:kit` chooses the sounds: `:synth` is the kit's own drums and `TuningFork.Gm` synth voices,
 with nothing to fetch; a drum machine name such as `"RolandTR909"` plays that machine's
 recordings and the General MIDI soundfonts, through `TuningFork.Kit.instrument/4`, fetched

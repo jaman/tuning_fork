@@ -251,8 +251,25 @@ defmodule TuningFork.Part do
   @spec cursor(t()) :: float()
   def cursor(%__MODULE__{cursor: cursor}), do: cursor
 
-  @doc "Apply `fun` to the part `times` over, from wherever the cursor is."
-  @spec repeat(t(), pos_integer(), (t() -> t())) :: t()
+  @doc """
+  Apply `fun` to the part `times` over, from wherever the cursor is.
+
+  `times` may instead be a string of `x` and `.`, one per pass: `fun` is applied on an `x`,
+  and on a `.` the cursor moves on by as much as `fun` would have moved it, playing nothing.
+
+      |> repeat(4, &steps(&1, "x...x..."))
+      |> repeat("..xx", &steps(&1, "x...x..."))
+  """
+  @spec repeat(t(), pos_integer() | String.t(), (t() -> t())) :: t()
+  def repeat(%__MODULE__{} = part, passes, fun) when is_binary(passes) do
+    passes
+    |> String.graphemes()
+    |> Enum.reduce(part, fn
+      "x", acc -> fun.(acc)
+      _rest, acc -> %{acc | cursor: fun.(acc).cursor}
+    end)
+  end
+
   def repeat(%__MODULE__{} = part, times, fun) do
     Enum.reduce(1..times//1, part, fn _pass, acc -> fun.(acc) end)
   end

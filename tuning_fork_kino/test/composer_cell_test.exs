@@ -72,6 +72,16 @@ defmodule KinoTuningFork.ComposerCellTest do
       assert Enum.all?(ctx.assigns.project.tracks, &(length(&1.steps) == 12))
     end
 
+    test "which bars a track plays comes and goes with the tracks" do
+      tracks = [%{"kind" => "drum", "sound" => "kick", "steps" => [1], "plays" => "..xx"}]
+
+      {:noreply, ctx} =
+        ComposerCell.handle_event("update_tracks", %{"tracks" => tracks}, ctx())
+
+      assert Composer.track(ctx.assigns.project, 0).plays == "..xx"
+      assert hd(ComposerCell.to_attrs(ctx)["tracks"])["plays"] == "..xx"
+    end
+
     test "tracks the browser sends reach the composition" do
       start = ctx()
       tracks = start |> ComposerCell.to_attrs() |> Map.fetch!("tracks")

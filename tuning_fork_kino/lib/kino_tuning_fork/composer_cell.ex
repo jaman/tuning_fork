@@ -370,6 +370,14 @@ defmodule KinoTuningFork.ComposerCell do
         ring.addEventListener("change", () => edit((t) => (t.ring = Number(ring.value))));
         controls.appendChild(ring);
 
+        const plays = el("input", "input plays");
+        plays.type = "text";
+        plays.placeholder = "x".repeat(Math.max(Number(state.fields.bars) || 1, 1));
+        plays.title = "which repeats of the grid this track plays: x plays, . rests, cycled over the bars";
+        plays.value = track.plays || "";
+        plays.addEventListener("change", () => edit((t) => (t.plays = plays.value.trim() || null)));
+        controls.appendChild(plays);
+
         const grid = el("div", "grid");
         gridEls[index] = grid;
 
@@ -566,6 +574,7 @@ defmodule KinoTuningFork.ComposerCell do
     .input.gain { width: 64px; }
     .input.root { width: 72px; }
     .input.ring { width: 64px; }
+    .input.plays { width: 120px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.12em; }
     .input:disabled { background: #f1f5f9; color: #cbd5e1; }
 
     .tracks {

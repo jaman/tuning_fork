@@ -39,6 +39,7 @@ defmodule TuningFork.Composer.Json do
       "gain" => track.gain,
       "ring" => track.ring,
       "muted" => track.muted,
+      "plays" => track.plays,
       "steps" => Enum.map(track.steps, &step_to_json/1)
     }
   end
@@ -91,6 +92,7 @@ defmodule TuningFork.Composer.Json do
         gain: float(attrs["gain"], 0.8),
         ring: float(attrs["ring"], 2.0),
         muted: attrs["muted"] == true,
+        plays: plays(attrs["plays"]),
         steps: attrs |> Map.get("steps") |> List.wrap() |> Enum.map(&step_from_json/1)
       ],
       width
@@ -128,6 +130,9 @@ defmodule TuningFork.Composer.Json do
   end
 
   defp float(_value, default), do: default
+
+  defp plays(text) when is_binary(text) and text != "", do: text
+  defp plays(_all), do: nil
 
   defp kit(name) when is_binary(name) and name not in ["", "synth"], do: name
   defp kit(_synth), do: :synth

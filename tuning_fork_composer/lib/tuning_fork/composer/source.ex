@@ -132,7 +132,7 @@ defmodule TuningFork.Composer.Source do
     """
     #{name} =
       part(bpm: #{project.bpm}, synth: #{drum(project, track)}, gain: #{track.gain})
-      |> repeat(#{project.bars}, fn bar -> steps(bar, "#{pattern(track)}", 1 / #{project.division}) end)\
+      |> repeat(#{passes(project, track)}, fn bar -> steps(bar, "#{pattern(track)}", 1 / #{project.division}) end)\
     """
   end
 
@@ -142,7 +142,7 @@ defmodule TuningFork.Composer.Source do
     """
     #{name} =
       part(bpm: #{project.bpm}, synth: #{synth}, gain: #{track.gain})
-      |> repeat(#{project.bars}, fn bar ->
+      |> repeat(#{passes(project, track)}, fn bar ->
         steps(bar, #{entries(project, track)}, 1 / #{project.division}, release: #{track.ring})
       end)\
     """
@@ -153,6 +153,12 @@ defmodule TuningFork.Composer.Source do
   defp drum(project, track) do
     "Kit.instrument(#{inspect(Composer.kit_sound(track.sound))}, 0.5, " <>
       "%{bank: #{inspect(project.kit)}, gain: #{project.gain}})"
+  end
+
+  defp passes(project, track) do
+    passes = Composer.passes(track, project)
+
+    if passes == String.duplicate("x", project.bars), do: project.bars, else: inspect(passes)
   end
 
   defp pattern(%Track{steps: steps}) do

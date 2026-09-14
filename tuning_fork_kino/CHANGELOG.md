@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+* `composer.livemd`'s Compose grid carries the same seven-section arrangement as the other
+  two spellings, on the same recorded kit.
+* The Compose cell has, per track, which bars it plays.
+
 ## 0.1.2
 
 * `composer.livemd` is one tune written three ways — the Compose grid on a recorded kit, a

@@ -68,6 +68,13 @@ defmodule TuningFork.PartTest do
       assert beats_of(played) == [0.0, 2.0, 4.0]
     end
 
+    test "repeat with a string plays on x and keeps time on a dot" do
+      played = repeat(part(), "x.x", &play(&1, :a4, 2.0))
+
+      assert beats_of(played) == [0.0, 4.0]
+      assert Part.cursor(played) == 6.0
+    end
+
     test "repeat_indexed is told which pass it is on" do
       played =
         repeat_indexed(part(), 3, fn acc, index ->

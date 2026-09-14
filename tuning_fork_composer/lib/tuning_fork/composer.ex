@@ -387,6 +387,21 @@ defmodule TuningFork.Composer do
   end
 
   @doc """
+  Which repeats of the grid a track plays, one character per bar: `x` plays, anything else
+  rests. A track's `:plays` is cycled to the piece's bars; `nil` or `""` plays them all.
+
+      iex> TuningFork.Composer.passes(%TuningFork.Composer.Track{plays: "x."}, TuningFork.Composer.new(bars: 5))
+      "x.x.x"
+  """
+  @spec passes(Track.t(), t()) :: String.t()
+  def passes(%Track{plays: plays}, %__MODULE__{bars: bars}) when plays in [nil, ""],
+    do: String.duplicate("x", bars)
+
+  def passes(%Track{plays: plays}, %__MODULE__{bars: bars}) do
+    plays |> String.graphemes() |> Stream.cycle() |> Enum.take(bars) |> Enum.join()
+  end
+
+  @doc """
   The voice a track plays with: a `TuningFork.Voice`, or with a recorded `:kit` a
   `TuningFork.Part` instrument asked for one per note.
   """
@@ -432,12 +447,12 @@ defmodule TuningFork.Composer do
     case track.kind do
       :drum ->
         pattern = pattern_for(track)
-        repeat(started, project.bars, &steps(&1, pattern, step_beats(project)))
+        repeat(started, passes(track, project), &steps(&1, pattern, step_beats(project)))
 
       _pitched_or_sampled ->
         entries = entries_for(track, notes, project)
 
-        repeat(started, project.bars, fn bar ->
+        repeat(started, passes(track, project), fn bar ->
           steps(bar, entries, step_beats(project), release: track.ring)
         end)
     end
