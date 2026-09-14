@@ -54,17 +54,19 @@ defmodule TuningFork.Envelope do
 
   @doc """
   The envelope with its decay set so the whole of it lasts `seconds`: the decay is `seconds`
-  less the attack and, when there is a sustain level to release from, the release. The decay
-  is never under 10 ms.
+  less the attack and, when there is a sustain level to release from, the release; any hold
+  is dropped. The decay is never under 10 ms.
 
       iex> TuningFork.Envelope.spanning(TuningFork.Envelope.new(attack: 0.1, sustain: 0.5, release: 0.2), 1.0).decay
       0.7
       iex> TuningFork.Envelope.spanning(TuningFork.Envelope.new(attack: 0.1, sustain: 0.0, release: 0.2), 1.0).decay
       0.9
+      iex> TuningFork.Envelope.spanning(TuningFork.Envelope.new(attack: 0.1, sustain: 1.0, hold: 2.0, release: 0.2), 1.0) |> TuningFork.Envelope.duration()
+      1.0
   """
   @spec spanning(t(), number()) :: t()
   def spanning(%__MODULE__{} = env, seconds) do
-    %{env | decay: max(seconds - env.attack - released(env), 0.01)}
+    %{env | decay: max(seconds - env.attack - released(env), 0.01), hold: 0.0}
   end
 
   defp released(%__MODULE__{sustain: sustain}) when sustain <= 0.0, do: 0.0

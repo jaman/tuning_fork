@@ -19,6 +19,8 @@
   asked for with `wait: true` waits for it; `Strudel.defaults(wait: true)` and
   `Sample.Set.load_all/2` are the waited-for forms.
 * `sd` is a snare name; mini-notation reads `-.3`.
+* `Envelope.spanning/2` drops the envelope's hold, so a note asked to last `seconds` does
+  — a voice with a hold, such as a soundfont's, used to ring on past it.
 
 ## 0.1.0
 
