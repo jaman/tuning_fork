@@ -2,24 +2,29 @@
 
 Livebook smart cells for [TuningFork](https://hex.pm/packages/tuning_fork).
 
+[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fjaman%2Ftuning_fork%2Fmain%2Ftuning_fork_kino%2Fnotebooks%2Fcomposer.livemd)
+
 ## Setup
 
 In the notebook's **setup cell** — the one at the very top, not an ordinary cell:
 
 ```elixir
 Mix.install([
-  {:tuning_fork, "~> 0.1"},
-  {:tuning_fork_samples, "~> 0.1"},
-  {:tuning_fork_kino, "~> 0.1"}
+  {:tuning_fork, "~> 0.1.3"},
+  {:tuning_fork_samples, "~> 0.1.3"},
+  {:tuning_fork_kino, "~> 0.1.3"}
 ])
 ```
 
 Working from a checkout instead, give each a `path:` — `{:tuning_fork_kino, path: "/absolute/path/to/tuning_fork_kino"}` — and re-run the setup cell after editing the code.
 
-`notebooks/composer.livemd` is the tour: the Compose grid, then TF Patterns, TF Loops and MIDI to audio, then the same from code; `notebooks/sonic_pi.livemd` has
-the Sonic Pi website examples, each in a cell; `notebooks/strudel.livemd` has a Strudel piece
-pasted into a TF Patterns cell, eddyflux's "coastline" with its sample pack, and the same
-from code.
+The notebooks open in Livebook from the badges; each fetches what it needs.
+
+| Notebook | | |
+| --- | --- | --- |
+| `notebooks/composer.livemd` | The tour: one tune written three ways — the Compose grid, a TF Patterns cell in Strudel's syntax, TF Loops — on the same recordings, then MIDI to audio and the same from code | [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fjaman%2Ftuning_fork%2Fmain%2Ftuning_fork_kino%2Fnotebooks%2Fcomposer.livemd) |
+| `notebooks/strudel.livemd` | A Strudel piece pasted into a TF Patterns cell — eddyflux's "coastline" with its sample pack — and the same from code | [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fjaman%2Ftuning_fork%2Fmain%2Ftuning_fork_kino%2Fnotebooks%2Fstrudel.livemd) |
+| `notebooks/sonic_pi.livemd` | The Sonic Pi website examples, each in a cell | [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fjaman%2Ftuning_fork%2Fmain%2Ftuning_fork_kino%2Fnotebooks%2Fsonic_pi.livemd) |
 
 ## A stage in the notebook
 

@@ -5,15 +5,19 @@ packages around it, each published to hex.pm on its own.
 
 | Package | What | Hex |
 | --- | --- | --- |
-| [`tuning_fork`](tuning_fork) | Voices, scores, live patterns, Sonic Pi and Strudel spellings, MIDI files, OSC. Pure Elixir, no dependencies | `{:tuning_fork, "~> 0.1"}` |
-| [`tuning_fork_speaker`](tuning_fork_speaker) | Playback through this machine's sound device (C, via miniaudio) | `{:tuning_fork_speaker, "~> 0.1"}` |
-| [`tuning_fork_midi`](tuning_fork_midi) | MIDI devices: scores and live patterns out, a keyboard in (C, via minimidio) | `{:tuning_fork_midi, "~> 0.1"}` |
-| [`tuning_fork_samples`](tuning_fork_samples) | Sonic Pi's 206 recordings by name, fetched as they play | `{:tuning_fork_samples, "~> 0.1"}` |
-| [`tuning_fork_composer`](tuning_fork_composer) | A step sequencer as data, writing TuningFork source | `{:tuning_fork_composer, "~> 0.1"}` |
-| [`tuning_fork_kino`](tuning_fork_kino) | Livebook: a streaming stage widget and four smart cells | `{:tuning_fork_kino, "~> 0.1"}` |
+| [`tuning_fork`](tuning_fork) | Voices, scores, live patterns, Sonic Pi and Strudel spellings, MIDI files, OSC. Pure Elixir, no dependencies | `{:tuning_fork, "~> 0.1.3"}` |
+| [`tuning_fork_speaker`](tuning_fork_speaker) | Playback through this machine's sound device (C, via miniaudio) | `{:tuning_fork_speaker, "~> 0.1.3"}` |
+| [`tuning_fork_midi`](tuning_fork_midi) | MIDI devices: scores and live patterns out, a keyboard in (C, via minimidio) | `{:tuning_fork_midi, "~> 0.1.3"}` |
+| [`tuning_fork_samples`](tuning_fork_samples) | Sonic Pi's 206 recordings by name, fetched as they play | `{:tuning_fork_samples, "~> 0.1.3"}` |
+| [`tuning_fork_composer`](tuning_fork_composer) | A step sequencer as data, writing TuningFork source | `{:tuning_fork_composer, "~> 0.1.3"}` |
+| [`tuning_fork_kino`](tuning_fork_kino) | Livebook: a streaming stage widget and four smart cells | `{:tuning_fork_kino, "~> 0.1.3"}` |
 | [`tuning_fork_drafter`](tuning_fork_drafter) | Terminal front ends drawn with Drafter | from this repository |
 
-Start with [`tuning_fork/README.md`](tuning_fork/README.md).
+Start with [`tuning_fork/README.md`](tuning_fork/README.md), or hear it first: the tour
+notebook is one tune written three ways — a grid, Strudel's syntax, Sonic Pi's — on the
+same recordings, and opens straight into Livebook.
+
+[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fjaman%2Ftuning_fork%2Fmain%2Ftuning_fork_kino%2Fnotebooks%2Fcomposer.livemd)
 
 ## Working from this repository
 

@@ -21,8 +21,12 @@ end
 
 Only the first is needed. `tuning_fork_speaker` plays through this machine's sound device
 and builds a small C library; `tuning_fork_midi` opens MIDI devices; `tuning_fork_samples`
-registers Sonic Pi's recordings by name. Livebook cells are in `tuning_fork_kino`, and
-terminal front ends in `tuning_fork_drafter`.
+registers Sonic Pi's recordings by name. Livebook cells are in `tuning_fork_kino` and
+terminal front ends in `tuning_fork_drafter`. To hear it before reading on, the tour notebook
+— one tune written as a grid, in Strudel's syntax and in Sonic Pi's, on the same recordings —
+opens straight into Livebook:
+
+[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fjaman%2Ftuning_fork%2Fmain%2Ftuning_fork_kino%2Fnotebooks%2Fcomposer.livemd)
 
 ## First sounds
 

@@ -74,11 +74,24 @@ and the other synths are there too.
 
 Point the cell at a `.mid` file and it becomes a `TuningFork.Score` — tempo map, note
 lengths, velocity and pitch bend kept, drums guessed by channel — rendered to audio. A
-relative path is taken from the notebook's own directory; `bwv971.mid` sits next to this
-one. The written source shows the `TuningFork.Midi.read!/1` and `Gm.score/2` calls it
-stands for.
+relative path is taken from the notebook's own directory. `bwv971.mid` sits next to this
+notebook in the repository; opened from elsewhere, the cell below fetches it first. The
+written source shows the `TuningFork.Midi.read!/1` and `Gm.score/2` calls it stands for.
 
-<!-- livebook:{"attrs":"eyJicG0iOiIiLCJkcnVtX2dhaW4iOiIxLjAiLCJkcnVtcyI6ImF1dG8iLCJnYWluIjoiMC4yIiwibG9vcHMiOiIxIiwicGF0aCI6ImJ3djk3MS5taWQiLCJwbGFpbiI6ZmFsc2UsInJldmVyYiI6IjAuMiIsInZhcmlhYmxlIjoic2NvcmUifQ==","chunks":null,"kind":"Elixir.KinoTuningFork.MidiCell","livebook_object":"smart_cell"} -->
+```elixir
+midi = Path.expand("bwv971.mid", __DIR__)
+
+unless File.exists?(midi) do
+  {:ok, bytes} =
+    TuningFork.Sample.Fetch.get(
+      "https://raw.githubusercontent.com/jaman/tuning_fork/main/tuning_fork_kino/notebooks/bwv971.mid"
+    )
+
+  File.write!(midi, bytes)
+end
+```
+
+<!-- livebook:{"attrs":"eyJicG0iOiIiLCJkcnVtX2dhaW4iOiIxLjAiLCJkcnVtcyI6ImF1dG8iLCJnYWluIjoiMC4yIiwibG9vcHMiOiIxIiwicGF0aCI6ImJ3djk3MS5taWQiLCJwbGFpbiI6ZmFsc2UsInJldmVyYiI6IiIsInZhcmlhYmxlIjoic2NvcmUifQ==","chunks":null,"kind":"Elixir.KinoTuningFork.MidiCell","livebook_object":"smart_cell"} -->
 
 ```elixir
 
