@@ -29,9 +29,9 @@ defmodule KinoTuningFork.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork, "~> 0.1.2", []),
-      family(:tuning_fork_composer, "~> 0.1.2", []),
-      family(:tuning_fork_samples, "~> 0.1", optional: true),
+      family(:tuning_fork, "~> 0.1.3", []),
+      family(:tuning_fork_composer, "~> 0.1.3", []),
+      family(:tuning_fork_samples, "~> 0.1.3", optional: true),
       {:kino, "~> 0.12"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}

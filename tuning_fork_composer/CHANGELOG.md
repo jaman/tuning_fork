@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2
+## 0.1.3
 
 * A `:kit` setting: `:synth` as before, or a drum machine name for its recordings and the
   General MIDI soundfonts, in the score and in the written source alike.

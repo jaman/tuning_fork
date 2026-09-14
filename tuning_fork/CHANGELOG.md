@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2
+## 0.1.3
 
 * A `TuningFork.Part` synth may be a function of the note — an instrument — and
   `TuningFork.Kit.instrument/4` makes one from any sound name, so a part plays a soundfont
