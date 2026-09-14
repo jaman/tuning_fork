@@ -41,6 +41,23 @@ defmodule KinoTuningFork.ComposerCellTest do
       assert Json.from_map(attrs) == project
     end
 
+    test "the page is offered every kit, and a kit it picks reaches the composition" do
+      {:ok, payload, _ctx} = ComposerCell.handle_connect(ctx())
+
+      assert [%{value: "synth"} | banks] = payload.kits
+      assert Enum.any?(banks, &(&1.value == "RolandTR909"))
+      assert payload.fields["kit"] == "synth"
+
+      {:noreply, ctx} =
+        ComposerCell.handle_event(
+          "update_field",
+          %{"field" => "kit", "value" => "RolandTR909"},
+          ctx()
+        )
+
+      assert ctx.assigns.project.kit == "RolandTR909"
+    end
+
     test "a field the browser sends reaches the composition" do
       {:noreply, ctx} =
         ComposerCell.handle_event("update_field", %{"field" => "bpm", "value" => 140}, ctx())

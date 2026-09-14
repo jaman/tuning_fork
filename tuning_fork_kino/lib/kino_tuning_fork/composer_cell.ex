@@ -33,8 +33,14 @@ defmodule KinoTuningFork.ComposerCell do
       drums: Enum.map(Composer.drums(), fn {id, label} -> %{id: id, label: label} end),
       instruments:
         Enum.map(Composer.instruments(), fn {id, label} -> %{id: id, label: label} end),
-      scales: Enum.map(Composer.scales(), &to_string/1)
+      scales: Enum.map(Composer.scales(), &to_string/1),
+      kits: kits()
     }
+  end
+
+  defp kits do
+    [%{value: "synth", label: "synth"}] ++
+      Enum.map(TuningFork.Kit.banks(), &%{value: &1, label: &1})
   end
 
   @impl true
@@ -82,6 +88,7 @@ defmodule KinoTuningFork.ComposerCell do
         drums: payload.drums,
         instruments: payload.instruments,
         scales: payload.scales,
+        kits: payload.kits,
       };
 
       const meter = () => Math.max(Number(state.fields.meter) || 4, 1);
@@ -220,6 +227,7 @@ defmodule KinoTuningFork.ComposerCell do
         add("Steps/beat", "division", "number", { min: 1, max: 8, step: 1 });
         add("Key", "root", "select", noteOptions());
         add("Scale", "scale", "select", state.scales.map((s) => ({ value: s, label: s.replace(/_/g, " ") })));
+        add("Kit", "kit", "select", state.kits);
         add("Gain", "gain", "number", { min: 0, max: 1, step: 0.05 });
         add("Reverb", "reverb", "number", { min: 0, max: 1, step: 0.1 });
 

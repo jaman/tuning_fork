@@ -3,6 +3,7 @@ defmodule TuningFork.ComposerTest do
 
   alias TuningFork.Composer
   alias TuningFork.Composer.{Json, Source, Track}
+  alias TuningFork.Sample.Font
 
   defp project(opts \\ []), do: Composer.new(opts)
 
@@ -464,6 +465,55 @@ defmodule TuningFork.ComposerTest do
 
       assert Enum.at(Composer.track(back, 0).steps, 0) == {3, 4}
       assert Enum.at(Composer.track(back, 0).steps, 8) == 2
+    end
+  end
+
+  describe "a recorded kit" do
+    setup do
+      Font.source("http://127.0.0.1:1")
+      on_exit(&Font.clear/0)
+    end
+
+    test "kit is :synth unless a bank is named, and reads from a string" do
+      assert project().kit == :synth
+      assert Composer.set(project(), :kit, "RolandTR909").kit == "RolandTR909"
+      assert Composer.set(project(), :kit, "synth").kit == :synth
+      assert Composer.set(project(), :kit, "").kit == :synth
+      assert :kit in Composer.settings()
+    end
+
+    test "the composer names each of its sounds as the kit knows them" do
+      assert Composer.kit_sound("snare") == "sd"
+      assert Composer.kit_sound("open_hat") == "oh"
+      assert Composer.font_for("pipe") == "gm_flute"
+      assert Composer.font_for("bass") == "gm_electric_bass_finger"
+      assert Composer.font_for("epiano") == "gm_epiano1"
+      assert Composer.program_for("epiano") == 4
+    end
+
+    test "with a bank, drums and instruments are Kit instruments, in the score and the source" do
+      p =
+        project(kit: "RolandTR909", gain: 0.4)
+        |> with_track(sound: "snare", gain: 0.6, steps: [1])
+        |> with_track(kind: :pitched, sound: "pipe", steps: [3])
+
+      source = Source.to_source(p)
+      assert source =~ ~s|Kit.instrument("sd", 0.5, %{bank: "RolandTR909", gain: 0.4})|
+      assert source =~ ~s|Kit.instrument("gm_flute", 0.5, %{gain: 0.4})|
+      refute source =~ "Gm."
+
+      score = Composer.to_score(p)
+      assert length(score.notes) == 4
+      assert run(source).notes |> length() == 4
+    end
+
+    test "kit survives the JSON round trip" do
+      p = project(kit: "RolandTR808")
+
+      assert Json.to_map(p)["kit"] == "RolandTR808"
+      assert Json.from_map(Json.to_map(p)).kit == "RolandTR808"
+      assert Json.from_map(%{"kit" => "synth"}).kit == :synth
+      assert Json.from_map(%{}).kit == :synth
     end
   end
 end

@@ -15,13 +15,16 @@ defmodule TuningFork.Part do
   @type t :: %__MODULE__{
           bpm: float(),
           cursor: float(),
-          synth: Voice.t() | nil,
+          synth: Voice.t() | instrument() | nil,
           gain: float(),
           pan: float(),
           fx: keyword(),
           rand: Rand.t(),
           notes: [{float(), Voice.t()}]
         }
+
+  @typedoc "A voice for each note: called with the note, or `nil` for a hit with no pitch."
+  @type instrument :: (atom() | number() | nil -> Voice.t())
 
   defstruct bpm: 120.0,
             cursor: 0.0,
@@ -38,8 +41,8 @@ defmodule TuningFork.Part do
 
   ## Options
 
-    * `:synth` — the voice its notes are played with, default `nil`, in which case
-      `TuningFork.Voice.new/1` is used per note
+    * `:synth` — the voice its notes are played with, or a `t:instrument/0` asked for one per
+      note; default `nil`, in which case `TuningFork.Voice.new/1` is used per note
     * `:bpm` — its tempo, default 120
     * `:gain` — a level over everything in it, default 1.0
     * `:pan` — where it sits, `-1.0` hard left to `1.0` hard right, default 0.0 centred
@@ -75,7 +78,7 @@ defmodule TuningFork.Part do
     * `:bend` — semitones to arrive at by the end of the note; `2` bends up a tone
     * `:curves` — modulation in full, as `TuningFork.Voice` takes it. A `:freq` curve given
       here supersedes `:bend`
-    * `:synth` — a voice for this note only, overriding the part's
+    * `:synth` — a voice, or a `t:instrument/0`, for this note only, overriding the part's
 
   Any option value of the form `{:between, low, high}` is drawn from the part's own generator
   for each note.
@@ -92,11 +95,13 @@ defmodule TuningFork.Part do
   end
 
   def play(%__MODULE__{} = part, note, step, opts) do
-    synth = Keyword.get(opts, :synth) || part.synth || Voice.new()
-    voice = %{synth | freq: Notes.freq(note)}
+    voice = voiced(Keyword.get(opts, :synth) || part.synth || Voice.new(), note)
 
     part |> place(voice, opts) |> advance(step)
   end
+
+  defp voiced(instrument, note) when is_function(instrument, 1), do: instrument.(note)
+  defp voiced(%Voice{} = synth, note), do: %{synth | freq: Notes.freq(note)}
 
   @doc "Play a note without moving the cursor, for stacking a chord. Takes `play/4`'s options."
   @spec under(t(), atom() | number() | Voice.t(), keyword()) :: t()
@@ -175,17 +180,20 @@ defmodule TuningFork.Part do
 
   defp hit(part, ".", step, _opts), do: rest(part, step)
   defp hit(part, "-", step, _opts), do: rest(part, step)
-  defp hit(part, "x", step, opts), do: play(part, part.synth || Voice.new(), step, opts)
-  defp hit(part, "X", step, opts), do: play(part, part.synth || Voice.new(), step, opts)
+  defp hit(part, "x", step, opts), do: play(part, struck(part), step, opts)
+  defp hit(part, "X", step, opts), do: play(part, struck(part), step, opts)
 
   defp hit(part, digit, step, opts) when digit in ~w(1 2 3 4 5 6 7 8 9) do
     level = String.to_integer(digit) / 9.0
     opts = Keyword.update(opts, :gain, level, &(&1 * level))
 
-    play(part, part.synth || Voice.new(), step, opts)
+    play(part, struck(part), step, opts)
   end
 
   defp hit(part, _unknown, step, _opts), do: rest(part, step)
+
+  defp struck(%{synth: instrument}) when is_function(instrument, 1), do: instrument.(nil)
+  defp struck(%{synth: synth}), do: synth || Voice.new()
 
   @doc "Move the cursor on by `beats` without playing anything."
   @spec rest(t(), number()) :: t()
@@ -255,9 +263,12 @@ defmodule TuningFork.Part do
     Enum.reduce(0..(times - 1)//1, part, fn index, acc -> fun.(acc, index) end)
   end
 
-  @doc "Change the voice used for everything after this point."
-  @spec synth(t(), Voice.t()) :: t()
+  @doc "Change the voice, or `t:instrument/0`, used for everything after this point."
+  @spec synth(t(), Voice.t() | instrument()) :: t()
   def synth(%__MODULE__{} = part, %Voice{} = voice), do: %{part | synth: voice}
+
+  def synth(%__MODULE__{} = part, instrument) when is_function(instrument, 1),
+    do: %{part | synth: instrument}
 
   @doc "Change the part's level for everything after this point."
   @spec gain(t(), number()) :: t()

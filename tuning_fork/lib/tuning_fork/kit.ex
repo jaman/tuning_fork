@@ -12,7 +12,7 @@ defmodule TuningFork.Kit do
   alias TuningFork.Gm.{Fonts, Names}
   alias TuningFork.Sample.{Bank, Font}
 
-  @drums ~w(bd kick sn snare rim cp clap hh hat oh open lt mt ht tom rd ride cr crash tam cow
+  @drums ~w(bd kick sn sd snare rim cp clap hh hat oh open lt mt ht tom rd ride cr crash tam cow
             perc sh shaker)
 
   @banks %{
@@ -68,7 +68,7 @@ defmodule TuningFork.Kit do
   def families do
     [
       kick: [["bd", "kick"]],
-      snare: [["sn", "snare"], ["rim"], ["cp", "clap"]],
+      snare: [["sn", "sd", "snare"], ["rim"], ["cp", "clap"]],
       hat: [["hh", "hat"], ["oh", "open"]],
       tom: [["lt"], ["mt", "tom"], ["ht"]],
       cymbal: [["rd", "ride"], ["cr", "crash"]],
@@ -123,6 +123,22 @@ defmodule TuningFork.Kit do
   def voice(_value, _seconds, _opts), do: nil
 
   @doc """
+  A sound as a `TuningFork.Part` instrument: a function that gives `voice/3` of `%{sound:
+  name, note: note}` for each note it is asked for, and of `%{sound: name}` for `nil`. `opts`
+  are `voice/3`'s and `controls` any other controls to play it with.
+
+      part(bpm: 100, synth: TuningFork.Kit.instrument("gm_flute", 0.5))
+      |> play(:a4, 1)
+  """
+  @spec instrument(String.t(), number(), map(), keyword()) :: TuningFork.Part.instrument()
+  def instrument(name, seconds \\ 0.5, controls \\ %{}, opts \\ []) when is_binary(name) do
+    fn
+      nil -> voice(Map.put(controls, :sound, name), seconds, opts)
+      note -> voice(controls |> Map.put(:sound, name) |> Map.put(:note, note), seconds, opts)
+    end
+  end
+
+  @doc """
   Start fetching, in the background, every recording and soundfont the `values` would play.
   Values are what `voice/3` takes; anything else is skipped. Returns at once.
   """
@@ -136,7 +152,7 @@ defmodule TuningFork.Kit do
   end
 
   defp sound_of(%{} = controls) do
-    controls = from_bank(controls)
+    controls = from_bank(controls, false)
 
     Map.get(controls, :sound) || Map.get(controls, :s)
   end
@@ -144,10 +160,10 @@ defmodule TuningFork.Kit do
   defp sound_of(name) when is_binary(name), do: name
   defp sound_of(_other), do: nil
 
-  defp from_bank(%{bank: bank} = controls) when is_binary(bank) do
+  defp from_bank(%{bank: bank} = controls, wait?) when is_binary(bank) do
     with sound when is_binary(sound) <- Map.get(controls, :sound) || Map.get(controls, :s),
          [base | index] <- String.split(sound, ":", parts: 2),
-         true <- Bank.has?(bank <> "_" <> base) do
+         true <- registered?(bank <> "_" <> base, wait?) do
       controls
       |> Map.drop([:bank, :s])
       |> Map.put(:sound, Enum.join([bank <> "_" <> base | index], ":"))
@@ -156,7 +172,12 @@ defmodule TuningFork.Kit do
     end
   end
 
-  defp from_bank(controls), do: controls
+  defp from_bank(controls, _wait?), do: controls
+
+  defp registered?(name, wait?) do
+    Bank.has?(name) or
+      (TuningFork.Strudel.defaults(wait: wait?) == :ok and wait? and Bank.has?(name))
+  end
 
   defp warm(name) do
     {base, index} =
@@ -185,11 +206,13 @@ defmodule TuningFork.Kit do
   `:sound` or `:note` says what to play and is passed to `voice/2`; every other key changes the
   voice that comes back. A map with neither is `nil`. A `:bank` plays the recording registered
   as `bank_sound` when `TuningFork.Sample.Bank` has one, and is otherwise an adjustment to the
-  kit's drum (`banks/0`).
+  kit's drum (`banks/0`). A bank the kit does not have starts `TuningFork.Strudel.defaults/1`,
+  the sets such names come from: with `wait: true` (the default) the voice waits for them,
+  with `wait: false` it is the kit's drum this time.
   """
   @spec from_map(map(), number(), keyword()) :: Voice.t() | nil
   def from_map(controls, seconds, opts \\ []) do
-    controls = from_bank(controls)
+    controls = from_bank(controls, Keyword.get(opts, :wait, true))
     sound = Map.get(controls, :sound) || Map.get(controls, :s)
 
     case indexed(sound, controls) do
@@ -296,8 +319,10 @@ defmodule TuningFork.Kit do
       iex> TuningFork.Kit.midi(%{sound: "bd"})
       nil
 
-  A drum name has no pitch, so it is `nil`. `:octave` moves the root — 3 is where a scale sits
-  without one — and `:transpose` adds semitones after everything else.
+  A note may be a name as a string or atom, a MIDI number, or a map of controls carrying
+  `:note` or `:degree`. A drum name has no pitch, so it is `nil`. `:octave` moves the root —
+  3 is where a scale sits without one — and `:transpose` adds semitones after everything
+  else.
   """
   @spec midi(term()) :: integer() | nil
   def midi(%{degree: degree} = controls) when is_integer(degree) do
@@ -324,6 +349,9 @@ defmodule TuningFork.Kit do
       [_drum, _index] -> nil
     end
   end
+
+  def midi(value) when is_atom(value) and not is_nil(value),
+    do: value |> Atom.to_string() |> midi()
 
   def midi(_value), do: nil
 
@@ -555,7 +583,7 @@ defmodule TuningFork.Kit do
   defp built(name) when name in ~w(mt tom), do: kick(145.0, 0.28)
   defp built(name) when name in ~w(ht), do: kick(200.0, 0.24)
 
-  defp built(name) when name in ~w(sn snare), do: snare(0.9)
+  defp built(name) when name in ~w(sn sd snare), do: snare(0.9)
   defp built(name) when name in ~w(rim), do: rattle(2_400.0, 4.0, 0.05, 0.45)
   defp built(name) when name in ~w(cp clap), do: rattle(1_300.0, 1.6, 0.11, 0.7)
 

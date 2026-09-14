@@ -93,6 +93,20 @@ defmodule TuningFork.Sample.Set do
     end)
   end
 
+  @doc """
+  Load several sets as `background/2` does, returning once every one has been tried — or,
+  when the same list is already loading in the background, once that has finished.
+  """
+  @spec load_all([{String.t() | map(), keyword()}], (-> term())) :: :ok
+  def load_all(sets, done \\ fn -> :ok end) when is_list(sets) do
+    Fetch.once({:sets, :erlang.phash2(sets)}, fn ->
+      Enum.each(sets, &load_set/1)
+      done.()
+    end)
+
+    :ok
+  end
+
   defp load_set({source, opts}) do
     {aliases, opts} = Keyword.pop(opts, :alias)
 

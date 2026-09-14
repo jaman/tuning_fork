@@ -24,6 +24,7 @@ defmodule TuningFork.Composer.Json do
       "scale" => to_string(project.scale),
       "gain" => project.gain,
       "reverb" => project.reverb,
+      "kit" => to_string(project.kit),
       "name" => project.name,
       "tracks" => Enum.map(project.tracks, &track_to_map/1)
     }
@@ -65,6 +66,7 @@ defmodule TuningFork.Composer.Json do
         scale: atom(attrs["scale"], :minor_pentatonic),
         gain: float(attrs["gain"], 0.5),
         reverb: float(attrs["reverb"], 0.0),
+        kit: kit(attrs["kit"]),
         name: to_string(attrs["name"] || "song")
       )
 
@@ -127,10 +129,17 @@ defmodule TuningFork.Composer.Json do
 
   defp float(_value, default), do: default
 
+  defp kit(name) when is_binary(name) and name not in ["", "synth"], do: name
+  defp kit(_synth), do: :synth
+
   @known Map.new(
            Composer.scales() ++
              [:drum, :pitched, :sample] ++
-             for(octave <- 0..8, name <- ~w(c cs d ds e f fs g gs a as b), do: :"#{name}#{octave}"),
+             for(
+               octave <- 0..8,
+               name <- ~w(c cs d ds e f fs g gs a as b),
+               do: :"#{name}#{octave}"
+             ),
            &{to_string(&1), &1}
          )
 

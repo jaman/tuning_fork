@@ -112,6 +112,13 @@ defmodule TuningFork.Pattern.Mini do
     scan(rest, whole, at + took + 1, [{{:number, -number}, at, at + took + 1} | acc])
   end
 
+  defp scan([?-, ?., digit | _rest] = chars, whole, at, acc) when digit in ?0..?9 do
+    [?- | positive] = chars
+    {number, rest, took} = number([?0 | positive])
+
+    scan(rest, whole, at + took, [{{:number, -number}, at, at + took} | acc])
+  end
+
   defp scan([char | _rest] = chars, whole, at, acc)
        when char in ?a..?z or char in ?A..?Z or char == ?_ do
     {word, rest} = word(chars, [])

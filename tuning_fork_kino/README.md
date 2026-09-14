@@ -82,6 +82,7 @@ note to the right to hold it over the steps that follow.
 | Tempo, Bars | How fast and how long |
 | Beats/bar, Steps/beat | The shape of the grid. 4 and 4 is sixteen sixteenths; 3 and 8 is a waltz; 4 and 3 is triplets |
 | Key, Scale | What the pitched tracks are allowed to play |
+| Kit | `synth` for the kit's own drums and synthesised instruments, or a drum machine — `RolandTR909` and the others in `TuningFork.Kit.banks/0` — for its recordings and General MIDI soundfonts, fetched as they are first heard |
 | Gain | Level per note. Lower it as tracks pile up |
 | Reverb | Room size, 0 to 1 |
 | + track | Add a row; each one picks drum or pitched, and a sound |

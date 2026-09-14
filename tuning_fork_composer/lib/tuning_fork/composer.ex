@@ -13,7 +13,8 @@ defmodule TuningFork.Composer do
   """
 
   alias TuningFork.Composer.{Source, Track}
-  alias TuningFork.{Gm, Notes, Sample, Score, Voice}
+  alias TuningFork.{Gm, Kit, Notes, Sample, Score, Voice}
+  alias TuningFork.Gm.Names
 
   @type t :: %__MODULE__{
           bpm: pos_integer(),
@@ -24,6 +25,7 @@ defmodule TuningFork.Composer do
           scale: atom(),
           gain: float(),
           reverb: float(),
+          kit: :synth | String.t(),
           name: String.t(),
           tracks: [Track.t()]
         }
@@ -36,10 +38,11 @@ defmodule TuningFork.Composer do
             scale: :minor_pentatonic,
             gain: 0.5,
             reverb: 0.0,
+            kit: :synth,
             name: "song",
             tracks: []
 
-  @settings [:bpm, :bars, :meter, :division, :root, :scale, :gain, :reverb, :name]
+  @settings [:bpm, :bars, :meter, :division, :root, :scale, :gain, :reverb, :kit, :name]
 
   @doc """
   A composition. Takes any field of the struct as an option.
@@ -47,8 +50,10 @@ defmodule TuningFork.Composer do
   Fields and defaults: `:bpm` (`96`), `:bars` (`2`), `:meter` beats in a bar (`4`),
   `:division` steps in a beat (`4`), `:root` note name (`:a2`), `:scale` one of `scales/0`
   (`:minor_pentatonic`), `:gain` 0.0–1.0 (`0.5`), `:reverb` room size 0.0–1.0 with `0.0` off
-  (`0.0`), `:name` the variable `to_source/1` binds the score to (`"song"`), `:tracks` a list
-  of `TuningFork.Composer.Track` (`[]`). Every track given is resized to the grid width.
+  (`0.0`), `:kit` `:synth` for the kit's own drums and General MIDI synth voices, or a drum
+  machine name such as `"RolandTR909"` for its recordings and the General MIDI soundfonts
+  (`:synth`), `:name` the variable `to_source/1` binds the score to (`"song"`), `:tracks` a
+  list of `TuningFork.Composer.Track` (`[]`). Every track given is resized to the grid width.
 
       Composer.new()
       Composer.new(bpm: 120, meter: 3, root: :c3)
@@ -156,7 +161,13 @@ defmodule TuningFork.Composer do
   end
 
   defp cast(:name, value, _current), do: to_string(value)
+  defp cast(:kit, :synth, _current), do: :synth
+  defp cast(:kit, value, _current) when is_binary(value), do: kit_named(String.trim(value))
+  defp cast(:kit, _value, current), do: current
   defp cast(_field, value, _current), do: value
+
+  defp kit_named(name) when name in ["", "synth"], do: :synth
+  defp kit_named(name), do: name
 
   defp to_number(value, _default) when is_number(value), do: value
 
@@ -354,14 +365,12 @@ defmodule TuningFork.Composer do
   """
   @spec to_score(t()) :: Score.t()
   def to_score(%__MODULE__{} = project) do
-    base = base_voice(project)
-    kit = Gm.drums()
     notes = scale(project)
 
     parts =
       project.tracks
       |> Enum.filter(&Track.audible?/1)
-      |> Enum.map(&part_for(&1, project, base, kit, notes))
+      |> Enum.map(&part_for(&1, project, notes))
 
     Score.from_parts(parts, bpm: project.bpm, beats: beats(project))
   end
@@ -377,14 +386,25 @@ defmodule TuningFork.Composer do
     )
   end
 
-  @doc "The voice a track plays with."
-  @spec voice_for(Track.t(), t()) :: Voice.t()
-  def voice_for(%Track{kind: :drum} = track, project) do
+  @doc """
+  The voice a track plays with: a `TuningFork.Voice`, or with a recorded `:kit` a
+  `TuningFork.Part` instrument asked for one per note.
+  """
+  @spec voice_for(Track.t(), t()) :: Voice.t() | TuningFork.Part.instrument()
+  def voice_for(%Track{kind: :drum} = track, %{kit: :synth} = project) do
     Map.get(Gm.drums(), drum_note(track.sound), base_voice(project))
   end
 
-  def voice_for(%Track{kind: :pitched} = track, project) do
+  def voice_for(%Track{kind: :drum} = track, %{kit: bank} = project) do
+    Kit.instrument(kit_sound(track.sound), 0.5, %{bank: bank, gain: project.gain})
+  end
+
+  def voice_for(%Track{kind: :pitched} = track, %{kit: :synth} = project) do
     Gm.for_program(program_for(track.sound), base_voice(project))
+  end
+
+  def voice_for(%Track{kind: :pitched} = track, project) do
+    Kit.instrument(font_for(track.sound), 0.5, %{gain: project.gain})
   end
 
   def voice_for(%Track{kind: :sample} = track, project) do
@@ -404,17 +424,10 @@ defmodule TuningFork.Composer do
 
   defp load_sample(_none), do: nil
 
-  defp part_for(track, project, base, kit, notes) do
+  defp part_for(track, project, notes) do
     import TuningFork.Part
 
-    synth =
-      case track.kind do
-        :drum -> Map.get(kit, drum_note(track.sound), base)
-        :pitched -> Gm.for_program(program_for(track.sound), base)
-        :sample -> voice_for(track, project)
-      end
-
-    started = part(bpm: project.bpm, synth: synth, gain: track.gain)
+    started = part(bpm: project.bpm, synth: voice_for(track, project), gain: track.gain)
 
     case track.kind do
       :drum ->
@@ -453,6 +466,33 @@ defmodule TuningFork.Composer do
 
   defp note_at(notes, degree), do: Enum.at(notes, degree - 1, List.last(notes))
 
+  @doc "The name `TuningFork.Kit` and the drum machine banks give a named drum."
+  @spec kit_sound(String.t() | nil) :: String.t()
+  def kit_sound(sound) do
+    Map.get(
+      %{
+        "kick" => "bd",
+        "snare" => "sd",
+        "hat" => "hh",
+        "open_hat" => "oh",
+        "tom" => "mt",
+        "clap" => "cp",
+        "ride" => "rd",
+        "crash" => "cr"
+      },
+      to_string(sound),
+      "bd"
+    )
+  end
+
+  @doc "The General MIDI soundfont, by its `gm_` name, a named instrument plays with."
+  @spec font_for(String.t() | nil) :: String.t()
+  def font_for(sound) do
+    program = program_for(sound)
+
+    Enum.find(Names.names(), "gm_piano", &(Names.program(&1) == program))
+  end
+
   @doc "The General MIDI note a named drum sounds on."
   @spec drum_note(String.t() | nil) :: pos_integer()
   def drum_note(sound) do
@@ -479,6 +519,7 @@ defmodule TuningFork.Composer do
       %{
         "bass" => 33,
         "piano" => 0,
+        "epiano" => 4,
         "guitar" => 27,
         "strings" => 48,
         "brass" => 57,
@@ -513,6 +554,7 @@ defmodule TuningFork.Composer do
     [
       {"bass", "Bass"},
       {"piano", "Piano"},
+      {"epiano", "Electric piano"},
       {"guitar", "Guitar"},
       {"strings", "Strings"},
       {"brass", "Brass"},

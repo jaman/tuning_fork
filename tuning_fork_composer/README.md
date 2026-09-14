@@ -89,8 +89,14 @@ for {step, i} <- Enum.with_index(track.steps) do
 end
 ```
 
-For menus: `Composer.drums/0`, `Composer.instruments/0`, `Composer.scales/0`, and
-`Composer.settings/0` for what `set/3` accepts.
+For menus: `Composer.drums/0`, `Composer.instruments/0`, `Composer.scales/0`,
+`TuningFork.Kit.banks/0` for the `:kit` setting, and `Composer.settings/0` for what `set/3`
+accepts.
+
+`:kit` chooses the sounds: `:synth` is the kit's own drums and `TuningFork.Gm` synth voices,
+with nothing to fetch; a drum machine name such as `"RolandTR909"` plays that machine's
+recordings and the General MIDI soundfonts, through `TuningFork.Kit.instrument/4`, fetched
+the first time they are heard.
 
 ## Playing and writing
 

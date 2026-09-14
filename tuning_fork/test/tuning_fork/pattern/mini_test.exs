@@ -34,6 +34,7 @@ defmodule TuningFork.Pattern.MiniTest do
 
     test "a decimal stays a float and a minus sign is part of the number" do
       assert cycle("0.5 -2") == [{0.0, 0.5, 0.5}, {0.5, 1.0, -2}]
+      assert cycle(".3 -.3") == [{0.0, 0.5, 0.3}, {0.5, 1.0, -0.3}]
     end
 
     test "a colon index rides along on the word" do

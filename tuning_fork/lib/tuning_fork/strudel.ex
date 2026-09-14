@@ -96,18 +96,21 @@ defmodule TuningFork.Strudel do
   Register the sample sets strudel.cc loads before any piece — its drum kit, the drum
   machines and their short names, the piano, the VCSL and mridangam sets, and the part of
   Dirt-Samples it keeps — in the background, once. Their files are fetched as they are
-  played. `chains/1` calls this. Setting the application environment
-  `:tuning_fork, :strudel_defaults` to `false` turns it off.
+  played. `chains/1` calls this, and so does `TuningFork.Kit` when asked for a bank it does
+  not have. `wait: true` returns once the sets are registered. Setting the application
+  environment `:tuning_fork, :strudel_defaults` to `false` turns it off.
   """
-  @spec defaults() :: :ok
-  def defaults do
-    unless :persistent_term.get({__MODULE__, :defaults}, false) or
-             Application.get_env(:tuning_fork, :strudel_defaults, true) == false do
-      Set.background(@default_sets, fn -> :persistent_term.put({__MODULE__, :defaults}, true) end)
+  @spec defaults(keyword()) :: :ok
+  def defaults(opts \\ []) do
+    cond do
+      :persistent_term.get({__MODULE__, :defaults}, false) -> :ok
+      Application.get_env(:tuning_fork, :strudel_defaults, true) == false -> :ok
+      Keyword.get(opts, :wait, false) -> Set.load_all(@default_sets, &loaded/0)
+      true -> Set.background(@default_sets, &loaded/0)
     end
-
-    :ok
   end
+
+  defp loaded, do: :persistent_term.put({__MODULE__, :defaults}, true)
 
   @doc "The piece as one pattern, every chain stacked."
   @spec pattern(String.t()) :: {:ok, Pattern.t()} | {:error, String.t()}

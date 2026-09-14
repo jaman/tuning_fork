@@ -40,7 +40,7 @@ defmodule TuningFork.Composer.Source do
     """
     import TuningFork.Part
 
-    #{aliases(named)}
+    #{aliases(project, named)}
 
     #{voices(project, named)}
 
@@ -64,12 +64,14 @@ defmodule TuningFork.Composer.Source do
       else: format(formatted, passes - 1)
   end
 
-  defp aliases(named) do
+  defp aliases(project, named) do
     kinds = named |> Enum.map(fn {track, _name} -> track.kind end) |> MapSet.new()
+    played = MapSet.member?(kinds, :drum) or MapSet.member?(kinds, :pitched)
 
     used =
       ["Score", "Voice"] ++
-        if(MapSet.member?(kinds, :drum) or MapSet.member?(kinds, :pitched), do: ["Gm"], else: []) ++
+        if(played and project.kit == :synth, do: ["Gm"], else: []) ++
+        if(played and project.kit != :synth, do: ["Kit"], else: []) ++
         if(MapSet.member?(kinds, :sample), do: ["Sample"], else: [])
 
     "alias TuningFork.{#{used |> Enum.sort() |> Enum.join(", ")}}"
@@ -82,15 +84,16 @@ defmodule TuningFork.Composer.Source do
 
     tracks = Enum.map(named, &elem(&1, 0))
 
-    kit = if Enum.any?(tracks, &(&1.kind == :drum)), do: "\nkit = Gm.drums()", else: ""
+    kit =
+      if project.kit == :synth and Enum.any?(tracks, &(&1.kind == :drum)),
+        do: "\nkit = Gm.drums()",
+        else: ""
 
     instruments =
       tracks
       |> Enum.filter(&(&1.kind == :pitched))
       |> Enum.uniq_by(& &1.sound)
-      |> Enum.map_join("\n", fn track ->
-        "#{track.sound} = Gm.for_program(#{Composer.program_for(track.sound)}, base)"
-      end)
+      |> Enum.map_join("\n", &instrument(project, &1))
 
     recordings =
       named
@@ -109,6 +112,15 @@ defmodule TuningFork.Composer.Source do
     [base <> kit, instruments, recordings] |> Enum.reject(&(&1 == "")) |> Enum.join("\n")
   end
 
+  defp instrument(%Composer{kit: :synth}, track) do
+    "#{track.sound} = Gm.for_program(#{Composer.program_for(track.sound)}, base)"
+  end
+
+  defp instrument(project, track) do
+    "#{track.sound} = Kit.instrument(#{inspect(Composer.font_for(track.sound))}, 0.5, " <>
+      "%{gain: #{project.gain}})"
+  end
+
   defp root_option(%Track{root: root}) when not is_nil(root), do: ", root: :#{root}"
   defp root_option(_none), do: ""
 
@@ -119,7 +131,7 @@ defmodule TuningFork.Composer.Source do
   defp part(project, %Track{kind: :drum} = track, name) do
     """
     #{name} =
-      part(bpm: #{project.bpm}, synth: kit[#{Composer.drum_note(track.sound)}], gain: #{track.gain})
+      part(bpm: #{project.bpm}, synth: #{drum(project, track)}, gain: #{track.gain})
       |> repeat(#{project.bars}, fn bar -> steps(bar, "#{pattern(track)}", 1 / #{project.division}) end)\
     """
   end
@@ -134,6 +146,13 @@ defmodule TuningFork.Composer.Source do
         steps(bar, #{entries(project, track)}, 1 / #{project.division}, release: #{track.ring})
       end)\
     """
+  end
+
+  defp drum(%Composer{kit: :synth}, track), do: "kit[#{Composer.drum_note(track.sound)}]"
+
+  defp drum(project, track) do
+    "Kit.instrument(#{inspect(Composer.kit_sound(track.sound))}, 0.5, " <>
+      "%{bank: #{inspect(project.kit)}, gain: #{project.gain}})"
   end
 
   defp pattern(%Track{steps: steps}) do

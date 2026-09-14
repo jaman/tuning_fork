@@ -94,6 +94,23 @@ defmodule TuningFork.PartTest do
       assert played.shape == :noise
     end
 
+    test "a synth may be a function of the note, asked for each note and for a plain hit" do
+      instrument = fn
+        nil -> Voice.new(shape: :noise, freq: 0.0)
+        note -> Voice.new(shape: :triangle, freq: Notes.freq(note), gain: 0.3)
+      end
+
+      [{_beat, played}] = part(synth: instrument) |> play(:a4) |> Part.notes()
+      assert played.shape == :triangle
+      assert_in_delta played.freq, 440.0, 0.001
+
+      [{_beat, hit}] = part(synth: instrument) |> steps("x...") |> Part.notes()
+      assert hit.shape == :noise
+
+      [{_beat, chosen}] = part() |> play(:c4, 1.0, synth: instrument) |> Part.notes()
+      assert chosen.shape == :triangle
+    end
+
     test "synth changes the voice from that point on" do
       played =
         part(synth: Voice.new(shape: :sine))

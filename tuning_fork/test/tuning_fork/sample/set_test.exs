@@ -87,6 +87,13 @@ defmodule TuningFork.Sample.SetTest do
     assert Bank.has?("tr808_sd")
   end
 
+  test "load_all is the same, waited for" do
+    base = Path.dirname(@wav) <> "/"
+
+    assert :ok = Set.load_all([{%{"_base" => base, "waited_bd" => ["mono.wav"]}, []}])
+    assert Bank.has?("waited_bd")
+  end
+
   test "a strudel.json on disk" do
     path =
       Path.join(System.tmp_dir!(), "tuning_fork_set_#{System.unique_integer([:positive])}.json")

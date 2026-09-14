@@ -12,6 +12,11 @@ defmodule TuningFork.KitTest do
       end
     end
 
+    test "sd, the snare as Strudel and its drum kits spell it, is the snare" do
+      assert Kit.voice("sd", 0.25) == Kit.voice("sn", 0.25)
+      assert "sd" in Kit.drums()
+    end
+
     test "the long names give the same voice as the short ones" do
       assert Kit.voice("kick", 0.25) == Kit.voice("bd", 0.25)
       assert Kit.voice("snare", 0.25) == Kit.voice("sn", 0.25)
@@ -37,6 +42,16 @@ defmodule TuningFork.KitTest do
       assert "bd" in names
       assert "sn" in names
       assert names == Enum.sort(names)
+    end
+
+    test "instrument is a voice per note for a name, and the plain sound for nil" do
+      flute = Kit.instrument("square", 0.5)
+      assert %Voice{shape: :square} = played = flute.(:a4)
+      assert_in_delta played.freq, 440.0, 0.01
+
+      kick = Kit.instrument("bd", 0.25)
+      assert %Voice{} = kick.(nil)
+      assert kick.(nil).freq < 200.0
     end
 
     test "known? says whether a name plays as a drum, a waveform or a GM instrument" do
