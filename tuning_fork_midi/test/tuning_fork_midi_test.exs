@@ -7,6 +7,8 @@ defmodule TuningFork.MidiTest do
   real round trip: the bytes go out through CoreMIDI or ALSA and come back.
 
   `async: false` because a virtual port is visible to the whole machine while it is open.
+  Every note sent through a real port goes at velocity 1, so a synth that listens to every
+  source on the machine stays all but silent while these run.
   """
 
   use ExUnit.Case, async: false
@@ -34,6 +36,11 @@ defmodule TuningFork.MidiTest do
       assert Message.note_on(-5, -5) == <<0x90, 0, 0>>
       assert Message.velocity(1.5) == 127
       assert Message.velocity(-1.0) == 0
+    end
+
+    test "any gain above nothing is at least velocity one, since zero would be a note off" do
+      assert Message.velocity(0.001) == 1
+      assert Message.velocity(0.0) == 0
     end
 
     test "a bend is centred at nothing and reaches both ends" do
@@ -132,9 +139,9 @@ defmodule TuningFork.MidiTest do
         :ok = Port.listen(listening)
         Process.sleep(50)
 
-        :ok = Port.send(out, Message.note_on(60, 100))
+        :ok = Port.send(out, Message.note_on(60, 1))
 
-        assert_receive {:midi_in, _port, <<0x90, 60, 100>>, stamp}, 2_000
+        assert_receive {:midi_in, _port, <<0x90, 60, 1>>, stamp}, 2_000
         assert is_integer(stamp)
       end
     end
@@ -160,7 +167,7 @@ defmodule TuningFork.MidiTest do
 
         {:ok, score} =
           Part.Source.parse("""
-          part(bpm: 480, synth: Kit.voice(%{note: "c3", shape: :saw}, 0.05))
+          part(bpm: 480, gain: 0.01, synth: Kit.voice(%{note: "c3", shape: :saw}, 0.05))
           |> play(:c3, 1) |> play(:e3, 1)
           """)
 
@@ -185,7 +192,12 @@ defmodule TuningFork.MidiTest do
         :ok = Port.listen(listening)
         Process.sleep(50)
 
-        {:ok, live} = Out.pattern(out, Control.note("c3 e3"), cps: 4.0, clock: true, to: self())
+        {:ok, live} =
+          Out.pattern(out, Control.note("c3 e3") |> Control.gain(0.01),
+            cps: 4.0,
+            clock: true,
+            to: self()
+          )
 
         assert_receive {:midi_in, _p, <<0xFA>>, _at}, 2_000
         assert_receive {:midi_in, _p, <<0x90, 48, _::8>>, _at}, 2_000
@@ -195,7 +207,7 @@ defmodule TuningFork.MidiTest do
         assert_receive {:midi_in, _p, <<0x90, 52, _::8>>, _at}, 2_000
         assert_receive {:midi_in, _p, <<0xF8>>, _at}, 2_000
 
-        Out.update_pattern(live, Control.s("bd"))
+        Out.update_pattern(live, Control.s("bd") |> Control.gain(0.01))
         assert_receive {:midi_in, _p, <<0x99, 36, _::8>>, _at}, 2_000
 
         Out.stop(live)
@@ -215,8 +227,8 @@ defmodule TuningFork.MidiTest do
 
         Process.sleep(50)
 
-        :ok = Port.send(out, Message.note_on(60, 100))
-        assert_receive {:midi, {:note_on, 1, 60, 100}}, 2_000
+        :ok = Port.send(out, Message.note_on(60, 1))
+        assert_receive {:midi, {:note_on, 1, 60, 1}}, 2_000
         Process.sleep(150)
         assert Stage.sounding(stage) == 1
 

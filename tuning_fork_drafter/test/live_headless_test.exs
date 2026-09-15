@@ -23,7 +23,14 @@ defmodule TuningFork.LiveHeadlessTest do
     Code.ensure_loaded!(TuningFork.Drafter.Roll)
     Drafter.Widget.Registry.register(TuningFork.Drafter.Roll)
 
-    ctx = start_headless(App, %{pixels: true, cps: 0.5, patterns: ["s(\"bd!4\") |> scope()"]})
+    ctx =
+      start_headless(App, %{
+        pixels: true,
+        cps: 0.5,
+        sink: TuningFork.Sink.Silent,
+        patterns: ["s(\"bd!4\") |> scope()"]
+      })
+
     on_exit(fn -> stop(ctx) end)
 
     %{ctx: ctx}

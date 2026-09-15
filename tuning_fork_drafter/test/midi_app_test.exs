@@ -15,7 +15,11 @@ defmodule TuningFork.MidiAppTest do
   doctest TuningFork.MidiApp
 
   defp app(opts \\ []) do
-    opts |> Keyword.new() |> Keyword.put_new(:sink, Sink.Silent) |> App.mount()
+    opts
+    |> Keyword.new()
+    |> Keyword.put_new(:sink, Sink.Silent)
+    |> Keyword.put_new(:pattern, ~S{s("bd*4") |> gain(0.01)})
+    |> App.mount()
   end
 
   defp press(state, keys) do

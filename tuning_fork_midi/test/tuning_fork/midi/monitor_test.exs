@@ -43,9 +43,9 @@ defmodule TuningFork.Midi.MonitorTest do
       assert :ok = Monitor.open_input(monitor, input_named("TF Monitor Keys " <> context.run))
       Process.sleep(50)
 
-      :ok = Port.send(keys, Message.note_on(60, 100))
-      assert_receive {:midi_monitor, ^monitor, :in, {:note_on, 1, 60, 100}, _at}, 2_000
-      assert Monitor.state(monitor).keys == %{60 => 100}
+      :ok = Port.send(keys, Message.note_on(60, 1))
+      assert_receive {:midi_monitor, ^monitor, :in, {:note_on, 1, 60, 1}, _at}, 2_000
+      assert Monitor.state(monitor).keys == %{60 => 1}
 
       :ok = Port.send(keys, Message.control(64, 127))
       assert_receive {:midi_monitor, ^monitor, :in, {:control, 1, 64, 127}, _at}, 2_000
@@ -72,7 +72,7 @@ defmodule TuningFork.Midi.MonitorTest do
       :ok = Port.listen(listening)
       Process.sleep(50)
 
-      assert :ok = Monitor.play(monitor, Control.note("c3 e3"), cps: 4.0)
+      assert :ok = Monitor.play(monitor, Control.note("c3 e3") |> Control.gain(0.01), cps: 4.0)
       assert Monitor.state(monitor).playing == true
 
       assert_receive {:midi_in, _p, <<0x90, 48, _::8>>, _at}, 2_000
@@ -101,9 +101,9 @@ defmodule TuningFork.Midi.MonitorTest do
       :ok = Port.listen(listening)
       Process.sleep(50)
 
-      assert :ok = Monitor.tap(monitor, 67, 90)
-      assert_receive {:midi_in, _p, <<0x90, 67, 90>>, _at}, 2_000
-      assert_receive {:midi_monitor, ^monitor, :out, {:note_on, 1, 67, 90}, _at}, 2_000
+      assert :ok = Monitor.tap(monitor, 67, 1)
+      assert_receive {:midi_in, _p, <<0x90, 67, 1>>, _at}, 2_000
+      assert_receive {:midi_monitor, ^monitor, :out, {:note_on, 1, 67, 1}, _at}, 2_000
       assert_receive {:midi_in, _p, <<0x80, 67, 0>>, _at}, 2_000
     end
   end

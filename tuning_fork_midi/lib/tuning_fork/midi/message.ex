@@ -166,7 +166,8 @@ defmodule TuningFork.Midi.Message do
       64
   """
   @spec velocity(number()) :: 0..127
-  def velocity(gain), do: seven(round(clamp(gain, 0.0, 1.0) * 127))
+  def velocity(gain) when gain <= 0, do: 0
+  def velocity(gain), do: gain |> clamp(0.0, 1.0) |> Kernel.*(127) |> round() |> max(1) |> seven()
 
   defp wire(opts) do
     case Keyword.get(opts, :channel, 1) do
