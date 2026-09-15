@@ -14,7 +14,10 @@ defmodule TuningFork.ComposerAppTest do
   alias TuningFork.Composer.Track
 
   defp app(opts \\ []) do
-    ComposerApp.mount(Keyword.put_new(opts, :project, Composer.demo()))
+    opts
+    |> Keyword.put_new(:project, Composer.demo())
+    |> Keyword.put_new(:sink, TuningFork.Sink.Silent)
+    |> ComposerApp.mount()
   end
 
   defp press(state, keys) do

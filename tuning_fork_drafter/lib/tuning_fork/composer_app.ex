@@ -23,6 +23,7 @@ defmodule TuningFork.ComposerApp do
     * `:dragging` — true while a drag is lengthening a note
     * `:playing` — the `TuningFork.Stage` playing the bed, or `nil`
     * `:rendered` — the last render and the project it was made from, or `nil`
+    * `:sink` — the `TuningFork.Sink` `p` plays through, or `nil` for the speaker
     * `:out` — the path `w` writes to
     * `:said` — the message line under the grid
   """
@@ -33,6 +34,7 @@ defmodule TuningFork.ComposerApp do
           dragging: boolean(),
           playing: pid() | nil,
           rendered: {Composer.t(), binary()} | nil,
+          sink: module() | nil,
           out: Path.t(),
           said: String.t()
         }
@@ -44,6 +46,8 @@ defmodule TuningFork.ComposerApp do
 
     * `:project` — a `TuningFork.Composer` to open on, default `Composer.demo/0`
     * `:out` — where `w` writes the generated source, default `"song.exs"`
+    * `:sink` — a `TuningFork.Sink` module `p` plays through, in place of checking for a
+      speaker
 
   Any other key is ignored.
   """
@@ -58,6 +62,7 @@ defmodule TuningFork.ComposerApp do
       dragging: false,
       playing: nil,
       rendered: nil,
+      sink: Map.get(props, :sink),
       out: Map.get(props, :out, "song.exs"),
       said:
         "click or drag · arrows and space · +/- pitch · </> length · p play/stop · w write · q quit"
@@ -355,25 +360,30 @@ defmodule TuningFork.ComposerApp do
 
   defp edit(state, change), do: %{state | project: change.(state.project)}
 
+  defp sink(%{sink: sink}) when not is_nil(sink), do: sink
+
+  defp sink(_state) do
+    speaker = Module.concat([:TuningFork, :Sink, :Speaker])
+    if Code.ensure_loaded?(speaker) and TuningFork.available?(), do: speaker
+  end
+
   defp play(%{playing: stage} = state) when is_pid(stage) do
     stop_playing(state) |> Map.put(:said, "stopped")
   end
 
   defp play(state) do
-    speaker = Module.concat([:TuningFork, :Sink, :Speaker])
-
     cond do
       Composer.track_count(state.project) == 0 ->
         %{state | said: "nothing to play yet"}
 
-      not (Code.ensure_loaded?(speaker) and TuningFork.available?()) ->
+      sink(state) == nil ->
         %{state | said: "no audio device — w writes the source instead"}
 
       true ->
         {pcm, state} = rendered(state)
 
         {:ok, stage} =
-          TuningFork.Stage.start_link(name: nil, sink: speaker, chunk: 256, voices: 32)
+          TuningFork.Stage.start_link(name: nil, sink: sink(state), chunk: 256, voices: 32)
 
         TuningFork.Stage.bed(stage, pcm)
 

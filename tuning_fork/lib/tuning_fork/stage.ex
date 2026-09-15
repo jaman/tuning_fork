@@ -35,6 +35,7 @@ defmodule TuningFork.Stage do
     bodies: %{},
     waiting: %{},
     player: nil,
+    pattern_gain: 1.0,
     fx: nil,
     limit: 0.7,
     scope: 4_096,
@@ -316,6 +317,12 @@ defmodule TuningFork.Stage do
     GenServer.cast(stage, {:pattern_cps, cps})
   end
 
+  @doc "Scale the pattern's whole output by `gain`, sounding notes included, from the next chunk; kept for patterns started later."
+  @spec pattern_gain(t(), number()) :: :ok
+  def pattern_gain(stage \\ __MODULE__, gain) when gain >= 0 do
+    GenServer.cast(stage, {:pattern_gain, gain})
+  end
+
   @doc """
   Run the pattern at `cpm` cycles per minute, keeping its place.
   """
@@ -520,7 +527,7 @@ defmodule TuningFork.Stage do
   def handle_cast(:stop_loops, state), do: {:noreply, %{state | loops: %{}, bodies: %{}}}
 
   def handle_cast({:start_pattern, pattern, opts}, state) do
-    {:noreply, %{state | player: Player.new(pattern, state.rate, live_voice(opts))}}
+    {:noreply, %{state | player: pattern |> Player.new(state.rate, live_voice(opts)) |> Player.gain(state.pattern_gain)}}
   end
 
   def handle_cast({:update_pattern, _pattern, _opts}, %{player: nil} = state) do
@@ -532,6 +539,12 @@ defmodule TuningFork.Stage do
   end
 
   def handle_cast(:stop_pattern, state), do: {:noreply, %{state | player: nil}}
+
+  def handle_cast({:pattern_gain, gain}, %{player: nil} = state), do: {:noreply, %{state | pattern_gain: gain / 1.0}}
+
+  def handle_cast({:pattern_gain, gain}, state) do
+    {:noreply, %{state | pattern_gain: gain / 1.0, player: Player.gain(state.player, gain)}}
+  end
 
   def handle_cast({:pattern_cps, _cps}, %{player: nil} = state), do: {:noreply, state}
 

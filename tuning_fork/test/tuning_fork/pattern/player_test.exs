@@ -276,6 +276,19 @@ defmodule TuningFork.Pattern.PlayerTest do
   end
 
   describe "housekeeping" do
+    test "the master gain scales everything, sounding notes included, and zero is silence" do
+      player = Player.new(P.pure("bd"), @rate, cps: 0.25, voice: fn _, _ -> beep() end)
+      {loud, player} = Player.advance(player, 256, 2)
+      assert loud?(loud)
+
+      {half, player} = player |> Player.gain(0.5) |> Player.advance(256, 2)
+      assert peak(half) < peak(loud)
+      assert peak(half) > 0
+
+      {silent, _} = player |> Player.gain(0.0) |> Player.advance(256, 2)
+      assert peak(silent) == 0
+    end
+
     test "hush stops what is sounding but keeps the place" do
       player = Player.new(P.pure("bd"), @rate, cps: 0.25)
       {_pcm, player} = Player.advance(player, 512, 2)

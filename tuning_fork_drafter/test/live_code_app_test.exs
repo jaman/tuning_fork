@@ -12,7 +12,14 @@ defmodule TuningFork.LiveCodeAppTest do
   alias TuningFork.LiveCodeApp, as: App
   alias TuningFork.Pattern.Source
 
-  defp app(opts \\ []), do: App.mount(opts |> Map.new() |> Map.put_new(:pixels, false))
+  defp app(opts \\ []) do
+    App.mount(
+      opts
+      |> Map.new()
+      |> Map.put_new(:pixels, false)
+      |> Map.put_new(:sink, TuningFork.Sink.Silent)
+    )
+  end
 
   defp press(state, keys) do
     keys

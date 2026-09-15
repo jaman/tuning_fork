@@ -24,7 +24,8 @@ defmodule TuningFork.Pattern.Player do
           sounding: [{non_neg_integer(), Live.t(), :playing | :fading, route()}],
           pending: [Pattern.event()],
           buses: %{non_neg_integer() => map()},
-          reverbs: %{non_neg_integer() => TuningFork.Reverb.t()}
+          reverbs: %{non_neg_integer() => TuningFork.Reverb.t()},
+          gain: float()
         }
 
   defstruct [
@@ -38,7 +39,8 @@ defmodule TuningFork.Pattern.Player do
     sounding: [],
     pending: [],
     buses: %{},
-    reverbs: %{}
+    reverbs: %{},
+    gain: 1.0
   ]
 
   @quiet_bus %{room: 0.0, roomsize: 2.0, postgain: 1.0, xfade: 1.0, compressor: 0.0}
@@ -130,8 +132,12 @@ defmodule TuningFork.Pattern.Player do
     {blocks, sounding} = advance_all(player.sounding ++ starting, frames, channels)
     {mixed, player} = through_buses(player, blocks, frames, channels)
 
-    {mixed, %{player | cycle: reached, sounding: cap(sounding, player.voices)}}
+    {Mixer.scale(mixed, player.gain), %{player | cycle: reached, sounding: cap(sounding, player.voices)}}
   end
+
+  @doc "Scale everything the player puts out, sounding notes included, by `gain`; `0.0` is silence."
+  @spec gain(t(), number()) :: t()
+  def gain(%__MODULE__{} = player, gain) when gain >= 0, do: %{player | gain: gain / 1.0}
 
   defp through_buses(player, blocks, frames, channels) do
     {mixed, player} =

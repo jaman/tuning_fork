@@ -22,6 +22,7 @@ defmodule TuningFork.LiveCodeApp do
           slots: [map()],
           slot: non_neg_integer(),
           stage: pid() | nil,
+          sink: module() | nil,
           cycle: float(),
           level: float(),
           help: boolean(),
@@ -38,7 +39,9 @@ defmodule TuningFork.LiveCodeApp do
 
   `props` is a map or a keyword list: `:patterns` a list of mini-notation strings (default
   `demo/0`), `:cps` cycles per second (default `0.5`), `:pixels` whether to draw rasters
-  (default `pixels?/0`).
+  (default `pixels?/0`), `:stage` an already-running `TuningFork.Stage` used as given,
+  `:sink` a `TuningFork.Sink` module used when the app starts its own stage, in place of
+  checking for a speaker.
   """
   @impl true
   @spec mount(map() | keyword()) :: t()
@@ -51,7 +54,8 @@ defmodule TuningFork.LiveCodeApp do
     state = %{
       slots: Enum.map(sources, &slot/1),
       slot: 0,
-      stage: nil,
+      stage: Map.get(props, :stage),
+      sink: Map.get(props, :sink),
       cycle: 0.0,
       level: 0.0,
       help: false,
@@ -864,7 +868,7 @@ defmodule TuningFork.LiveCodeApp do
     state = state |> checked() |> tempo()
     broken = Enum.count(state.slots, & &1.error)
 
-    if playable?() do
+    if playable?(state) do
       state = state |> ensure_stage() |> swap(at)
 
       %{state | said: said(broken, at)}
@@ -897,19 +901,31 @@ defmodule TuningFork.LiveCodeApp do
   end
 
   defp ensure_stage(state) do
-    case TuningFork.Stage.start_link(name: nil, sink: speaker(), chunk: 256, voices: 48) do
+    case TuningFork.Stage.start_link(name: nil, sink: sink(state), chunk: 256, voices: 48) do
       {:ok, stage} -> %{state | stage: stage}
       {:error, _reason} -> state
     end
   end
 
   defp start(state) do
-    if playable?(), do: state |> checked() |> ensure_stage() |> swap(:now), else: checked(state)
+    if playable?(state),
+      do: state |> checked() |> ensure_stage() |> swap(:now),
+      else: checked(state)
   end
+
+  defp sink(%{sink: sink}) when not is_nil(sink), do: sink
+  defp sink(_state), do: speaker()
 
   defp speaker, do: Module.concat([:TuningFork, :Sink, :Speaker])
 
-  defp playable?, do: TuningFork.available?()
+  @doc """
+  Whether this session can produce sound: a `:stage` or `:sink` given to `mount/1`, or a real
+  speaker.
+  """
+  @spec playable?(t()) :: boolean()
+  def playable?(%{stage: stage}) when is_pid(stage), do: true
+  def playable?(%{sink: sink}) when not is_nil(sink), do: true
+  def playable?(_state), do: TuningFork.available?()
 
   @doc """
   Whether this terminal can draw pixels (kitty, iTerm2 or sixel). `false` when detection
