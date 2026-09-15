@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+* `Stage.pattern_gain/2` and `Pattern.Player.gain/2` scale a pattern's whole output,
+  sounding notes included; `0.0` is silence.
+* The README opens the tour notebook in Livebook from a badge, and names the projects this
+  library owes to.
+
 ## 0.1.3
 
 * A `TuningFork.Part` synth may be a function of the note — an instrument — and

@@ -132,7 +132,8 @@ defmodule TuningFork.Pattern.Player do
     {blocks, sounding} = advance_all(player.sounding ++ starting, frames, channels)
     {mixed, player} = through_buses(player, blocks, frames, channels)
 
-    {Mixer.scale(mixed, player.gain), %{player | cycle: reached, sounding: cap(sounding, player.voices)}}
+    {Mixer.scale(mixed, player.gain),
+     %{player | cycle: reached, sounding: cap(sounding, player.voices)}}
   end
 
   @doc "Scale everything the player puts out, sounding notes included, by `gain`; `0.0` is silence."

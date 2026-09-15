@@ -10,9 +10,9 @@ In the notebook's **setup cell** — the one at the very top, not an ordinary ce
 
 ```elixir
 Mix.install([
-  {:tuning_fork, "~> 0.1.3"},
-  {:tuning_fork_samples, "~> 0.1.3"},
-  {:tuning_fork_kino, "~> 0.1.3"}
+  {:tuning_fork, "~> 0.1.4"},
+  {:tuning_fork_samples, "~> 0.1.4"},
+  {:tuning_fork_kino, "~> 0.1.4"}
 ])
 ```
 

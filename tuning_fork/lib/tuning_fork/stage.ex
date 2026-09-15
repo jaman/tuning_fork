@@ -527,7 +527,12 @@ defmodule TuningFork.Stage do
   def handle_cast(:stop_loops, state), do: {:noreply, %{state | loops: %{}, bodies: %{}}}
 
   def handle_cast({:start_pattern, pattern, opts}, state) do
-    {:noreply, %{state | player: pattern |> Player.new(state.rate, live_voice(opts)) |> Player.gain(state.pattern_gain)}}
+    {:noreply,
+     %{
+       state
+       | player:
+           pattern |> Player.new(state.rate, live_voice(opts)) |> Player.gain(state.pattern_gain)
+     }}
   end
 
   def handle_cast({:update_pattern, _pattern, _opts}, %{player: nil} = state) do
@@ -540,7 +545,8 @@ defmodule TuningFork.Stage do
 
   def handle_cast(:stop_pattern, state), do: {:noreply, %{state | player: nil}}
 
-  def handle_cast({:pattern_gain, gain}, %{player: nil} = state), do: {:noreply, %{state | pattern_gain: gain / 1.0}}
+  def handle_cast({:pattern_gain, gain}, %{player: nil} = state),
+    do: {:noreply, %{state | pattern_gain: gain / 1.0}}
 
   def handle_cast({:pattern_gain, gain}, state) do
     {:noreply, %{state | pattern_gain: gain / 1.0, player: Player.gain(state.player, gain)}}

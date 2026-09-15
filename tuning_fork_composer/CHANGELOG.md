@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+* Version brought level with the rest of the family; nothing else changed.
+
 ## 0.1.3
 
 * A `:kit` setting: `:synth` as before, or a drum machine name for its recordings and the

@@ -1,7 +1,7 @@
 defmodule TuningForkSpeaker.MixProject do
   use Mix.Project
 
-  @version "0.1.3"
+  @version "0.1.4"
   @source_url "https://github.com/jaman/tuning_fork"
 
   def project do
@@ -38,7 +38,7 @@ defmodule TuningForkSpeaker.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork, "~> 0.1.3", []),
+      family(:tuning_fork, "~> 0.1.4", []),
       {:elixir_make, "~> 0.9", runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
