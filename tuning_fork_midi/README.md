@@ -105,6 +105,28 @@ voice is a sound name (`"gm_piano"`, `"sawtooth"`, a sample bank name), a map of
 that wants the controls and program changes too, and `stage: nil` does only that. Without a
 `:port`, it plays whatever `{:midi_in, port, bytes, time}` messages are sent to it.
 
+## Both directions, watched
+
+```elixir
+{:ok, midi} = TuningFork.Midi.Monitor.start_link(voice: "gm_piano")
+:ok = TuningFork.Midi.Monitor.subscribe(midi)
+:ok = TuningFork.Midi.Monitor.open_input(midi, 0)
+:ok = TuningFork.Midi.Monitor.open_output(midi, {:virtual, "TuningFork"})
+:ok = TuningFork.Midi.Monitor.play(midi, pattern, cps: 0.5, clock: true)
+:ok = TuningFork.Midi.Monitor.tap(midi, 60)
+TuningFork.Midi.Monitor.state(midi)
+```
+
+`TuningFork.Midi.Monitor` is what a front end sits on: one process that opens an input and
+plays it on a stage, opens an output and plays a pattern or a single tapped note out of it,
+and reports every event of either direction to subscribers as
+`{:midi_monitor, monitor, :in | :out, event, monotonic_nanoseconds}`. `state/1` is the
+keys held on the input, the notes sounding on the output, the pedal, the wheel, the last
+value of each controller and the last sixty-four events. `Out.play/3` and `Out.pattern/3`
+take `to: pid` on their own to report what they send, as `{:midi_out, player, bytes, at}`.
+The **TF MIDI** cell in `tuning_fork_kino` and `mix tuning_fork.midi` in
+`tuning_fork_drafter` are both this monitor with a key strip on it.
+
 ## Messages
 
 `TuningFork.Midi.Message` builds the bytes: `note_on/3`, `note_off/3`, `control/3`,

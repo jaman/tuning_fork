@@ -56,6 +56,8 @@ defmodule TuningFork.Midi.Out do
     * `:channel` — which MIDI channel, 1 to 16, default 1
     * `:loop` — start again on reaching the end, default false
     * `:program` — send a program change before playing
+    * `:to` — a process sent `{:midi_out, player, bytes, monotonic_nanoseconds}` for every
+      message as it goes out
   """
   @spec play(Port.t(), Score.t(), keyword()) :: {:ok, t()} | {:error, term()}
   def play(port, %Score{} = score, opts \\ []) do
@@ -72,6 +74,8 @@ defmodule TuningFork.Midi.Out do
     * `:channel` — the MIDI channel for pitched notes, default 1; drums always go on 10
     * `:clock` — send MIDI clock (start, 24 pulses a beat at four beats to the cycle, stop),
       default false
+    * `:to` — a process sent `{:midi_out, player, bytes, monotonic_nanoseconds}` for every
+      message but the clock pulses, as it goes out
   """
   @spec pattern(Port.t(), Pattern.t(), keyword()) :: {:ok, t()} | {:error, term()}
   def pattern(port, %Pattern{} = pattern, opts \\ []) do
@@ -199,11 +203,12 @@ defmodule TuningFork.Midi.Out do
     Process.flag(:trap_exit, true)
     Process.monitor(caller)
     now = System.monotonic_time(:millisecond)
-    if Keyword.get(opts, :clock, false), do: Port.send(port, <<0xFA>>)
+    if Keyword.get(opts, :clock, false), do: out(port, Keyword.get(opts, :to), <<0xFA>>)
 
     state = %{
       port: port,
       opts: opts,
+      to: Keyword.get(opts, :to),
       pattern: pattern,
       next: nil,
       cps: Keyword.get(opts, :cps, 0.5) / 1.0,
@@ -223,12 +228,13 @@ defmodule TuningFork.Midi.Out do
     Process.monitor(caller)
 
     if program = Keyword.get(opts, :program) do
-      Port.send(port, Message.program(program, opts))
+      out(port, Keyword.get(opts, :to), Message.program(program, opts))
     end
 
     state = %{
       port: port,
       opts: opts,
+      to: Keyword.get(opts, :to),
       loop: Keyword.get(opts, :loop, false),
       length: Score.duration(score),
       messages: messages(score, opts),
@@ -240,8 +246,14 @@ defmodule TuningFork.Midi.Out do
   end
 
   @impl true
+  def handle_info({:send, <<0xF8>> = pulse}, state) do
+    Port.send(state.port, pulse)
+
+    {:noreply, state}
+  end
+
   def handle_info({:send, bytes}, state) do
-    Port.send(state.port, bytes)
+    out(state.port, state.to, bytes)
 
     {:noreply, state}
   end
@@ -286,9 +298,15 @@ defmodule TuningFork.Midi.Out do
 
   @impl true
   def terminate(_reason, state) do
-    if Map.get(state, :clock, false), do: Port.send(state.port, <<0xFC>>)
-    Port.send(state.port, Message.hush(state.opts))
+    if Map.get(state, :clock, false), do: out(state.port, state.to, <<0xFC>>)
+    out(state.port, state.to, Message.hush(state.opts))
 
+    :ok
+  end
+
+  defp out(port, to, bytes) do
+    Port.send(port, bytes)
+    if to, do: send(to, {:midi_out, self(), bytes, System.monotonic_time(:nanosecond)})
     :ok
   end
 

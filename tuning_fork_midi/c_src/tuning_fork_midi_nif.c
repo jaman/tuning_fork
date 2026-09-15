@@ -65,6 +65,7 @@ static ERL_NIF_TERM reason(ErlNifEnv *env, mm_result result)
 static void reclaim(tf_port *port)
 {
     int release = 0;
+    int close_input = 0;
 
     enif_mutex_lock(port->lock);
 
@@ -72,13 +73,11 @@ static void reclaim(tf_port *port)
         port->live = 0;
 
         if (port->input) {
-            mm_in_stop(&port->dev);
-            mm_in_close(&port->dev);
+            close_input = 1;
         } else {
             mm_out_close(&port->dev);
+            mm_context_uninit(&port->ctx);
         }
-
-        mm_context_uninit(&port->ctx);
     }
 
     if (port->kept) {
@@ -87,6 +86,12 @@ static void reclaim(tf_port *port)
     }
 
     enif_mutex_unlock(port->lock);
+
+    if (close_input) {
+        mm_in_stop(&port->dev);
+        mm_in_close(&port->dev);
+        mm_context_uninit(&port->ctx);
+    }
 
     if (release)
         enif_release_resource(port);

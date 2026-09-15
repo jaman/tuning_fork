@@ -1,6 +1,6 @@
 # TuningForkDrafter
 
-Three terminal front ends for [tuning_fork](https://hex.pm/packages/tuning_fork), drawn with Drafter.
+Four terminal front ends for [tuning_fork](https://hex.pm/packages/tuning_fork), drawn with Drafter.
 
 ```bash
 cd tuning_fork_drafter
@@ -8,6 +8,7 @@ mix deps.get                # first time only
 mix tuning_fork.live        # live coding patterns, like Strudel
 mix tuning_fork.loops       # live coding named loops, like Sonic Pi
 mix tuning_fork.compose     # step sequencer, like a drum machine
+mix tuning_fork.midi        # a MIDI keyboard in, a pattern out, both on one key strip
 ```
 
 ## Which one
@@ -159,6 +160,23 @@ TUNING_FORK_TRACE=/tmp/live.log mix tuning_fork.live
 Every tick logs the cycle it read and whether the last frame was still being built; every frame
 logs how long it waited and how long it took. A tick logging `drawing=true` was dropped, which
 is what to look for.
+
+---
+
+# MIDI
+
+```bash
+mix tuning_fork.midi
+mix tuning_fork.midi --voice gm_epiano1 --pattern 's("bd*4, hh*8")'
+```
+
+`i` and `o` walk the inputs and outputs the machine has, ending on a virtual port of the
+app's own that other software sees by name. Keys played on the input sound on this machine
+with the instrument `v` picks and light the strip blue; `p` plays the pattern out of the
+output with MIDI clock and lights what it sends yellow; `←` `→` and enter send one key. `e`
+edits the pattern — one expression, as a row of `mix tuning_fork.live` is; `+` and `-` set
+the cycles per second; the log under the strip shows both streams. With no device at all,
+open the two virtual ports and point a soft synth at "TuningFork Out".
 
 ---
 

@@ -2,7 +2,8 @@
 
 ## 0.1.3
 
-* Version brought level with the rest of the family; nothing else changed.
+* `mix tuning_fork.midi`: a MIDI keyboard in and heard, a pattern out with clock, both on
+  one key strip, over `TuningFork.Midi.Monitor`.
 
 ## 0.1.0
 

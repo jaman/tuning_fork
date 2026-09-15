@@ -5,6 +5,8 @@
 * `composer.livemd`'s Compose grid carries the same seven-section arrangement as the other
   two spellings, on the same recorded kit.
 * The Compose cell has, per track, which bars it plays.
+* A **TF MIDI** cell: a keyboard in and heard, a pattern out with clock, a key strip lit for
+  both, a log of every message; registered when `tuning_fork_midi` is installed.
 
 ## 0.1.2
 

@@ -10,7 +10,7 @@ packages around it, each published to hex.pm on its own.
 | [`tuning_fork_midi`](tuning_fork_midi) | MIDI devices: scores and live patterns out, a keyboard in (C, via minimidio) | `{:tuning_fork_midi, "~> 0.1.3"}` |
 | [`tuning_fork_samples`](tuning_fork_samples) | Sonic Pi's 206 recordings by name, fetched as they play | `{:tuning_fork_samples, "~> 0.1.3"}` |
 | [`tuning_fork_composer`](tuning_fork_composer) | A step sequencer as data, writing TuningFork source | `{:tuning_fork_composer, "~> 0.1.3"}` |
-| [`tuning_fork_kino`](tuning_fork_kino) | Livebook: a streaming stage widget and four smart cells | `{:tuning_fork_kino, "~> 0.1.3"}` |
+| [`tuning_fork_kino`](tuning_fork_kino) | Livebook: a streaming stage widget and five smart cells | `{:tuning_fork_kino, "~> 0.1.3"}` |
 | [`tuning_fork_drafter`](tuning_fork_drafter) | Terminal front ends drawn with Drafter | from this repository |
 
 Start with [`tuning_fork/README.md`](tuning_fork/README.md), or hear it first: the tour

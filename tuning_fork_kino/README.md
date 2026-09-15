@@ -58,6 +58,7 @@ through `live_loop :name, stage: pid do … end`.
 | **MIDI to audio** | Turning a `.mid` into sound |
 | **TF Patterns** | Live coding patterns, the Strudel/TidalCycles way |
 | **TF Loops** | Live coding named loops, the Sonic Pi way |
+| **TF MIDI** | A MIDI keyboard played in and heard, a pattern played out with clock, both lit on one key strip; needs `tuning_fork_midi` in the setup cell |
 
 The two live-coding cells each run a stage of their own and stream it to the page, so the
 **Evaluate** button inside the cell swaps the music in at the next cycle or round rather than

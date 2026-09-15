@@ -185,10 +185,13 @@ defmodule TuningFork.MidiTest do
         :ok = Port.listen(listening)
         Process.sleep(50)
 
-        {:ok, live} = Out.pattern(out, Control.note("c3 e3"), cps: 4.0, clock: true)
+        {:ok, live} = Out.pattern(out, Control.note("c3 e3"), cps: 4.0, clock: true, to: self())
 
         assert_receive {:midi_in, _p, <<0xFA>>, _at}, 2_000
         assert_receive {:midi_in, _p, <<0x90, 48, _::8>>, _at}, 2_000
+        assert_receive {:midi_out, ^live, <<0x90, 48, _::8>>, sent_at}, 2_000
+        assert is_integer(sent_at)
+        refute_receive {:midi_out, ^live, <<0xF8>>, _at}, 100
         assert_receive {:midi_in, _p, <<0x90, 52, _::8>>, _at}, 2_000
         assert_receive {:midi_in, _p, <<0xF8>>, _at}, 2_000
 
