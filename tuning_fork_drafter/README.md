@@ -337,16 +337,9 @@ Nothing of this package appears in it.
 
 `p` starts, `p` again stops — only ever one at a time, and quitting stops it too.
 
-What plays is a render of the grid as it was when you pressed, looping. Edits made while it
-runs are not heard until you stop and start again.
-
-| | |
-| --- | --- |
-| First play, 2 bars | ~200 ms |
-| First play, 16 bars | ~550 ms |
-| Play again, no edit | a few ms — the render is kept |
-| Play again after an edit | re-rendered |
-| Stop | a few ms, whatever the length |
+The grid loops live on a stage, one repeat at a time: each repeat is built from the grid as
+it stands when that repeat comes round, so an edit is heard at the next repeat, and the
+settings line says which repeat is sounding.
 
 `p` needs `tuning_fork_speaker`, which is an optional dependency. Without it the editor still
 runs and still writes source — it just says so instead of playing.

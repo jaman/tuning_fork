@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+* `mix tuning_fork.compose` plays the grid live on a stage, repeat by repeat, in place of a
+  rendered bed; the settings line says which repeat is sounding.
+
 ## 0.1.4
 
 * `mix tuning_fork.midi`: a MIDI keyboard in and heard, a pattern out with clock, both on

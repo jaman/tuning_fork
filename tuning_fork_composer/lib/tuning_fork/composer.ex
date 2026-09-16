@@ -359,20 +359,32 @@ defmodule TuningFork.Composer do
   defdelegate to_source(project, opts \\ []), to: Source
 
   @doc """
-  The composition as a `TuningFork.Score`, for playing without evaluating source.
+  The composition as a `TuningFork.Score`, for playing without evaluating source: the whole
+  piece, or with `repeat: n` the grid once as it sounds on its `n`th repeat, counted from
+  zero and wrapping at the bars — the tracks whose `:plays` say so, `meter` beats long.
 
       project |> Composer.to_score() |> TuningFork.Score.render(44_100)
+      Composer.to_score(project, repeat: 3)
   """
-  @spec to_score(t()) :: Score.t()
-  def to_score(%__MODULE__{} = project) do
+  @spec to_score(t(), keyword()) :: Score.t()
+  def to_score(%__MODULE__{} = project, opts \\ []) do
     notes = scale(project)
+    parts = project.tracks |> Enum.filter(&Track.audible?/1)
 
-    parts =
-      project.tracks
-      |> Enum.filter(&Track.audible?/1)
-      |> Enum.map(&part_for(&1, project, notes))
+    case Keyword.fetch(opts, :repeat) do
+      {:ok, repeat} ->
+        at = Integer.mod(repeat, max(project.bars, 1))
 
-    Score.from_parts(parts, bpm: project.bpm, beats: beats(project))
+        parts
+        |> Enum.filter(&(String.at(passes(&1, project), at) == "x"))
+        |> Enum.map(&part_for(&1, project, notes, "x"))
+        |> Score.from_parts(bpm: project.bpm, beats: project.meter)
+
+      :error ->
+        parts
+        |> Enum.map(&part_for(&1, project, notes, passes(&1, project)))
+        |> Score.from_parts(bpm: project.bpm, beats: beats(project))
+    end
   end
 
   @doc "The voice every instrument in the piece is derived from."
@@ -439,7 +451,7 @@ defmodule TuningFork.Composer do
 
   defp load_sample(_none), do: nil
 
-  defp part_for(track, project, notes) do
+  defp part_for(track, project, notes, passes) do
     import TuningFork.Part
 
     started = part(bpm: project.bpm, synth: voice_for(track, project), gain: track.gain)
@@ -447,12 +459,12 @@ defmodule TuningFork.Composer do
     case track.kind do
       :drum ->
         pattern = pattern_for(track)
-        repeat(started, passes(track, project), &steps(&1, pattern, step_beats(project)))
+        repeat(started, passes, &steps(&1, pattern, step_beats(project)))
 
       _pitched_or_sampled ->
         entries = entries_for(track, notes, project)
 
-        repeat(started, passes(track, project), fn bar ->
+        repeat(started, passes, fn bar ->
           steps(bar, entries, step_beats(project), release: track.ring)
         end)
     end

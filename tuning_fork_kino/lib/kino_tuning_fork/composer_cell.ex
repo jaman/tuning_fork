@@ -7,8 +7,14 @@ defmodule KinoTuningFork.ComposerCell do
   use Kino.JS.Live
   use Kino.SmartCell, name: "Compose"
 
-  alias TuningFork.Composer
+  alias TuningFork.{Composer, Stage}
   alias TuningFork.Composer.{Json, Source}
+
+  @rate 44_100
+  @channels 2
+  @chunk 2_048
+  @tick_ms 250
+  @loop :grid
 
   @impl true
   def init(attrs, ctx) do
@@ -18,12 +24,23 @@ defmodule KinoTuningFork.ComposerCell do
         _saved -> Json.from_map(attrs)
       end
 
-    {:ok, assign(ctx, project: project)}
+    {:ok, held} = Agent.start_link(fn -> project end)
+
+    {:ok, assign(ctx, project: project, held: held, stage: nil, playing: false)}
   end
+
+  @doc "The composition as the cell holds it now, which is what each repeat plays."
+  @spec current(Kino.JS.Live.Context.t()) :: Composer.t()
+  def current(ctx), do: Agent.get(ctx.assigns.held, & &1)
 
   @impl true
   def handle_connect(ctx) do
-    {:ok, payload(ctx.assigns.project), ctx}
+    {:ok,
+     Map.merge(payload(ctx.assigns.project), %{
+       rate: @rate,
+       channels: @channels,
+       playing: ctx.assigns.playing
+     }), ctx}
   end
 
   defp payload(project) do
@@ -54,7 +71,7 @@ defmodule KinoTuningFork.ComposerCell do
 
         broadcast_event(ctx, "update_all", payload(project))
 
-        {:noreply, assign(ctx, project: project)}
+        {:noreply, hold(ctx, project)}
     end
   end
 
@@ -63,8 +80,85 @@ defmodule KinoTuningFork.ComposerCell do
 
     broadcast_event(ctx, "update_tracks", %{"tracks" => Json.to_map(project)["tracks"]})
 
-    {:noreply, assign(ctx, project: project)}
+    {:noreply, hold(ctx, project)}
   end
+
+  def handle_event("play", _payload, ctx) do
+    ctx = with_stage(ctx)
+    held = ctx.assigns.held
+    TuningFork.Tick.reset(@loop)
+
+    body = fn ->
+      project = Agent.get(held, & &1)
+      {:ok, Composer.to_score(project, repeat: TuningFork.Tick.tick() + 1)}
+    end
+
+    Stage.start_loop(ctx.assigns.stage, @loop, Composer.to_score(current(ctx), repeat: 0),
+      body: body
+    )
+
+    broadcast_event(ctx, "transport", %{playing: true, repeat: 0, bars: current(ctx).bars})
+
+    {:noreply, assign(ctx, playing: true)}
+  end
+
+  def handle_event("stop", _payload, ctx) do
+    if ctx.assigns.stage, do: Stage.stop_loop(ctx.assigns.stage, @loop)
+    broadcast_event(ctx, "transport", %{playing: false, repeat: 0, bars: current(ctx).bars})
+
+    {:noreply, assign(ctx, playing: false)}
+  end
+
+  defp hold(ctx, project) do
+    Agent.update(ctx.assigns.held, fn _ -> project end)
+    assign(ctx, project: project)
+  end
+
+  defp with_stage(%{assigns: %{stage: nil}} = ctx) do
+    {:ok, stage} =
+      Stage.start_link(
+        name: nil,
+        sink: KinoTuningFork.Sink,
+        sink_opts: [owner: self()],
+        rate: @rate,
+        channels: @channels,
+        chunk: @chunk,
+        voices: 48
+      )
+
+    Process.send_after(self(), :tick, @tick_ms)
+    assign(ctx, stage: stage)
+  end
+
+  defp with_stage(ctx), do: ctx
+
+  @impl true
+  def handle_info({:pcm, chunk}, ctx) do
+    broadcast_event(ctx, "pcm", {:binary, %{}, chunk})
+    {:noreply, ctx}
+  end
+
+  def handle_info(:tick, ctx) do
+    Process.send_after(self(), :tick, @tick_ms)
+
+    case ctx.assigns.playing && Stage.loops(ctx.assigns.stage) do
+      %{@loop => %{rounds: rounds}} ->
+        bars = current(ctx).bars
+
+        broadcast_event(ctx, "transport", %{
+          playing: true,
+          repeat: rem(rounds, max(bars, 1)),
+          bars: bars
+        })
+
+      _quiet ->
+        :ok
+    end
+
+    {:noreply, ctx}
+  end
+
+  def handle_info(_other, ctx), do: {:noreply, ctx}
 
   defp field_atom(field) do
     Enum.find(Composer.settings(), &(to_string(&1) == field))
@@ -78,9 +172,15 @@ defmodule KinoTuningFork.ComposerCell do
 
   asset "main.js" do
     """
+    #{KinoTuningFork.Player.js()}
+
     export function init(ctx, payload) {
       ctx.importCSS("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
       ctx.importCSS("main.css");
+
+      const player = tuningForkPlayer();
+      let transport = { playing: payload.playing === true, repeat: 0, bars: Number(payload.fields.bars) || 1 };
+      let transportEls = null;
 
       let state = {
         fields: payload.fields,
@@ -234,8 +334,27 @@ defmodule KinoTuningFork.ComposerCell do
         const spacer = el("div", "spacer");
         bar.appendChild(spacer);
 
+        const play = el("button", "button primary", transport.playing ? "■ stop" : "▶ play");
+        play.addEventListener("click", () => {
+          if (transport.playing) {
+            ctx.pushEvent("stop", {});
+          } else {
+            if (!player.playing()) { player.start(payload.rate, payload.channels); player.volume(Number(vol.value)); }
+            ctx.pushEvent("play", {});
+          }
+        });
+        const vol = document.createElement("input");
+        vol.type = "range"; vol.min = "0"; vol.max = "1"; vol.step = "0.01"; vol.value = "0.8";
+        vol.className = "volume";
+        vol.addEventListener("input", () => player.volume(Number(vol.value)));
+        const where = el("span", "where", transport.playing ? `repeat ${transport.repeat + 1} of ${transport.bars}` : "");
+        transportEls = { play, where };
+        bar.appendChild(play);
+        bar.appendChild(vol);
+        bar.appendChild(where);
+
         const hint = el("div", "hint");
-        hint.innerHTML = 'click a step to place it · right-click to lower · <b>ctrl + enter</b> to hear it';
+        hint.innerHTML = 'click a step to place it · right-click to lower · edits land at the next repeat';
         bar.appendChild(hint);
 
         const addTrack = el("button", "button", "+ track");
@@ -527,6 +646,15 @@ defmodule KinoTuningFork.ComposerCell do
         state.tracks = tracks;
       });
 
+      ctx.handleEvent("pcm", ([_info, buffer]) => player.push(buffer));
+
+      ctx.handleEvent("transport", (next) => {
+        transport = next;
+        if (!transportEls) return;
+        transportEls.play.textContent = transport.playing ? "■ stop" : "▶ play";
+        transportEls.where.textContent = transport.playing ? `repeat ${transport.repeat + 1} of ${transport.bars}` : "";
+      });
+
       render();
     }
     """
@@ -551,6 +679,9 @@ defmodule KinoTuningFork.ComposerCell do
     }
 
     .spacer { flex: 1; }
+    .volume { width: 80px; align-self: flex-end; margin-bottom: 6px; }
+    .where { font-size: 12px; color: #445668; align-self: flex-end; margin-bottom: 7px; min-width: 110px; }
+    .button.primary { background: #6583ff; border-color: #6583ff; color: #ffffff; align-self: flex-end; }
 
     .field { display: flex; flex-direction: column; gap: 3px; }
     .field > span { font-size: 11px; color: #7b8794; }

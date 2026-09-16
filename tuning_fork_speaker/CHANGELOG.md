@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.5
+
+* `TuningFork.Listener` and `mix tuning_fork.listen`: play raw PCM arriving on a TCP port
+  through this machine's speaker, connection after connection — the far end of
+  `TuningFork.Sink.Tcp`.
+
+## Unreleased
+
+* `TuningFork.Listener` and `mix tuning_fork.listen` — play raw PCM arriving on a TCP port
+  through the speaker, one connection after another, dropping what arrives faster than it
+  plays down to `:max_lag_ms`; the far end of `TuningFork.Sink.Tcp` over an ssh tunnel.
+
 ## 0.1.4
 
 * Version brought level with the rest of the family; nothing else changed.

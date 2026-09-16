@@ -2,9 +2,9 @@
 
 ```elixir
 Mix.install([
-  {:tuning_fork, "~> 0.1.4"},
-  {:tuning_fork_samples, "~> 0.1.4"},
-  {:tuning_fork_kino, "~> 0.1.4"}
+  {:tuning_fork, "~> 0.1.5"},
+  {:tuning_fork_samples, "~> 0.1.5"},
+  {:tuning_fork_kino, "~> 0.1.5"}
 ])
 ```
 
@@ -21,9 +21,11 @@ it comes round again. Press **▶ listen** on a cell's stage once, then play.
 ## Compose
 
 A step sequencer you click. Each row is a track — a drum, an instrument or a recording — and
-each cell a step: a number is a scale degree, a longer cell a held note. **Play** loops the
-grid, and the cell writes the same music out as `TuningFork` source underneath, so a grid
-becomes code you can keep editing by hand. The grid is eight beats of four steps — two bars
+each cell a step: a number is a scale degree, a longer cell a held note. **▶ play** loops the
+grid live on a stage of the cell's own, repeat by repeat — an edit lands at the next repeat,
+as in the two live cells below, and the readout says which repeat is sounding — and the cell
+writes the same music out as `TuningFork` source underneath, so a grid becomes code you can
+keep editing by hand. The grid is eight beats of four steps — two bars
 — and **Bars** is 14, so the piece is the grid fourteen times over; the text box on each
 track is which of those repeats it plays, `x` for on and `.` for off, which is where the
 arrangement lives: the kick reads `..xxxxxx..xxxx`, the flute `....xxxx..xxxx`, the

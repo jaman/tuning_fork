@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+* `Composer.to_score/2` takes `repeat: n`: the grid once, as it sounds on its `n`th repeat,
+  with the tracks whose `:plays` say so.
+
 ## 0.1.4
 
 * Version brought level with the rest of the family; nothing else changed.

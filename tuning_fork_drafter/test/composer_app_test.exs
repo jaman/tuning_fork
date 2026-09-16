@@ -353,7 +353,7 @@ defmodule TuningFork.ComposerAppTest do
     end
 
     defp playing(state) do
-      {:ok, stage} = Agent.start(fn -> nil end)
+      {:ok, stage} = TuningFork.Stage.start_link(name: nil, sink: TuningFork.Sink.Silent)
       %{state | playing: stage}
     end
 

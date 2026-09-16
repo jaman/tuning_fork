@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+* The Compose cell plays the grid live on a stage of its own, repeat by repeat, with an
+  edit landing at the next repeat, in place of rendering the piece to a file first.
+
 ## 0.1.4
 
 * A **TF MIDI** cell: a keyboard in and heard, a pattern out with clock, a key strip lit for

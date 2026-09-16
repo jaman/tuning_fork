@@ -72,6 +72,25 @@ defmodule KinoTuningFork.ComposerCellTest do
       assert Enum.all?(ctx.assigns.project.tracks, &(length(&1.steps) == 12))
     end
 
+    test "play loops the grid on a stage of the cell's own, repeat by repeat, and stop ends it" do
+      {:noreply, playing} = ComposerCell.handle_event("play", %{}, ctx())
+
+      assert playing.assigns.playing
+      assert is_pid(playing.assigns.stage)
+      assert %{grid: %{rounds: _rounds}} = TuningFork.Stage.loops(playing.assigns.stage)
+
+      {:noreply, edited} =
+        ComposerCell.handle_event("update_field", %{"field" => "bpm", "value" => 140}, playing)
+
+      assert edited.assigns.playing
+      assert ComposerCell.current(edited).bpm == 140
+
+      {:noreply, stopped} = ComposerCell.handle_event("stop", %{}, edited)
+      refute stopped.assigns.playing
+      Process.sleep(50)
+      assert TuningFork.Stage.loops(stopped.assigns.stage) == %{}
+    end
+
     test "which bars a track plays comes and goes with the tracks" do
       tracks = [%{"kind" => "drum", "sound" => "kick", "steps" => [1], "plays" => "..xx"}]
 

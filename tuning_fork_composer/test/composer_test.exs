@@ -491,6 +491,24 @@ defmodule TuningFork.ComposerTest do
       assert Json.to_map(p)["tracks"] |> hd() |> Map.fetch!("plays") == "..xx"
     end
 
+    test "one repeat at a time: the grid once, with only the tracks that play that repeat" do
+      p =
+        project(bars: 4, meter: 4, division: 4)
+        |> with_track(steps: [1])
+        |> with_track(sound: "snare", plays: "..xx", steps: [0, 0, 0, 0, 1])
+
+      first = Composer.to_score(p, repeat: 0)
+      assert first.beats == 4
+      assert Enum.map(first.notes, &elem(&1, 0)) == [0.0]
+
+      third = Composer.to_score(p, repeat: 2)
+      assert third.beats == 4
+      assert Enum.map(third.notes, &elem(&1, 0)) |> Enum.sort() == [0.0, 1.0]
+
+      assert Composer.to_score(p, repeat: 6).notes == third.notes
+      assert Composer.to_score(p).beats == 16
+    end
+
     test "a track that plays every bar is written with the count, as before" do
       p = project(bars: 4) |> with_track(steps: [1])
 

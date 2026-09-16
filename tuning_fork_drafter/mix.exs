@@ -1,7 +1,7 @@
 defmodule TuningForkDrafter.MixProject do
   use Mix.Project
 
-  @version "0.1.4"
+  @version "0.1.5"
   @source_url "https://github.com/jaman/tuning_fork"
 
   def project do
@@ -27,11 +27,11 @@ defmodule TuningForkDrafter.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork, "~> 0.1.4", []),
-      family(:tuning_fork_composer, "~> 0.1.4", []),
-      family(:tuning_fork_speaker, "~> 0.1.4", optional: true),
-      family(:tuning_fork_samples, "~> 0.1.4", optional: true),
-      family(:tuning_fork_midi, "~> 0.1.4", []),
+      family(:tuning_fork, "~> 0.1.5", []),
+      family(:tuning_fork_composer, "~> 0.1.5", []),
+      family(:tuning_fork_speaker, "~> 0.1.5", optional: true),
+      family(:tuning_fork_samples, "~> 0.1.5", optional: true),
+      family(:tuning_fork_midi, "~> 0.1.5", []),
       {:drafter, path: "../../drafter"},
       {:french_curve, path: "../../french_curve", override: true},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

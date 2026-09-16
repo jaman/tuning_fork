@@ -10,9 +10,9 @@ In the notebook's **setup cell** — the one at the very top, not an ordinary ce
 
 ```elixir
 Mix.install([
-  {:tuning_fork, "~> 0.1.4"},
-  {:tuning_fork_samples, "~> 0.1.4"},
-  {:tuning_fork_kino, "~> 0.1.4"}
+  {:tuning_fork, "~> 0.1.5"},
+  {:tuning_fork_samples, "~> 0.1.5"},
+  {:tuning_fork_kino, "~> 0.1.5"}
 ])
 ```
 
@@ -85,6 +85,7 @@ note to the right to hold it over the steps that follow.
 
 | Control | What it does |
 | --- | --- |
+| ▶ play / ■ stop | Loop the grid live on the cell's own stage, repeat by repeat; an edit lands at the next repeat, and the readout says which repeat is sounding |
 | Tempo, Bars | How fast and how long |
 | Beats/bar, Steps/beat | The shape of the grid. 4 and 4 is sixteen sixteenths; 3 and 8 is a waltz; 4 and 3 is triplets |
 | Key, Scale | What the pitched tracks are allowed to play |
