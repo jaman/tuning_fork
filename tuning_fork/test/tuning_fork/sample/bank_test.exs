@@ -131,7 +131,7 @@ end
 defmodule TuningFork.Sample.BankListsTest do
   use ExUnit.Case, async: false
 
-  alias TuningFork.{Kit, Sample, Voice}
+  alias TuningFork.{Kit, Mixer, Sample, Voice}
   alias TuningFork.Sample.Bank
   alias TuningFork.Test.FileServer
 
@@ -161,6 +161,23 @@ defmodule TuningFork.Sample.BankListsTest do
     low = Kit.voice("piano", 0.25)
     assert_in_delta low.sample.root, 130.81, 0.01
     assert_in_delta low.freq, 65.41, 0.01
+  end
+
+  test "notes may be MIDI numbers, fractional for a recording between two, and a file may carry its own loop and gain" do
+    :ok =
+      Bank.put(:cello, %{
+        48 => {@wav, loop: {10, 200}, gain: 0.5},
+        60.5 => [@flac, {@flac, gain: 2.0}]
+      })
+
+    assert Bank.notes(:cello) == [48, 60.5, 60.5]
+    assert {0, 48} = Bank.nearest(:cello, 50, 0)
+    assert {2, 60.5} = Bank.nearest(:cello, 61, 1)
+    assert {:ok, %Sample{loop: {10, 200}} = halved} = Bank.fetch(:cello, 0)
+    assert {:ok, %Sample{loop: nil} = plain} = Bank.fetch(:cello, 1)
+    assert {:ok, %Sample{} = doubled} = Bank.fetch(:cello, 2)
+    assert Mixer.peak(Sample.load!(@wav).pcm) == Mixer.peak(halved.pcm) * 2
+    assert Mixer.peak(doubled.pcm) == min(32_767, Mixer.peak(plain.pcm) * 2)
   end
 
   test "a name may hold several files, picked by index and wrapping" do

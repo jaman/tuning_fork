@@ -12,7 +12,7 @@ In the notebook's **setup cell** — the one at the very top, not an ordinary ce
 Mix.install([
   {:tuning_fork, "~> 0.1.5"},
   {:tuning_fork_samples, "~> 0.1.5"},
-  {:tuning_fork_kino, "~> 0.1.5"}
+  {:tuning_fork_kino, "~> 0.1"}
 ])
 ```
 

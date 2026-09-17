@@ -1,0 +1,3 @@
+<control> default_path=../flac/
+<region> key=c3 sample=mono.wav
+#include "part.sfz"

@@ -1,8 +1,9 @@
 defmodule TuningFork.Cache do
   @moduledoc """
-  Keeps rendered audio on disk, keyed by name and fingerprint.
+  Keeps rendered audio on disk, keyed by name and fingerprint, in a directory the
+  caller names — an application keeps its own — or this library's own when none is.
 
-      Cache.fetch("game/dusk", Cache.fingerprint(Game.Music), fn -> render() end)
+      Cache.fetch("dusk", Cache.fingerprint(MyApp.Music), fn -> render() end, dir: "~/.cache/myapp/music")
   """
 
   require Logger
@@ -12,12 +13,14 @@ defmodule TuningFork.Cache do
 
   `key` names the audio and may contain path separators. `fingerprint` is any string that
   changes when the rendered result should change. `render` is called only on a miss, and its
-  binary is both stored and returned. A store that fails is logged at debug level and the
-  binary is still returned.
+  binary is both stored and returned; an earlier fingerprint of the same key is removed. A
+  store that fails is logged at debug level and the binary is still returned. `:dir` is
+  the directory to keep it in, default `dir/0`.
   """
-  @spec fetch(String.t(), String.t(), (-> binary())) :: binary()
-  def fetch(key, fingerprint, render) do
-    path = path(key, fingerprint)
+  @spec fetch(String.t(), String.t(), (-> binary()), keyword()) :: binary()
+  def fetch(key, fingerprint, render, opts \\ []) do
+    dir = Keyword.get(opts, :dir, dir())
+    path = path(key, fingerprint, dir)
 
     case File.read(path) do
       {:ok, pcm} when byte_size(pcm) > 0 ->
@@ -25,23 +28,23 @@ defmodule TuningFork.Cache do
 
       _missing ->
         pcm = render.()
-        forget(key, fingerprint)
+        forget(key, fingerprint, dir)
         store(path, pcm)
         pcm
     end
   end
 
-  defp forget(key, fingerprint) do
-    dir()
+  defp forget(key, fingerprint, dir) do
+    dir
     |> Path.join("#{key}-*.pcm")
     |> Path.wildcard()
-    |> Enum.reject(&(&1 == path(key, fingerprint)))
+    |> Enum.reject(&(&1 == path(key, fingerprint, dir)))
     |> Enum.each(&File.rm/1)
   end
 
-  @doc "Where `key` at `fingerprint` is kept."
-  @spec path(String.t(), String.t()) :: Path.t()
-  def path(key, fingerprint), do: Path.join(dir(), "#{key}-#{fingerprint}.pcm")
+  @doc "Where `key` at `fingerprint` is kept, under `dir` (default `dir/0`)."
+  @spec path(String.t(), String.t(), Path.t()) :: Path.t()
+  def path(key, fingerprint, dir \\ dir()), do: Path.join(dir, "#{key}-#{fingerprint}.pcm")
 
   @doc """
   The directory audio is kept in: `$XDG_STATE_HOME/tuning_fork`, or

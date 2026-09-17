@@ -36,6 +36,7 @@ defmodule TuningFork.Pattern.Player do
     cps: 0.5,
     cycle: 0.0,
     voices: 32,
+    parallel: false,
     sounding: [],
     pending: [],
     buses: %{},
@@ -56,6 +57,9 @@ defmodule TuningFork.Pattern.Player do
       `nil`. Default `TuningFork.Kit.voice/2`
     * `:voices` — most notes sounding at once, default 32. Past that the oldest are faded out
       over 10 ms
+    * `:parallel` — render the sounding voices on every core (`Task.async_stream`); the
+      same output, sooner, at the cost of a task per voice per block. For one player on
+      a machine of its own; not for many players sharing a server. Default `false`
   """
   @spec new(Pattern.t(), pos_integer(), keyword()) :: t()
   def new(%Pattern{} = pattern, rate, opts \\ []) do
@@ -66,7 +70,8 @@ defmodule TuningFork.Pattern.Player do
       rate: rate,
       cps: Keyword.get(opts, :cps, 0.5) / 1.0,
       voice: Keyword.get(opts, :voice, &Kit.voice/2),
-      voices: Keyword.get(opts, :voices, 32)
+      voices: Keyword.get(opts, :voices, 32),
+      parallel: Keyword.get(opts, :parallel, false)
     }
   end
 
@@ -129,7 +134,9 @@ defmodule TuningFork.Pattern.Player do
     {starting, buses, pending} = due(player, reached, frames)
     player = %{player | buses: Map.merge(player.buses, buses), pending: pending}
 
-    {blocks, sounding} = advance_all(player.sounding ++ starting, frames, channels)
+    {blocks, sounding} =
+      advance_all(player.sounding ++ starting, frames, channels, player.parallel)
+
     {mixed, player} = through_buses(player, blocks, frames, channels)
 
     {Mixer.scale(mixed, player.gain),
@@ -362,14 +369,31 @@ defmodule TuningFork.Pattern.Player do
     {bus.room, bus.roomsize}
   end
 
-  defp advance_all(sounding, frames, channels) do
-    Enum.reduce(sounding, {[], []}, fn {offset, live, how, orbit}, {blocks, kept} ->
-      {pcm, live} = Live.advance(live, frames - offset, channels)
-      placed = Mixer.silence(offset, channels) <> pcm
+  @alone 2
 
-      kept = if Live.done?(live), do: kept, else: [{0, live, how, orbit} | kept]
-
-      {[{orbit, placed} | blocks], kept}
+  defp advance_all(sounding, frames, channels, parallel?)
+       when length(sounding) < @alone or not parallel? do
+    Enum.reduce(sounding, {[], []}, fn voice, acc ->
+      gather(advance_one(voice, frames, channels), acc)
     end)
   end
+
+  defp advance_all(sounding, frames, channels, true) do
+    sounding
+    |> Task.async_stream(&advance_one(&1, frames, channels),
+      ordered: true,
+      timeout: :infinity,
+      max_concurrency: System.schedulers_online()
+    )
+    |> Enum.reduce({[], []}, fn {:ok, advanced}, acc -> gather(advanced, acc) end)
+  end
+
+  defp advance_one({offset, live, how, orbit}, frames, channels) do
+    {pcm, live} = Live.advance(live, frames - offset, channels)
+    placed = Mixer.silence(offset, channels) <> pcm
+    {{orbit, placed}, if(Live.done?(live), do: nil, else: {0, live, how, orbit})}
+  end
+
+  defp gather({block, nil}, {blocks, kept}), do: {[block | blocks], kept}
+  defp gather({block, voice}, {blocks, kept}), do: {[block | blocks], [voice | kept]}
 end

@@ -12,7 +12,7 @@ defmodule TuningFork.Stage do
   require Logger
 
   alias TuningFork.{Fx, Kit, Mixer, Pattern, Score, Store, Transport, Voice}
-  alias TuningFork.Pattern.Player
+  alias TuningFork.Pattern.{Ahead, Player}
   alias TuningFork.Stage.Bed
 
   @type t :: GenServer.server()
@@ -272,7 +272,12 @@ defmodule TuningFork.Stage do
   Play a `TuningFork.Pattern` from cycle zero until `stop_pattern/1`, replacing any pattern
   already playing.
 
-  `opts` are `TuningFork.Pattern.Player.new/3`'s: `:cps`, `:voice` and `:voices`.
+  `opts` are `TuningFork.Pattern.Player.new/3`'s: `:cps`, `:voice`, `:voices` and
+  `:parallel`. The
+  pattern is synthesised in a process of its own (`TuningFork.Pattern.Ahead`), a few
+  chunks ahead of the stream, so a change to it — `update_pattern/3`, `pattern_gain/2`,
+  `pattern_cps/2`, `hush/1` — sounds within those chunks, and `cycle/1` reports the
+  place the synthesis has reached.
   """
   @spec start_pattern(t(), Pattern.t(), keyword()) :: :ok
   def start_pattern(%Pattern{} = pattern), do: start_pattern(__MODULE__, pattern, [])
@@ -527,12 +532,13 @@ defmodule TuningFork.Stage do
   def handle_cast(:stop_loops, state), do: {:noreply, %{state | loops: %{}, bodies: %{}}}
 
   def handle_cast({:start_pattern, pattern, opts}, state) do
-    {:noreply,
-     %{
-       state
-       | player:
-           pattern |> Player.new(state.rate, live_voice(opts)) |> Player.gain(state.pattern_gain)
-     }}
+    stop_ahead(state.player)
+
+    player =
+      pattern |> Player.new(state.rate, live_voice(opts)) |> Player.gain(state.pattern_gain)
+
+    {:ok, ahead} = Ahead.start_link(player: player, chunk: state.chunk, channels: state.channels)
+    {:noreply, %{state | player: ahead}}
   end
 
   def handle_cast({:update_pattern, _pattern, _opts}, %{player: nil} = state) do
@@ -540,28 +546,35 @@ defmodule TuningFork.Stage do
   end
 
   def handle_cast({:update_pattern, pattern, opts}, state) do
-    {:noreply, %{state | player: Player.update(state.player, pattern, opts)}}
+    Ahead.apply(state.player, &Player.update(&1, pattern, opts))
+    {:noreply, state}
   end
 
-  def handle_cast(:stop_pattern, state), do: {:noreply, %{state | player: nil}}
+  def handle_cast(:stop_pattern, state) do
+    stop_ahead(state.player)
+    {:noreply, %{state | player: nil}}
+  end
 
   def handle_cast({:pattern_gain, gain}, %{player: nil} = state),
     do: {:noreply, %{state | pattern_gain: gain / 1.0}}
 
   def handle_cast({:pattern_gain, gain}, state) do
-    {:noreply, %{state | pattern_gain: gain / 1.0, player: Player.gain(state.player, gain)}}
+    Ahead.apply(state.player, &Player.gain(&1, gain))
+    {:noreply, %{state | pattern_gain: gain / 1.0}}
   end
 
   def handle_cast({:pattern_cps, _cps}, %{player: nil} = state), do: {:noreply, state}
 
   def handle_cast({:pattern_cps, cps}, state) do
-    {:noreply, %{state | player: Player.cps(state.player, cps)}}
+    Ahead.apply(state.player, &Player.cps(&1, cps))
+    {:noreply, state}
   end
 
   def handle_cast(:hush, %{player: nil} = state), do: {:noreply, state}
 
   def handle_cast(:hush, state) do
-    {:noreply, %{state | player: Player.hush(state.player)}}
+    Ahead.apply(state.player, &Player.hush/1)
+    {:noreply, state}
   end
 
   def handle_cast({:update_score, _score}, %{transport: nil} = state), do: {:noreply, state}
@@ -609,7 +622,7 @@ defmodule TuningFork.Stage do
 
   def handle_call(:cycle, _from, %{player: nil} = state), do: {:reply, nil, state}
 
-  def handle_call(:cycle, _from, state), do: {:reply, Player.cycle(state.player), state}
+  def handle_call(:cycle, _from, state), do: {:reply, Ahead.cycle(state.player), state}
 
   def handle_call(:level, _from, state), do: {:reply, state.level, state}
 
@@ -624,7 +637,7 @@ defmodule TuningFork.Stage do
     {under, bed} = Bed.chunk(state.bed, state.chunk, state.channels)
     {scored, transport} = transport_chunk(state)
     {looped, loops, came_round} = loops_chunk(state)
-    {patterned, player} = pattern_chunk(state)
+    patterned = pattern_chunk(state)
 
     mixed =
       Mixer.mix([Mixer.scale(under, state.bed_gain), voices, scored, looped, patterned])
@@ -640,7 +653,6 @@ defmodule TuningFork.Stage do
         transport: transport,
         loops: loops,
         waiting: answer(state.waiting, came_round),
-        player: player,
         fx: fx,
         level: Mixer.peak(out) / 32_767,
         last: window(state.last, out, state.scope, state.channels)
@@ -754,13 +766,13 @@ defmodule TuningFork.Stage do
 
   defp rising(_short, _at), do: nil
 
-  defp pattern_chunk(%__MODULE__{player: nil} = state) do
-    {Mixer.silence(state.chunk, state.channels), nil}
-  end
+  defp pattern_chunk(%__MODULE__{player: nil} = state),
+    do: Mixer.silence(state.chunk, state.channels)
 
-  defp pattern_chunk(%__MODULE__{} = state) do
-    Player.advance(state.player, state.chunk, state.channels)
-  end
+  defp pattern_chunk(%__MODULE__{} = state), do: Ahead.next(state.player)
+
+  defp stop_ahead(nil), do: :ok
+  defp stop_ahead(ahead), do: if(Process.alive?(ahead), do: Ahead.stop(ahead), else: :ok)
 
   defp effect(nil, pcm), do: {pcm, nil}
   defp effect(fx, pcm), do: Fx.Live.advance(fx, pcm)

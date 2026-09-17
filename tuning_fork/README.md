@@ -219,6 +219,28 @@ plays wherever a drum name does — `Kit.voice("bell", 0.25)`, `s("bell*4")` in 
 `sample :bell` in a loop. The `tuning_fork_samples` package registers Sonic Pi's 206 CC0
 recordings — `bd_haus`, `perc_bell`, `loop_amen`, `ambi_choir` and the rest — when it starts.
 
+### SFZ instruments
+
+`TuningFork.Sfz` reads an SFZ file — the text format most free sampled instruments are
+published in, a region per recording with its key, velocity layer, round robin and loop —
+into a pitched bank, and the kit plays it by name, fetching each recording the first time
+a note asks for it rather than the whole library at once:
+
+```elixir
+s("fingerbass").note("e2 g2 a2 b2")
+TuningFork.Sfz.load("github:freepats/upright-piano-KW/master/UprightPianoKW-20220221.sfz", name: "kawai")
+```
+
+`TuningFork.Sfz.instruments/0` lists what is known by name, with each one's licence and
+credit — from [FreePats](https://freepats.zenvoid.org) (CC0): `fingerbass`, `pickbass`,
+`jazzguitar`, `upright`; from [sfzinstruments](https://sfzinstruments.github.io):
+`grand` (AKAI's Splendid Grand, public domain), `wurlitzer`, `cp80` and `pianet` (Greg
+Sullivan, CC BY 3.0), `cello` and `cello_pizz` (Karoryfer Samples and bigcat, CC0),
+`meatbass` and `sneakybass` (Karoryfer Samples, CC0). An application adds its own under
+`config :tuning_fork, sfz: %{"name" => %{source: ..., licence: ..., credit: ..., what: ...}}`.
+One velocity layer is read (the one holding velocity 100, or `:velocity`); envelopes,
+filters and controllers in the file are not.
+
 ## Where the sound goes
 
 A `TuningFork.Sink` is the output backend, and none of them are privileged:
@@ -229,7 +251,10 @@ A `TuningFork.Sink` is the output backend, and none of them are privileged:
 | `Sink.Collect` | Sends each chunk to a process | here |
 | `Sink.Buffer` | Keeps every chunk in an agent, for rendering a live stage | here |
 | `Sink.Pulse` | Pipes PCM into `pacat` toward a PulseAudio or PipeWire server, local or through an ssh tunnel | here |
+| `Sink.Tcp` | Raw PCM over a TCP connection, paced to real time, to `TuningFork.Listener` or any program reading a socket | here |
+| `Sink.Process` | Raw PCM as `{:pcm, chunk}` messages to a process, paced | here |
 | `Sink.Speaker` | Plays through the machine | `tuning_fork_speaker` |
+| `Listener` | Plays raw PCM arriving on a TCP port through the speaker: the far end of `Sink.Tcp` | `tuning_fork_speaker` |
 
 `TuningFork.Sink.configured/0` is the one the application environment names, or `Silent`.
 
@@ -423,7 +448,7 @@ walks rather than playing it.
 
 ## Using it from an application
 
-A game or any other program with a frame loop wants three things: fire a sound and carry on,
+A program with a frame loop — a game, a simulation, a visualiser — wants three things: fire a sound and carry on,
 have music underneath it, and turn both down. One stage, started once, does all of it.
 
 ```elixir
@@ -461,8 +486,8 @@ PCM on disk, keyed by a fingerprint of the module that renders it, so editing th
 what invalidates it:
 
 ```elixir
-pcm = Cache.fetch("game/level-3", Cache.fingerprint(Game.Music), fn ->
-  Game.Music.score(3) |> Score.render(44_100)
+pcm = Cache.fetch("myapp/level-3", Cache.fingerprint(MyApp.Music), fn ->
+  MyApp.Music.score(3) |> Score.render(44_100)
 end)
 
 Stage.bed(pcm)
@@ -474,7 +499,7 @@ anyway, so a caller never handles a cache failure.
 ### Wrapping it
 
 Most applications want one module between themselves and the stage: it starts the stage, maps
-the game's own event atoms to voices, and keeps an effects fader and a music fader apart. That
+the application's own event atoms to voices, and keeps an effects fader and a music fader apart. That
 module is the only place that knows about `TuningFork`, so the rest of the program emits
 atoms and never touches audio.
 
@@ -508,6 +533,13 @@ Two projects shaped this library, and it plays their music as written:
   [mridangam](https://github.com/yaxu/mrid) recordings and the piano from
   [dough-samples](https://github.com/felixroos/dough-samples) — are fetched from where they
   are published, under their own licences.
+
+The SFZ instruments `TuningFork.Sfz` knows are fetched from where they are published, under
+their own licences: [FreePats](https://freepats.zenvoid.org) by Roberto and Gonzalo
+(CC0), [Greg Sullivan's E-Pianos](https://github.com/sfzinstruments/GregSullivan.E-Pianos)
+(CC BY 3.0), AKAI's [Splendid Grand Piano](https://github.com/sfzinstruments/SplendidGrandPiano)
+(public domain), and [Karoryfer Samples](https://karoryfer.com)' cello with bigcat,
+meatbass and sneakybass (CC0).
 
 Also: [WebAudioFont](https://github.com/surikov/webaudiofont) by Sergey Surikov for the
 General MIDI soundfonts behind `gm_` sounds; Jezar at Dreampoint for Freeverb, which the

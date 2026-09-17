@@ -51,3 +51,14 @@ mix run examples/trio.exs
 mix run examples/trio.exs --bars 4 --bpm 96
 mix run examples/trio.exs --wav trio.wav
 ```
+
+## Listening on a port
+
+`TuningFork.Listener` plays raw signed 16-bit PCM arriving on a TCP port through the
+speaker, one connection after another, dropping what arrives faster than it plays down
+to `:max_lag_ms` — the far end of `TuningFork.Sink.Tcp` on another machine.
+
+```
+mix tuning_fork.listen --port 5000
+mix tuning_fork.listen --port 5000 --ip 0.0.0.0 --max-lag 100
+```

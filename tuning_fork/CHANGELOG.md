@@ -2,16 +2,14 @@
 
 ## 0.1.5
 
-* `TuningFork.Sink.Tcp`: raw 16-bit PCM over a TCP connection, paced to real time, made on
-  the first write and remade when it drops — for a player on the far end of an ssh tunnel or
-  across a LAN.
-* `TuningFork.Sink.Process`: the same PCM as `{:pcm, chunk}` messages to a process, paced,
-  with `:lead_ms` kept in flight.
+* `TuningFork.Sink.Tcp`'s `:warm_up_ms` defaults to `0`; `:prime_frames` sets how many
+  frames go at once before a warm-up. Its log lines are prefixed `tuning_fork:` like the
+  rest of the library's.
 
 ## 0.1.4
 
-* `TuningFork.Sink.Process` — each chunk of raw signed 16-bit PCM as a `{:pcm, binary}` message to a process, paced to real time like `Sink.Tcp`; the sink for a player whose sound leaves the node on a socket of its own, such as a Phoenix channel.
-* `TuningFork.Sink.Tcp` — raw signed 16-bit PCM over a TCP connection, paced to real time with `:lead_ms` in flight, connecting on the first write and again every `:retry_ms` when the far end is not there, and giving the player `:warm_up_ms` to open its device before real time starts so its start-up never becomes lag; plays into `ffplay -f s16le -ar 44100 -ch_layout stereo -i "tcp://…?listen"`, `sox` or `pacat --raw` on any OS, on the far end of an ssh tunnel.
+* `TuningFork.Sink.Process` — each chunk of raw signed 16-bit PCM as a `{:pcm, binary}` message to a process, paced to real time with `:lead_ms` in flight.
+* `TuningFork.Sink.Tcp` — raw signed 16-bit PCM over a TCP connection, paced to real time with `:lead_ms` in flight, connecting on the first write and again every `:retry_ms` when the far end is not there; `:warm_up_ms` gives a player that buffers while it opens its device that long before real time starts.
 * `Stage.pattern_gain/2` and `Pattern.Player.gain/2` scale a pattern's whole output,
   sounding notes included; `0.0` is silence.
 * The README opens the tour notebook in Livebook from a badge, and names the projects this

@@ -19,6 +19,66 @@ defmodule TuningFork.MidiTest do
     file([[{0, {:note_on, channel, note, velocity}}, {length, {:note_off, channel, note, 0}}]])
   end
 
+  describe "a channel as mini-notation" do
+    test "notes land on their steps with their lengths, chords are stacked, rests fill the gaps, bars are cycles" do
+      d = @division
+
+      events = [
+        {0, {:note_on, 0, 60, 100}},
+        {d, {:note_off, 0, 60, 0}},
+        {0, {:note_on, 0, 64, 100}},
+        {0, {:note_on, 0, 67, 100}},
+        {div(d, 2), {:note_off, 0, 64, 0}},
+        {0, {:note_off, 0, 67, 0}},
+        {div(d, 2) + d, {:note_on, 0, 72, 100}},
+        {div(d, 4), {:note_off, 0, 72, 0}},
+        {3 * d + div(d, 4) * 3, {:note_on, 0, 71, 100}},
+        {d, {:note_off, 0, 71, 0}}
+      ]
+
+      midi = file([events])
+      assert {2, mini} = Midi.mini(midi, channel: 0, steps_per_beat: 4)
+      assert mini == "<[c4@4 [e4,g4]@2 ~@6 c5 ~@3] [~@12 b4@4]>"
+
+      assert {1, "<[c4@4 [e4,g4]@2 ~@6 c5 ~@3]>"} =
+               Midi.mini(midi, channel: 0, steps_per_beat: 4, from: 0, bars: 1)
+
+      assert {1, "<[d4@4 [fs4,a4]@2 ~@6 d5 ~@3]>"} =
+               Midi.mini(midi, channel: 0, steps_per_beat: 4, bars: 1, transpose: 2)
+
+      assert {0, "<>"} = Midi.mini(midi, channel: 5)
+    end
+
+    test "one voice of the chords can be taken, and notes played a little late still land on their steps" do
+      d = @division
+      late = div(d, 7)
+
+      events = [
+        {0, {:note_on, 0, 48, 100}},
+        {0, {:note_on, 0, 64, 100}},
+        {d, {:note_off, 0, 48, 0}},
+        {0, {:note_off, 0, 64, 0}},
+        {3 * d + late, {:note_on, 0, 50, 100}},
+        {0, {:note_on, 0, 65, 100}},
+        {div(d, 2), {:note_off, 0, 50, 0}},
+        {0, {:note_off, 0, 65, 0}},
+        {div(d, 4), {:note_on, 0, 52, 100}},
+        {div(d, 4), {:note_off, 0, 52, 0}}
+      ]
+
+      midi = file([events])
+
+      assert {2, "<[[c3,e4]@4 ~@12] [[d3,f4]@2 ~ e3 ~@12]>"} =
+               Midi.mini(midi, channel: 0, bars: 2)
+
+      assert {1, "<[c3@4 ~@12]>"} = Midi.mini(midi, channel: 0, bars: 1, voice: :lowest)
+      assert {1, "<[e4@4 ~@12]>"} = Midi.mini(midi, channel: 0, bars: 1, voice: :highest)
+
+      assert {2, "<[c3@4 ~@12] [d3@2 ~@14]>"} =
+               Midi.mini(midi, channel: 0, bars: 2, voice: :lowest, on: :beats)
+    end
+  end
+
   describe "the header" do
     test "format, division and track count are read" do
       midi = file([[{0, {:note_on, 0, 60, 64}}], [{0, {:note_on, 1, 62, 64}}]], division: 96)

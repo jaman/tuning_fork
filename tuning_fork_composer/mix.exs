@@ -1,7 +1,7 @@
 defmodule TuningForkComposer.MixProject do
   use Mix.Project
 
-  @version "0.1.5"
+  @version "0.1.6"
   @source_url "https://github.com/jaman/tuning_fork"
 
   def project do
@@ -26,14 +26,15 @@ defmodule TuningForkComposer.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork, "~> 0.1.5", []),
+      family(:tuning_fork, "~> 0.1.6", []),
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 
   defp family(app, requirement, opts) do
-    if System.get_env("TUNING_FORK_HEX") == nil and File.dir?("../#{app}") do
+    if System.get_env("PLUMB_HEX") == nil and System.get_env("TUNING_FORK_HEX") == nil and
+         File.dir?("../#{app}") do
       {app, [path: "../#{app}"] ++ opts}
     else
       {app, requirement, opts}

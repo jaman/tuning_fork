@@ -8,9 +8,9 @@ defmodule TuningFork.Kit do
       nil
   """
 
-  alias TuningFork.{Curve, Envelope, Filter, Notes, Scale, Voice}
+  alias TuningFork.{Curve, Envelope, Filter, Notes, Scale, Sfz, Voice}
   alias TuningFork.Gm.{Fonts, Names}
-  alias TuningFork.Sample.{Bank, Font}
+  alias TuningFork.Sample.{Bank, Fetch, Font}
 
   @drums ~w(bd kick sn sd snare rim cp clap hh hat oh open lt mt ht tom rd ride cr crash tam cow
             perc sh shaker)
@@ -53,7 +53,7 @@ defmodule TuningFork.Kit do
     base = name |> String.split(":", parts: 2) |> hd()
 
     base in @drums or is_map_key(@waveforms, base) or Names.program(base) != nil or
-      Bank.has?(base)
+      Bank.has?(base) or Sfz.instrument?(base)
   end
 
   @doc """
@@ -187,9 +187,17 @@ defmodule TuningFork.Kit do
       end
 
     cond do
-      Bank.has?(base) -> Bank.prefetch(base)
-      Names.program(base) -> font_prefetch(base, index)
-      true -> :ok
+      Bank.has?(base) ->
+        Bank.prefetch(base)
+
+      Sfz.instrument?(base) ->
+        Fetch.background({:sfz, base}, fn -> Sfz.load(base, prefetch: true) end)
+
+      Names.program(base) ->
+        font_prefetch(base, index)
+
+      true ->
+        :ok
     end
   end
 
@@ -497,7 +505,7 @@ defmodule TuningFork.Kit do
 
   defp named(name, index, seconds, opts) do
     cond do
-      Bank.has?(name) -> recorded(name, index, @sample_base, opts)
+      recorded?(name, opts) -> recorded(name, index, @sample_base, opts)
       name in @drums -> drum(name, index)
       true -> pitched_by_name(name, index, seconds)
     end
@@ -505,12 +513,27 @@ defmodule TuningFork.Kit do
 
   defp recorded_at(name, midi, opts) when is_binary(name) do
     case String.split(name, ":", parts: 2) do
-      [base] -> if Bank.has?(base), do: recorded(base, 0, midi, opts)
-      [base, index] -> if Bank.has?(base), do: recorded(base, index(index), midi, opts)
+      [base] -> if recorded?(base, opts), do: recorded(base, 0, midi, opts)
+      [base, index] -> if recorded?(base, opts), do: recorded(base, index(index), midi, opts)
     end
   end
 
   defp recorded_at(_name, _midi, _opts), do: nil
+
+  defp recorded?(name, opts),
+    do:
+      Bank.has?(name) or
+        (Sfz.instrument?(name) and sfz_loaded?(name, Keyword.get(opts, :wait, true)))
+
+  defp sfz_loaded?(name, true) do
+    Fetch.once({:sfz, name}, fn -> Sfz.load(name) end)
+    Bank.has?(name)
+  end
+
+  defp sfz_loaded?(name, false) do
+    Fetch.background({:sfz, name}, fn -> Sfz.load(name) end)
+    false
+  end
 
   defp recorded(name, index, midi, opts) do
     {at, root} =

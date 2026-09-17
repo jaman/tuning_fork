@@ -60,6 +60,16 @@ defmodule TuningFork.SampleTest do
       end
     end
 
+    test "a gain scales the recording as it is loaded" do
+      pcm = tone()
+
+      assert Mixer.peak(Sample.from_pcm(pcm, rate: @rate, gain: 0.5).pcm) ==
+               div(Mixer.peak(pcm), 2)
+
+      assert Sample.from_pcm(pcm, rate: @rate).pcm ==
+               Sample.from_pcm(pcm, rate: @rate, gain: 1.0).pcm
+    end
+
     test "a root given as a note name becomes a frequency" do
       assert_in_delta sample(root: :a3).root, Notes.freq(:a3), 0.01
       assert_in_delta sample(root: 300.0).root, 300.0, 0.01

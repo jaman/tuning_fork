@@ -23,7 +23,8 @@ defmodule TuningFork.Sink.Tcp.Link do
        rate: Keyword.fetch!(opts, :rate),
        frame: 2 * Keyword.fetch!(opts, :channels),
        lead_us: Keyword.get(opts, :lead_ms, 60) * 1_000,
-       warm_up_us: Keyword.get(opts, :warm_up_ms, 300) * 1_000,
+       warm_up_us: Keyword.get(opts, :warm_up_ms, 0) * 1_000,
+       prime_frames: Keyword.get(opts, :prime_frames, @prime_frames),
        retry_us: Keyword.get(opts, :retry_ms, 2_000) * 1_000,
        socket: nil,
        retry_at: now_us(),
@@ -65,7 +66,7 @@ defmodule TuningFork.Sink.Tcp.Link do
              @connect_timeout
            ) do
         {:ok, socket} ->
-          Logger.info("sound: sending PCM to #{state.host}:#{state.port}")
+          Logger.info("tuning_fork: sending PCM to #{state.host}:#{state.port}")
           now = now_us()
 
           %{
@@ -78,7 +79,7 @@ defmodule TuningFork.Sink.Tcp.Link do
 
         {:error, reason} ->
           Logger.info(
-            "sound: #{state.host}:#{state.port} #{inspect(reason)}, trying again in #{div(state.retry_us, 1_000)} ms"
+            "tuning_fork: #{state.host}:#{state.port} #{inspect(reason)}, trying again in #{div(state.retry_us, 1_000)} ms"
           )
 
           %{state | retry_at: now + state.retry_us}
@@ -89,7 +90,7 @@ defmodule TuningFork.Sink.Tcp.Link do
   defp sent(%{socket: nil} = state, _pcm), do: state
 
   defp sent(state, pcm) do
-    priming? = state.primed < @prime_frames * state.frame
+    priming? = state.primed < state.prime_frames * state.frame
 
     if not priming? and now_us() < state.warm_until do
       state
@@ -105,7 +106,7 @@ defmodule TuningFork.Sink.Tcp.Link do
 
   defp dropped(state) do
     Logger.info(
-      "sound: #{state.host}:#{state.port} closed, trying again in #{div(state.retry_us, 1_000)} ms"
+      "tuning_fork: #{state.host}:#{state.port} closed, trying again in #{div(state.retry_us, 1_000)} ms"
     )
 
     :gen_tcp.close(state.socket)

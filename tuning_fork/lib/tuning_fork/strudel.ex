@@ -430,6 +430,8 @@ defmodule TuningFork.Strudel do
   defp describe({:string, s}), do: inspect(s)
   defp describe({:number, n}), do: to_string(n)
 
+  defp literal(string), do: inspect(string, printable_limit: :infinity)
+
   defp translate(statements) do
     {lets, rows, meta} = collect(statements, %{}, [], %{cps: nil, samples: []})
 
@@ -551,8 +553,8 @@ defmodule TuningFork.Strudel do
   end
 
   defp expression_source({:num, n}, _where), do: number(n)
-  defp expression_source({:str, s}, :receiver), do: "mini(#{inspect(s)})"
-  defp expression_source({:str, s}, _where), do: inspect(s)
+  defp expression_source({:str, s}, :receiver), do: "mini(#{literal(s)})"
+  defp expression_source({:str, s}, _where), do: literal(s)
   defp expression_source({:neg, a}, where), do: "-" <> expression_source(a, where)
 
   defp expression_source({:array, items}, _where),

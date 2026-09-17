@@ -23,6 +23,13 @@ defmodule TuningFork.StrudelTest do
                ~S{s("bd") |> sometimes_by(0.3, fn x -> x |> fast(2) end)}
     end
 
+    test "a long string is carried whole, a score of many bars included" do
+      bars = Enum.map_join(1..200, " ", fn _ -> "[a4 b4 c5 d5 e5 f5 g5 a5]" end)
+      assert row(~s|note("<#{bars}>").s("piano")|) == ~s|note("<#{bars}>") \|> s("piano")|
+      {:ok, pattern} = Strudel.pattern(~s|note("<#{bars}>").s("piano")|)
+      assert length(Pattern.query(pattern, {0, 200})) == 1600
+    end
+
     test "a bare transformer in an argument is a function of the pattern" do
       assert row(~S{s("bd").rarely(ply("2")).chunk(4, fast(2)).every(4, rev)}) ==
                ~S{s("bd") |> rarely(&(&1 |> ply("2"))) |> chunk(4, &(&1 |> fast(2))) |> then(&every(4, &rev/1, &1))}

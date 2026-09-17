@@ -26,6 +26,23 @@ defmodule TuningFork.MixerTest do
       assert samples(Mixer.mix([pcm([1]), pcm([2]), pcm([3])])) == [6]
     end
 
+    test "silence is known and passed over: mixing, clipping and measuring it cost a comparison" do
+      quiet = Mixer.silence(256, 2)
+      loud = :binary.copy(<<20_000::16-signed-little>>, 512)
+      assert Mixer.silent?(quiet)
+      refute Mixer.silent?(loud)
+      assert Mixer.mix([quiet, loud, quiet]) == loud
+      assert Mixer.mix([quiet, quiet]) == quiet
+      assert Mixer.mix([Mixer.silence(400, 2), loud]) == loud <> Mixer.silence(144, 2)
+      assert Mixer.soft_clip(quiet, 0.5) == quiet
+      assert Mixer.peak(quiet) == 0
+
+      {us, _} =
+        :timer.tc(fn -> for _ <- 1..1000, do: Mixer.mix([quiet, quiet, quiet, quiet, quiet]) end)
+
+      assert us < 20_000, "five silent buffers mixed in #{div(us, 1000)} µs"
+    end
+
     test "an empty list is silence, not a crash" do
       assert Mixer.mix([]) == <<>>
     end

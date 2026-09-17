@@ -58,6 +58,7 @@ defmodule TuningFork.Sample do
     * `:root` — the pitch the recording already is, as a note name or a frequency in Hz
     * `:loop` — `{from, to}` frames a voice goes round between once it reaches `to`, so a
       note can outlast the recording; default `nil`
+    * `:gain` — a factor the recording is scaled by as it is loaded, default 1.0
     * `:name` — what to call it, default `"sample"`
   """
   @spec from_pcm(binary(), keyword()) :: t()
@@ -70,6 +71,8 @@ defmodule TuningFork.Sample do
         2 -> Mixer.to_mono(pcm)
         more -> raise ArgumentError, "#{more} channels is more than this can fold to mono"
       end
+
+    mono = Mixer.scale(mono, Keyword.get(opts, :gain, 1.0) / 1)
 
     %__MODULE__{
       id: :erlang.phash2({Keyword.get(opts, :name), rate, byte_size(mono), mono}),

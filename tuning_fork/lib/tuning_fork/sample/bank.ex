@@ -15,7 +15,7 @@ defmodule TuningFork.Sample.Bank do
   @table :tuning_fork_sample_bank
 
   @type name :: atom() | String.t()
-  @type file :: Path.t() | Sample.t()
+  @type file :: Path.t() | Sample.t() | {Path.t(), keyword()}
 
   @doc false
   def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -30,10 +30,13 @@ defmodule TuningFork.Sample.Bank do
   Register `name` as one file, a list of files, a map of note names to files, or a sample
   already loaded.
 
-  A file is a path or an `http(s)://` URL, which is fetched into the cache on first use. A
+  A file is a path or an `http(s)://` URL, which is fetched into the cache on first use, or
+  `{path, opts}` with options of its own for `TuningFork.Sample.load!/2` (`:loop`,
+  `:gain`, `:root`). A
   list is read by index with `fetch/2`, wrapping. A map (`%{"C3" => "c3.wav", "Fs3" => [...]}`)
   is a pitched instrument: `nearest/3` picks the file for a note, and each note may hold a
-  list. Registering a name again with the same files and options keeps what has been
+  list; a note is a name or a MIDI number, fractional when the recording lies between two.
+  Registering a name again with the same files and options keeps what has been
   loaded; different files start it afresh.
 
   ## Options, for files
@@ -46,7 +49,7 @@ defmodule TuningFork.Sample.Bank do
   def put(name, %{} = by_note, opts) when not is_struct(by_note) do
     keyed =
       by_note
-      |> Enum.reject(fn {note, _files} -> String.starts_with?(note, "_") end)
+      |> Enum.reject(fn {note, _files} -> is_binary(note) and String.starts_with?(note, "_") end)
       |> Enum.flat_map(fn {note, files} -> Enum.map(List.wrap(files), &{midi(note), &1}) end)
       |> Enum.sort_by(&elem(&1, 0))
 
@@ -127,7 +130,7 @@ defmodule TuningFork.Sample.Bank do
   The MIDI note each file of a pitched `name` was recorded at, in file order; `nil` for a
   name that is not pitched or not registered.
   """
-  @spec notes(name()) :: [integer()] | nil
+  @spec notes(name()) :: [number()] | nil
   def notes(name) do
     case :ets.lookup(@table, key(name)) do
       [{_key, %{notes: notes}}] -> notes
@@ -140,7 +143,7 @@ defmodule TuningFork.Sample.Bank do
   the note, and the note it was recorded at; `n` picks among files sharing that note,
   wrapping. `nil` for a name that is not pitched.
   """
-  @spec nearest(name(), number(), integer()) :: {non_neg_integer(), integer()} | nil
+  @spec nearest(name(), number(), integer()) :: {non_neg_integer(), number()} | nil
   def nearest(name, midi, n) do
     case notes(name) do
       notes when is_list(notes) and notes != [] ->
@@ -160,6 +163,7 @@ defmodule TuningFork.Sample.Bank do
     case :ets.lookup(@table, key(name)) do
       [{_key, %{files: files}}] ->
         files
+        |> Enum.map(&path_of/1)
         |> Enum.filter(&(is_binary(&1) and String.starts_with?(&1, "http")))
         |> Fetch.prefetch()
 
@@ -193,7 +197,7 @@ defmodule TuningFork.Sample.Bank do
   end
 
   defp load(key, entry, at, false) do
-    case Enum.at(entry.files, at) do
+    case path_of(Enum.at(entry.files, at)) do
       "http" <> _ = url ->
         if Fetch.cached?(url), do: load(key, entry, at, true), else: loading(url)
 
@@ -215,7 +219,11 @@ defmodule TuningFork.Sample.Bank do
     :loading
   end
 
+  defp path_of({path, _opts}), do: path
+  defp path_of(file), do: file
+
   defp read(%Sample{} = sample, _opts), do: sample
+  defp read({file, own}, opts), do: read(file, Keyword.merge(opts, own))
 
   defp read("http" <> _ = url, opts) do
     case Fetch.fetch(url) do
@@ -225,6 +233,8 @@ defmodule TuningFork.Sample.Bank do
   end
 
   defp read(path, opts), do: Sample.load!(path, opts)
+
+  defp midi(note) when is_number(note), do: note
 
   defp midi(note) do
     note

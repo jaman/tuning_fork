@@ -6,11 +6,32 @@ defmodule TuningFork.Mixer do
   @peak 32_767
   @floor -32_768
 
-  @doc "Sum a list of buffers. An empty list gives an empty buffer."
+  @doc "Sum a list of buffers, passing over the silent ones. An empty list gives an empty buffer."
   @spec mix([binary()]) :: binary()
   def mix([]), do: <<>>
   def mix([only]), do: only
-  def mix([first | rest]), do: Enum.reduce(rest, first, &mix(&2, &1))
+
+  def mix([first | _] = buffers) do
+    longest = buffers |> Enum.map(&byte_size/1) |> Enum.max()
+
+    case Enum.reject(buffers, &silent?/1) do
+      [] -> Enum.max_by(buffers, &byte_size/1, fn -> first end)
+      [only] -> padded(only, longest)
+      [sounding | rest] -> rest |> Enum.reduce(sounding, &mix(&2, &1)) |> padded(longest)
+    end
+  end
+
+  defp padded(pcm, length) when byte_size(pcm) >= length, do: pcm
+  defp padded(pcm, length), do: pcm <> :binary.copy(<<0>>, length - byte_size(pcm))
+
+  @zeros :binary.copy(<<0>>, 65_536)
+
+  @doc "Whether every sample of `pcm` is zero."
+  @spec silent?(binary()) :: boolean()
+  def silent?(pcm) when byte_size(pcm) <= byte_size(@zeros),
+    do: pcm == binary_part(@zeros, 0, byte_size(pcm))
+
+  def silent?(pcm), do: pcm == :binary.copy(<<0>>, byte_size(pcm))
 
   @doc """
   Sum two buffers, sample by sample, clipping at full scale. The result is as long as the
@@ -173,8 +194,12 @@ defmodule TuningFork.Mixer do
   @doc "The largest absolute sample value in a buffer."
   @spec peak(binary()) :: non_neg_integer()
   def peak(pcm) do
-    for <<sample::16-signed-little <- pcm>>, reduce: 0 do
-      loudest -> max(loudest, abs(sample))
+    if silent?(pcm) do
+      0
+    else
+      for <<sample::16-signed-little <- pcm>>, reduce: 0 do
+        loudest -> max(loudest, abs(sample))
+      end
     end
   end
 
@@ -221,6 +246,10 @@ defmodule TuningFork.Mixer do
   def soft_clip(pcm, threshold) when threshold >= 1.0, do: pcm
 
   def soft_clip(pcm, threshold) do
+    if silent?(pcm), do: pcm, else: bent(pcm, threshold)
+  end
+
+  defp bent(pcm, threshold) do
     knee = threshold |> max(0.0) |> min(0.999)
     room = 1.0 - knee
 

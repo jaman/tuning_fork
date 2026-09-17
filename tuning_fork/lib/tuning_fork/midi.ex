@@ -273,6 +273,105 @@ defmodule TuningFork.Midi do
     Enum.count(distinct, &(&1 in @kit)) * 2 >= length(distinct)
   end
 
+  @doc """
+  One channel of the file as Strudel mini-notation: a `<…>` of bars, each a `[…]` of
+  steps — a note, a chord `[c4,e4]`, or a rest `~`, held with `@n` — and how many bars
+  it is, so a recorded piece can be played through the kit's instruments.
+
+      {bars, mini} = TuningFork.Midi.mini(midi, channel: 0, steps_per_beat: 4)
+      Strudel.pattern(~s|note("\#{mini}").s("gm_piano")|)
+
+  Onsets snap to the grid leaning late — an onset up to three quarters of a step after
+  a step is on it, so grace notes and rounding that push a file's notes late leave
+  them on their steps; lengths round; a note reaching past the next onset or the
+  bar's end is cut there; a length under a step is a step.
+
+  ## Options
+
+    * `:channel` — the channel to take, default `0`
+    * `:beats_per_bar`, `:steps_per_beat` — the grid: `:beats_per_bar` default 4,
+      `:steps_per_beat` default 4 (sixteenths)
+    * `:from`, `:bars` — the first bar to take and how many; default from the start,
+      to the last note
+    * `:voice` — `:lowest` or `:highest` to take one note of every chord, default
+      `:all`
+    * `:on` — `:beats` to keep only the notes struck on a beat, for a bass line from
+      a stride left hand; default `:steps`, every note
+    * `:transpose` — semitones added to every note, default 0
+  """
+  @spec mini(t(), keyword()) :: {non_neg_integer(), String.t()}
+  def mini(%__MODULE__{} = midi, opts \\ []) do
+    channel = Keyword.get(opts, :channel, 0)
+    per_bar = Keyword.get(opts, :beats_per_bar, 4)
+    per_beat = Keyword.get(opts, :steps_per_beat, 4)
+    steps = per_bar * per_beat
+    transpose = Keyword.get(opts, :transpose, 0)
+    first = Keyword.get(opts, :from, 0)
+
+    onsets =
+      midi
+      |> notes()
+      |> Enum.filter(&(&1.channel == channel))
+      |> Enum.map(fn note ->
+        {floor(note.beat * per_beat + 0.25), max(1, round(note.beats * per_beat)),
+         note.note + transpose}
+      end)
+      |> Enum.group_by(&elem(&1, 0))
+      |> Map.filter(fn {step, _} ->
+        Keyword.get(opts, :on, :steps) == :steps or rem(step, per_beat) == 0
+      end)
+      |> Map.new(fn {step, notes} -> {step, voiced(notes, Keyword.get(opts, :voice, :all))} end)
+
+    count =
+      case Keyword.get(opts, :bars) do
+        nil -> if onsets == %{}, do: 0, else: div(Enum.max(Map.keys(onsets)), steps) + 1 - first
+        bars -> bars
+      end
+
+    bars =
+      for bar <- first..(first + count - 1)//1 do
+        from = bar * steps
+        starts = for step <- from..(from + steps - 1), Map.has_key?(onsets, step), do: step
+        "[" <> Enum.join(bar_elements(starts, onsets, from, steps), " ") <> "]"
+      end
+
+    {max(count, 0), "<" <> Enum.join(bars, " ") <> ">"}
+  end
+
+  defp voiced(notes, :all), do: notes
+  defp voiced(notes, :lowest), do: [Enum.min_by(notes, &elem(&1, 2))]
+  defp voiced(notes, :highest), do: [Enum.max_by(notes, &elem(&1, 2))]
+
+  defp bar_elements([], _onsets, _from, steps), do: [held("~", steps)]
+
+  defp bar_elements(starts, onsets, from, steps) do
+    ends = tl(starts) ++ [from + steps]
+
+    {elements, _} =
+      Enum.zip(starts, ends)
+      |> Enum.reduce({[], from}, fn {start, next}, {acc, at} ->
+        rest = if start > at, do: [held("~", start - at)], else: []
+        notes = Map.fetch!(onsets, start)
+        length = notes |> Enum.map(&elem(&1, 1)) |> Enum.max() |> min(next - start)
+
+        names =
+          notes
+          |> Enum.map(&elem(&1, 2))
+          |> Enum.uniq()
+          |> Enum.sort()
+          |> Enum.map(&Atom.to_string(TuningFork.Notes.name_of(&1)))
+
+        sound = if length(names) == 1, do: hd(names), else: "[" <> Enum.join(names, ",") <> "]"
+        gap = if start + length < next, do: [held("~", next - start - length)], else: []
+        {acc ++ rest ++ [held(sound, length)] ++ gap, next}
+      end)
+
+    elements
+  end
+
+  defp held(text, 1), do: text
+  defp held(text, steps), do: "#{text}@#{steps}"
+
   @doc "Every event in the file, in tick order, as `{tick, event}`, with the tracks merged."
   @spec merged(t()) :: [{non_neg_integer(), event()}]
   def merged(%__MODULE__{tracks: tracks}) do

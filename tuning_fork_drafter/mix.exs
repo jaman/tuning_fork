@@ -1,7 +1,7 @@
 defmodule TuningForkDrafter.MixProject do
   use Mix.Project
 
-  @version "0.1.5"
+  @version "0.1.6"
   @source_url "https://github.com/jaman/tuning_fork"
 
   def project do
@@ -27,20 +27,28 @@ defmodule TuningForkDrafter.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork, "~> 0.1.5", []),
-      family(:tuning_fork_composer, "~> 0.1.5", []),
-      family(:tuning_fork_speaker, "~> 0.1.5", optional: true),
-      family(:tuning_fork_samples, "~> 0.1.5", optional: true),
-      family(:tuning_fork_midi, "~> 0.1.5", []),
-      {:drafter, path: "../../drafter"},
-      {:french_curve, path: "../../french_curve", override: true},
+      family(:tuning_fork, "~> 0.1.6", []),
+      family(:tuning_fork_composer, "~> 0.1.6", []),
+      family(:tuning_fork_speaker, "~> 0.1.6", optional: true),
+      family(:tuning_fork_samples, "~> 0.1.6", optional: true),
+      family(:tuning_fork_midi, "~> 0.1.6", []),
+      elsewhere(:drafter, "~> 0.4.0", "../../drafter", []),
+      elsewhere(:french_curve, "~> 0.1.4", "../../french_curve", override: true),
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 
+  defp elsewhere(app, requirement, path, opts) do
+    if System.get_env("PLUMB_HEX") == nil and System.get_env("TUNING_FORK_HEX") == nil and
+         File.dir?(path),
+       do: {app, [path: path] ++ opts},
+       else: {app, requirement, opts}
+  end
+
   defp family(app, requirement, opts) do
-    if System.get_env("TUNING_FORK_HEX") == nil and File.dir?("../#{app}") do
+    if System.get_env("PLUMB_HEX") == nil and System.get_env("TUNING_FORK_HEX") == nil and
+         File.dir?("../#{app}") do
       {app, [path: "../#{app}"] ++ opts}
     else
       {app, requirement, opts}

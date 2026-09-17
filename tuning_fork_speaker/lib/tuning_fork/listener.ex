@@ -4,7 +4,7 @@ defmodule TuningFork.Listener do
   speaker, one connection after another — the far end of `TuningFork.Sink.Tcp` over an
   ssh tunnel.
 
-      {:ok, listener} = TuningFork.Listener.start_link(port: 4713)
+      {:ok, listener} = TuningFork.Listener.start_link(port: 5000)
 
   Each connection opens the sink afresh and closes it when the connection ends; the next
   connection is accepted then. Audio that has arrived faster than it can play — a burst
@@ -13,8 +13,9 @@ defmodule TuningFork.Listener do
 
   ## Options
 
-    * `:port` — the TCP port to listen on, on the loopback interface. `0` picks a free
-      one; `port/1` tells which. Default `4713`
+    * `:port` — the TCP port to listen on; `0` picks a free one and `port/1` tells
+      which. Required
+    * `:ip` — the interface to listen on. Default `{127, 0, 0, 1}`, this machine only
     * `:rate`, `:channels` — the PCM format. Default `44_100` and `2`
     * `:sink` — the `TuningFork.Sink` to play through, as `module` or `{module, opts}`.
       Default `TuningFork.Sink.Speaker`
@@ -43,12 +44,13 @@ defmodule TuningFork.Listener do
   @impl GenServer
   def init(opts) do
     Process.flag(:trap_exit, true)
-    port = Keyword.get(opts, :port, 4_713)
+    port = Keyword.fetch!(opts, :port)
+    ip = Keyword.get(opts, :ip, {127, 0, 0, 1})
 
-    case :gen_tcp.listen(port, [:binary, active: false, reuseaddr: true, ip: {127, 0, 0, 1}]) do
+    case :gen_tcp.listen(port, [:binary, active: false, reuseaddr: true, ip: ip]) do
       {:ok, socket} ->
         {:ok, bound} = :inet.port(socket)
-        Logger.info("sound: listening on 127.0.0.1:#{bound}")
+        Logger.info("tuning_fork: listening on #{:inet.ntoa(ip)}:#{bound}")
         {sink, sink_opts} = sink(Keyword.get(opts, :sink, TuningFork.Sink.Speaker))
 
         state = %{
@@ -96,7 +98,7 @@ defmodule TuningFork.Listener do
   defp serve(state) do
     {:ok, connection} = :gen_tcp.accept(state.socket)
     {:ok, {peer, _port}} = :inet.peername(connection)
-    Logger.info("sound: playing from #{:inet.ntoa(peer)}")
+    Logger.info("tuning_fork: playing from #{:inet.ntoa(peer)}")
 
     case state.sink.open(state.sink_opts) do
       {:ok, sink_state} ->
@@ -104,11 +106,11 @@ defmodule TuningFork.Listener do
         state.sink.close(sink_state)
 
       {:error, reason} ->
-        Logger.error("sound: #{inspect(state.sink)} could not open: #{inspect(reason)}")
+        Logger.error("tuning_fork: #{inspect(state.sink)} could not open: #{inspect(reason)}")
     end
 
     :gen_tcp.close(connection)
-    Logger.info("sound: connection ended")
+    Logger.info("tuning_fork: connection ended")
   end
 
   defp play(connection, state, sink_state) do
@@ -122,7 +124,7 @@ defmodule TuningFork.Listener do
 
           {:error, reason} ->
             Logger.error(
-              "sound: #{inspect(state.sink)} stopped taking samples: #{inspect(reason)}"
+              "tuning_fork: #{inspect(state.sink)} stopped taking samples: #{inspect(reason)}"
             )
         end
 

@@ -68,13 +68,15 @@ defmodule TuningFork.Sample.Fetch do
     :ok
   end
 
-  @doc "Fetch the body of `url`. Spaces and other characters a URL cannot carry are percent-encoded."
+  @doc "Fetch the body of `url`. Spaces and other characters a URL cannot carry are percent-encoded; what is already percent-encoded is left as it is."
   @spec get(String.t()) :: {:ok, binary()} | {:error, term()}
   def get(url) when is_binary(url) do
     :inets.start()
     :ssl.start()
 
-    request = {url |> URI.encode() |> String.to_charlist(), [{~c"user-agent", ~c"tuning_fork"}]}
+    request =
+      {url |> URI.encode(&(URI.char_unescaped?(&1) or &1 == ?%)) |> String.to_charlist(),
+       [{~c"user-agent", ~c"tuning_fork"}]}
 
     options = [
       ssl: [verify: :verify_none],

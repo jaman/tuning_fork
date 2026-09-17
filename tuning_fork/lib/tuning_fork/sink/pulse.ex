@@ -2,7 +2,7 @@ defmodule TuningFork.Sink.Pulse do
   @moduledoc """
   A sink that plays through a PulseAudio or PipeWire server by piping PCM into `pacat`.
 
-      {:ok, _stage} = TuningFork.Stage.start_link(sink: TuningFork.Sink.Pulse, sink_opts: [server: "tcp:127.0.0.1:24713"])
+      {:ok, _stage} = TuningFork.Stage.start_link(sink: TuningFork.Sink.Pulse, sink_opts: [server: "tcp:127.0.0.1:<port>"])
 
   The server is named the way `PULSE_SERVER` is: `tcp:host:port`, or a socket path. A
   server reached through an ssh reverse tunnel is `tcp:127.0.0.1:<forwarded port>`. The

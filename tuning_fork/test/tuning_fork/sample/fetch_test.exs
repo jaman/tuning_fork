@@ -38,6 +38,15 @@ defmodule TuningFork.Sample.FetchTest do
     assert {:ok, path} = Fetch.fetch(url)
     assert File.exists?(path)
     assert Path.extname(path) == ".wav"
+    assert FileServer.last_path(server) == "/Hat%20Open.wav"
+  end
+
+  @tag :tmp_dir
+  test "a name already escaped is asked for as it is, so a sharp or a space in it survives", %{
+    server: server
+  } do
+    assert {:ok, _path} = Fetch.fetch("http://127.0.0.1:#{server.port}/finger/F%23%20low.wav")
+    assert FileServer.last_path(server) == "/finger/F%23%20low.wav"
   end
 
   defp settled(check, tries \\ 100)
