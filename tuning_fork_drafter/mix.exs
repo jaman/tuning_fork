@@ -1,7 +1,7 @@
 defmodule TuningForkDrafter.MixProject do
   use Mix.Project
 
-  @version "0.1.6"
+  @version "0.1.7"
   @source_url "https://github.com/jaman/tuning_fork"
 
   def project do
@@ -27,11 +27,11 @@ defmodule TuningForkDrafter.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork, "~> 0.1.6", []),
-      family(:tuning_fork_composer, "~> 0.1.6", []),
-      family(:tuning_fork_speaker, "~> 0.1.6", optional: true),
-      family(:tuning_fork_samples, "~> 0.1.6", optional: true),
-      family(:tuning_fork_midi, "~> 0.1.6", []),
+      family(:tuning_fork, "~> 0.1.7", []),
+      family(:tuning_fork_composer, "~> 0.1.7", []),
+      family(:tuning_fork_speaker, "~> 0.1.7", optional: true),
+      family(:tuning_fork_samples, "~> 0.1.7", optional: true),
+      family(:tuning_fork_midi, "~> 0.1.7", []),
       elsewhere(:drafter, "~> 0.4.0", "../../drafter", []),
       elsewhere(:french_curve, "~> 0.1.4", "../../french_curve", override: true),
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
@@ -43,7 +43,7 @@ defmodule TuningForkDrafter.MixProject do
     if System.get_env("PLUMB_HEX") == nil and System.get_env("TUNING_FORK_HEX") == nil and
          File.dir?(path),
        do: {app, [path: path] ++ opts},
-       else: {app, requirement, opts}
+       else: {app, requirement, Keyword.delete(opts, :override)}
   end
 
   defp family(app, requirement, opts) do
