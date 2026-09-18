@@ -17,6 +17,7 @@ defmodule KinoTuningFork.LivePatternsCellTest do
   defp cell(attrs \\ %{}) do
     {kino, _source} = start_smart_cell!(LivePatternsCell, attrs)
     _data = connect(kino)
+    push_event(kino, "listening", %{"on" => true})
 
     kino
   end

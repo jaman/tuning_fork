@@ -30,6 +30,7 @@ defmodule KinoTuningFork.LiveLoopsCellTest do
   defp cell(loops) do
     {kino, _source} = start_smart_cell!(LiveLoopsCell, %{"loops" => loops})
     _data = connect(kino)
+    push_event(kino, "listening", %{"on" => true})
 
     kino
   end

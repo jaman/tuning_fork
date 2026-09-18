@@ -15,6 +15,7 @@ defmodule KinoTuningFork.Stage do
   use Kino.JS.Live
 
   alias Kino.JS.Live
+  alias KinoTuningFork.Listening
   alias TuningFork.Stage
 
   @tick_ms 250
@@ -67,17 +68,14 @@ defmodule KinoTuningFork.Stage do
 
   @impl true
   def handle_connect(ctx) do
-    {:ok, %{rate: ctx.assigns.rate, channels: ctx.assigns.channels}, ctx}
+    {:ok, %{rate: ctx.assigns.rate, channels: ctx.assigns.channels}, Listening.init(ctx)}
   end
 
   @impl true
   def handle_call(:stage, _from, ctx), do: {:reply, ctx.assigns.stage, ctx}
 
   @impl true
-  def handle_info({:pcm, chunk}, ctx) do
-    broadcast_event(ctx, "pcm", {:binary, %{}, chunk})
-    {:noreply, ctx}
-  end
+  def handle_info({:pcm, chunk}, ctx), do: {:noreply, Listening.forward(ctx, chunk)}
 
   def handle_info(:tick, %{assigns: %{stage: nil}} = ctx), do: {:noreply, ctx}
 
@@ -98,6 +96,8 @@ defmodule KinoTuningFork.Stage do
   end
 
   @impl true
+  def handle_event("listening", %{"on" => on}, ctx), do: {:noreply, Listening.set(ctx, on)}
+
   def handle_event("hush", _payload, %{assigns: %{stage: nil}} = ctx), do: {:noreply, ctx}
 
   def handle_event("hush", _payload, ctx) do
@@ -145,7 +145,7 @@ defmodule KinoTuningFork.Stage do
     export function init(ctx, payload) {
       ctx.importCSS("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
-      const player = tuningForkPlayer();
+      const player = tuningForkPlayer(ctx);
 
       const el = (tag, className, text) => {
         const node = document.createElement(tag);

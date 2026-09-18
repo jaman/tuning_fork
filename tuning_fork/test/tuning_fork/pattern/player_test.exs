@@ -133,8 +133,7 @@ defmodule TuningFork.Pattern.PlayerTest do
 
   describe "what the voice function is told" do
     setup do
-      {:ok, agent} = Agent.start_link(fn -> [] end)
-      on_exit(fn -> if Process.alive?(agent), do: Agent.stop(agent) end)
+      agent = start_supervised!(%{id: make_ref(), start: {Agent, :start_link, [fn -> [] end]}})
 
       {:ok, agent: agent}
     end
@@ -233,8 +232,7 @@ defmodule TuningFork.Pattern.PlayerTest do
     end
 
     test "the swapped pattern is what sounds afterwards" do
-      {:ok, agent} = Agent.start_link(fn -> [] end)
-      on_exit(fn -> if Process.alive?(agent), do: Agent.stop(agent) end)
+      agent = start_supervised!(%{id: make_ref(), start: {Agent, :start_link, [fn -> [] end]}})
 
       player = Player.new(P.pure("bd"), @rate, cps: 1.0, voice: counting(agent))
       {_pcm, player} = Player.advance(player, div(@rate, 2), 2)
@@ -248,8 +246,7 @@ defmodule TuningFork.Pattern.PlayerTest do
     end
 
     test "a pattern counting cycles keeps counting through a swap" do
-      {:ok, agent} = Agent.start_link(fn -> [] end)
-      on_exit(fn -> if Process.alive?(agent), do: Agent.stop(agent) end)
+      agent = start_supervised!(%{id: make_ref(), start: {Agent, :start_link, [fn -> [] end]}})
 
       counted = P.every(2, &P.with_value(&1, fn _v -> "even" end), P.pure("odd"))
 

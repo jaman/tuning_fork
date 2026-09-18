@@ -18,16 +18,13 @@ defmodule TuningFork.StageLoopsTest do
   @rate 44_100
 
   setup do
-    {:ok, stage} =
-      Stage.start_link(
-        name: nil,
-        rate: @rate,
-        chunk: 512,
-        sink: Silent,
-        limit: nil
+    stage =
+      start_supervised!(
+        Supervisor.child_spec(
+          {Stage, name: nil, rate: @rate, chunk: 512, sink: Silent, limit: nil},
+          id: make_ref()
+        )
       )
-
-    on_exit(fn -> if Process.alive?(stage), do: GenServer.stop(stage) end)
 
     %{stage: stage}
   end

@@ -15,14 +15,41 @@ defmodule KinoTuningFork.StageTest do
     kino
   end
 
-  test "it starts a stage and streams what the stage mixes" do
+  test "it starts a stage and streams what the stage mixes, while the page is listening" do
     kino = widget()
     stage = Widget.stage(kino)
 
     Stage.play(stage, TuningFork.Voice.new(shape: :sine, freq: 440.0))
+    refute_receive {:runtime_broadcast, "js_live", _ref, {:event, "pcm", _payload, _info}}, 300
 
+    push_event(kino, "listening", %{"on" => true})
     assert_broadcast_event(kino, "pcm", {:binary, %{}, chunk}, 2_000)
     assert byte_size(chunk) == 256 * 4
+
+    push_event(kino, "listening", %{"on" => false})
+    Process.sleep(100)
+    flush_pcm()
+    refute_receive {:runtime_broadcast, "js_live", _ref, {:event, "pcm", _payload, _info}}, 300
+  end
+
+  test "a page that connects afresh is not listening until it says so" do
+    kino = widget()
+    push_event(kino, "listening", %{"on" => true})
+    Stage.play(Widget.stage(kino), TuningFork.Voice.new(shape: :sine, freq: 440.0))
+    assert_broadcast_event(kino, "pcm", {:binary, %{}, _chunk}, 2_000)
+
+    _data = connect(kino)
+    Process.sleep(100)
+    flush_pcm()
+    refute_receive {:runtime_broadcast, "js_live", _ref, {:event, "pcm", _payload, _info}}, 300
+  end
+
+  defp flush_pcm do
+    receive do
+      {:runtime_broadcast, "js_live", _ref, {:event, "pcm", _payload, _info}} -> flush_pcm()
+    after
+      0 -> :ok
+    end
   end
 
   test "readouts name every loop and its round" do

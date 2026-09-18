@@ -1,7 +1,7 @@
 defmodule KinoTuningFork.MixProject do
   use Mix.Project
 
-  @version "0.1.9"
+  @version "0.1.10"
   @source_url "https://github.com/jaman/tuning_fork"
 
   def project do
@@ -29,10 +29,10 @@ defmodule KinoTuningFork.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork, "~> 0.1.9", []),
-      family(:tuning_fork_composer, "~> 0.1.9", []),
-      family(:tuning_fork_samples, "~> 0.1.9", optional: true),
-      family(:tuning_fork_midi, "~> 0.1.9", optional: true),
+      family(:tuning_fork, "~> 0.1.10", []),
+      family(:tuning_fork_composer, "~> 0.1.10", []),
+      family(:tuning_fork_samples, "~> 0.1.10", optional: true),
+      family(:tuning_fork_midi, "~> 0.1.10", optional: true),
       {:kino, "~> 0.12"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}

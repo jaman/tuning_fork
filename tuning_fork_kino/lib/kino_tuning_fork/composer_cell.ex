@@ -7,6 +7,7 @@ defmodule KinoTuningFork.ComposerCell do
   use Kino.JS.Live
   use Kino.SmartCell, name: "Compose"
 
+  alias KinoTuningFork.Listening
   alias TuningFork.{Composer, Stage}
   alias TuningFork.Composer.{Json, Source}
 
@@ -35,6 +36,8 @@ defmodule KinoTuningFork.ComposerCell do
 
   @impl true
   def handle_connect(ctx) do
+    ctx = Listening.init(ctx)
+
     {:ok,
      Map.merge(payload(ctx.assigns.project), %{
        rate: @rate,
@@ -102,6 +105,8 @@ defmodule KinoTuningFork.ComposerCell do
     {:noreply, assign(ctx, playing: true)}
   end
 
+  def handle_event("listening", %{"on" => on}, ctx), do: {:noreply, Listening.set(ctx, on)}
+
   def handle_event("stop", _payload, ctx) do
     if ctx.assigns.stage, do: Stage.stop_loop(ctx.assigns.stage, @loop)
     broadcast_event(ctx, "transport", %{playing: false, repeat: 0, bars: current(ctx).bars})
@@ -133,10 +138,7 @@ defmodule KinoTuningFork.ComposerCell do
   defp with_stage(ctx), do: ctx
 
   @impl true
-  def handle_info({:pcm, chunk}, ctx) do
-    broadcast_event(ctx, "pcm", {:binary, %{}, chunk})
-    {:noreply, ctx}
-  end
+  def handle_info({:pcm, chunk}, ctx), do: {:noreply, Listening.forward(ctx, chunk)}
 
   def handle_info(:tick, ctx) do
     Process.send_after(self(), :tick, @tick_ms)
@@ -178,7 +180,7 @@ defmodule KinoTuningFork.ComposerCell do
       ctx.importCSS("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
       ctx.importCSS("main.css");
 
-      const player = tuningForkPlayer();
+      const player = tuningForkPlayer(ctx);
       let transport = { playing: payload.playing === true, repeat: 0, bars: Number(payload.fields.bars) || 1 };
       let transportEls = null;
 

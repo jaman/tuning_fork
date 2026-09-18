@@ -9,6 +9,7 @@ defmodule KinoTuningFork.MidiMonitorCell do
   use Kino.JS.Live
   use Kino.SmartCell, name: "TF MIDI — keyboard in, pattern out"
 
+  alias KinoTuningFork.Listening
   alias TuningFork.Midi.Monitor
   alias TuningFork.Pattern.Source
   alias TuningFork.Stage
@@ -38,7 +39,7 @@ defmodule KinoTuningFork.MidiMonitorCell do
 
   @impl true
   def handle_connect(ctx) do
-    ctx = with_monitor(ctx)
+    ctx = ctx |> Listening.init() |> with_monitor()
 
     {:ok, payload(ctx), ctx}
   end
@@ -82,7 +83,7 @@ defmodule KinoTuningFork.MidiMonitorCell do
 
   @doc """
   The monitor's state as the page takes it: the ports and the last twelve events as lists
-  rather than tuples, the voice left out.
+  rather than tuples, clock ticks and the voice left out.
   """
   @spec page_state(Monitor.state()) :: map()
   def page_state(state) do
@@ -91,8 +92,9 @@ defmodule KinoTuningFork.MidiMonitorCell do
     |> Map.update!(:input, &port_list/1)
     |> Map.update!(:output, &port_list/1)
     |> Map.update!(:events, fn events ->
-      for {side, event, at} <- Enum.take(events, 12), do: [side, event_list(event), at]
+      for {side, event, at} <- events, event != :clock, do: [side, event_list(event), at]
     end)
+    |> Map.update!(:events, &Enum.take(&1, 12))
   end
 
   defp event_list(event) when is_tuple(event), do: Tuple.to_list(event)
@@ -138,6 +140,8 @@ defmodule KinoTuningFork.MidiMonitorCell do
 
     {:noreply, ctx}
   end
+
+  def handle_event("listening", %{"on" => on}, ctx), do: {:noreply, Listening.set(ctx, on)}
 
   def handle_event("stop", _payload, ctx) do
     if ctx.assigns.monitor, do: Monitor.stop(ctx.assigns.monitor)
@@ -200,10 +204,9 @@ defmodule KinoTuningFork.MidiMonitorCell do
   defp describe(reason), do: inspect(reason)
 
   @impl true
-  def handle_info({:pcm, chunk}, ctx) do
-    broadcast_event(ctx, "pcm", {:binary, %{}, chunk})
-    {:noreply, ctx}
-  end
+  def handle_info({:pcm, chunk}, ctx), do: {:noreply, Listening.forward(ctx, chunk)}
+
+  def handle_info({:midi_monitor, _monitor, _side, :clock, _at}, ctx), do: {:noreply, ctx}
 
   def handle_info({:midi_monitor, _monitor, side, event, _at}, ctx) do
     broadcast_event(ctx, "event", %{side: side, event: event_list(event)})
@@ -324,7 +327,7 @@ defmodule KinoTuningFork.MidiMonitorCell do
       ctx.importCSS("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
       ctx.importCSS("main.css");
 
-      const player = tuningForkPlayer();
+      const player = tuningForkPlayer(ctx);
       let fields = payload.fields;
       let lit = { in: new Set(), out: new Set() };
       let log = [];

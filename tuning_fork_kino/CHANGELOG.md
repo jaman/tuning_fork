@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.10]
+
+* A cell streams its stage's PCM to the page only while the page is listening — the
+  player says so when ▶ listen starts and stops (`KinoTuningFork.Listening`) — rather than
+  from the moment the stage starts, so a notebook with several stages open no longer pushes
+  hundreds of kilobytes a second into a browser tab that is playing none of it.
+* The MIDI cell leaves clock ticks out of what it sends the page, and sends the real-time
+  messages (`start`, `stop`, `continue`) as one-element lists.
+
 ## 0.1.5
 
 * The Compose cell plays the grid live on a stage of its own, repeat by repeat, with an

@@ -37,7 +37,9 @@ defmodule KinoTuningFork.PlayerTest do
 
   describe "what it is" do
     test "it is a factory, so a cell gets its own player rather than sharing one" do
-      assert Player.js() =~ "function tuningForkPlayer()"
+      assert Player.js() =~ "function tuningForkPlayer(ctx)"
+      assert Player.js() =~ ~s|ctx.pushEvent("listening", { on: true })|
+      assert Player.js() =~ ~s|ctx.pushEvent("listening", { on: false })|
       assert Player.js() =~ "return {"
     end
 

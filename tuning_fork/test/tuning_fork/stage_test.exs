@@ -11,8 +11,11 @@ defmodule TuningFork.StageTest do
       chunk: 256
     ]
 
-    {:ok, pid} = Stage.start_link(Keyword.merge(defaults, opts))
-    on_exit(fn -> if Process.alive?(pid), do: GenServer.stop(pid) end)
+    pid =
+      start_supervised!(
+        Supervisor.child_spec({Stage, Keyword.merge(defaults, opts)}, id: make_ref())
+      )
+
     pid
   end
 
@@ -184,8 +187,8 @@ defmodule TuningFork.StageTest do
       def close(_state), do: :ok
     end
 
-    {:ok, pid} = Stage.start_link(name: nil, sink: Broken)
-    on_exit(fn -> if Process.alive?(pid), do: GenServer.stop(pid) end)
+    pid =
+      start_supervised!(Supervisor.child_spec({Stage, name: nil, sink: Broken}, id: make_ref()))
 
     assert Stage.play(pid, Voice.new()) == :ok
   end
@@ -273,8 +276,10 @@ defmodule TuningFork.StageTest do
     end
 
     test "nothing written yet is no trace rather than a crash" do
-      {:ok, stage} = Stage.start_link(name: nil, sink: Sink.Silent)
-      on_exit(fn -> if Process.alive?(stage), do: GenServer.stop(stage) end)
+      stage =
+        start_supervised!(
+          Supervisor.child_spec({Stage, name: nil, sink: Sink.Silent}, id: make_ref())
+        )
 
       assert is_list(Stage.scope(stage, 32))
     end
@@ -393,8 +398,10 @@ defmodule TuningFork.StageTest do
 
   describe "a stage with nowhere to play" do
     test "still keeps time, so a score plays through rather than freezing at its first beat" do
-      {:ok, stage} = Stage.start_link(name: nil, sink: Sink.Silent, chunk: 256)
-      on_exit(fn -> if Process.alive?(stage), do: GenServer.stop(stage) end)
+      stage =
+        start_supervised!(
+          Supervisor.child_spec({Stage, name: nil, sink: Sink.Silent, chunk: 256}, id: make_ref())
+        )
 
       Stage.start_score(stage, TuningFork.Score.new(bpm: 240, beats: 16))
       assert Stage.beat(stage) == 0.0
@@ -419,8 +426,10 @@ defmodule TuningFork.StageTest do
 
       logged =
         ExUnit.CaptureLog.capture_log(fn ->
-          {:ok, stage} = Stage.start_link(name: nil, sink: Shut, chunk: 256)
-          on_exit(fn -> if Process.alive?(stage), do: GenServer.stop(stage) end)
+          stage =
+            start_supervised!(
+              Supervisor.child_spec({Stage, name: nil, sink: Shut, chunk: 256}, id: make_ref())
+            )
 
           Stage.start_score(stage, TuningFork.Score.new(bpm: 240, beats: 16))
           Process.sleep(300)
@@ -449,10 +458,13 @@ defmodule TuningFork.StageTest do
 
     logged =
       ExUnit.CaptureLog.capture_log(fn ->
-        {:ok, pid} =
-          Stage.start_link(name: nil, sink: Deaf, sink_opts: [owner: self()], chunk: 256)
-
-        on_exit(fn -> if Process.alive?(pid), do: GenServer.stop(pid) end)
+        pid =
+          start_supervised!(
+            Supervisor.child_spec(
+              {Stage, name: nil, sink: Deaf, sink_opts: [owner: self()], chunk: 256},
+              id: make_ref()
+            )
+          )
 
         assert_receive :written, 1_000
         Process.sleep(100)

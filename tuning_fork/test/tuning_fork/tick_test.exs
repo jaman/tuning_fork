@@ -155,8 +155,10 @@ defmodule TuningFork.TickTest do
     """
 
     setup do
-      {:ok, stage} = Stage.start_link(name: nil, sink: Silent, chunk: 256)
-      on_exit(fn -> if Process.alive?(stage), do: GenServer.stop(stage) end)
+      stage =
+        start_supervised!(
+          Supervisor.child_spec({Stage, name: nil, sink: Silent, chunk: 256}, id: make_ref())
+        )
 
       {:ok, stage: stage}
     end

@@ -219,8 +219,13 @@ defmodule TuningFork.MidiTest do
       if out = context[:out] do
         {:ok, inputs} = Port.inputs()
         {index, _name} = Enum.find(inputs, fn {_i, name} -> to_string(name) == "TF Test Out" end)
-        {:ok, stage} = Stage.start_link(name: nil, sink: Sink.Silent, rate: 8_000, chunk: 256)
-        on_exit(fn -> if Process.alive?(stage), do: GenServer.stop(stage) end)
+
+        stage =
+          start_supervised!(
+            Supervisor.child_spec({Stage, name: nil, sink: Sink.Silent, rate: 8_000, chunk: 256},
+              id: make_ref()
+            )
+          )
 
         {:ok, listener} =
           In.start_link(port: index, stage: stage, voice: %{shape: :sine}, to: self())

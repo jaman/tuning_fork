@@ -3,12 +3,14 @@ defmodule KinoTuningFork.Player do
   The streaming audio player the live-coding cells and `KinoTuningFork.Stage` embed, as
   JavaScript.
 
-      main_js = KinoTuningFork.Player.js() <> "export function init(ctx, payload) { const player = tuningForkPlayer(); }"
+      main_js = KinoTuningFork.Player.js() <> "export function init(ctx, payload) { const player = tuningForkPlayer(ctx); }"
   """
 
   @doc """
-  The player, as JavaScript source defining a `tuningForkPlayer()` factory to interpolate into
-  a cell's `main.js`. Each call to the factory gives one independent player.
+  The player, as JavaScript source defining a `tuningForkPlayer(ctx)` factory to interpolate
+  into a cell's `main.js`. Each call to the factory gives one independent player, which
+  tells the cell through `ctx` when it starts and stops listening (`"listening"`, `%{"on"
+  => boolean}`), so the cell streams PCM only while a page can play it.
 
   A player has:
 
@@ -24,7 +26,7 @@ defmodule KinoTuningFork.Player do
   @spec js() :: String.t()
   def js do
     """
-    function tuningForkPlayer() {
+    function tuningForkPlayer(ctx) {
       let context = null;
       let gain = null;
       let rate = 44100;
@@ -64,6 +66,7 @@ defmodule KinoTuningFork.Player do
           running = true;
           next = 0;
           startedAt = context.currentTime;
+          if (ctx) ctx.pushEvent("listening", { on: true });
         },
 
         push: function (arrayBuffer) {
@@ -105,6 +108,7 @@ defmodule KinoTuningFork.Player do
           running = false;
           next = 0;
           cut();
+          if (ctx) ctx.pushEvent("listening", { on: false });
         },
 
         playing: function () {

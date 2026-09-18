@@ -8,6 +8,7 @@ defmodule KinoTuningFork.LiveLoopsCell do
   use Kino.JS.Live
   use Kino.SmartCell, name: "TF Loops — live coding, Sonic Pi style"
 
+  alias KinoTuningFork.Listening
   alias TuningFork.{Part, Score, Stage, Store}
 
   @rate 44_100
@@ -46,6 +47,8 @@ defmodule KinoTuningFork.LiveLoopsCell do
 
   @impl true
   def handle_connect(ctx) do
+    ctx = Listening.init(ctx)
+
     {:ok,
      %{
        loops: ctx.assigns.loops,
@@ -71,6 +74,8 @@ defmodule KinoTuningFork.LiveLoopsCell do
     {:noreply, ctx}
   end
 
+  def handle_event("listening", %{"on" => on}, ctx), do: {:noreply, Listening.set(ctx, on)}
+
   def handle_event("stop", _payload, ctx) do
     if ctx.assigns.stage, do: Stage.stop_loops(ctx.assigns.stage)
 
@@ -78,10 +83,7 @@ defmodule KinoTuningFork.LiveLoopsCell do
   end
 
   @impl true
-  def handle_info({:pcm, chunk}, ctx) do
-    broadcast_event(ctx, "pcm", {:binary, %{}, chunk})
-    {:noreply, ctx}
-  end
+  def handle_info({:pcm, chunk}, ctx), do: {:noreply, Listening.forward(ctx, chunk)}
 
   def handle_info(:tick, ctx) do
     Process.send_after(self(), :tick, @tick_ms)
@@ -273,7 +275,7 @@ defmodule KinoTuningFork.LiveLoopsCell do
       ctx.importCSS("main.css");
 
       let state = { loops: payload.loops, errors: [] };
-      const player = tuningForkPlayer();
+      const player = tuningForkPlayer(ctx);
 
       const cards = [];
 

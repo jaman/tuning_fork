@@ -13,8 +13,11 @@ defmodule TuningFork.StageLayersTest do
       rate: 8_000
     ]
 
-    {:ok, pid} = Stage.start_link(Keyword.merge(defaults, opts))
-    on_exit(fn -> if Process.alive?(pid), do: GenServer.stop(pid) end)
+    pid =
+      start_supervised!(
+        Supervisor.child_spec({Stage, Keyword.merge(defaults, opts)}, id: make_ref())
+      )
+
     pid
   end
 
