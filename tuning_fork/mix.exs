@@ -1,7 +1,7 @@
 defmodule TuningFork.MixProject do
   use Mix.Project
 
-  @version "0.1.8"
+  @version "0.1.9"
   @source_url "https://github.com/jaman/tuning_fork"
 
   def project do

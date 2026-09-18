@@ -44,10 +44,7 @@ defmodule KinoTuningFork.MidiMonitorCellTest do
       playing: false,
       cps: 0.5,
       clock: false,
-      events:
-        for n <- 1..20 do
-          {:in, {:note_on, 0, 40 + n, 100}, n}
-        end
+      events: [{:out, :start, 0} | for(n <- 1..20, do: {:in, {:note_on, 0, 40 + n, 100}, n})]
     }
 
     shown = MidiMonitorCell.page_state(state)
@@ -56,7 +53,7 @@ defmodule KinoTuningFork.MidiMonitorCellTest do
     assert shown.output == [:virtual, "TuningFork Out"]
     refute Map.has_key?(shown, :voice)
     assert length(shown.events) == 12
-    assert hd(shown.events) == [:in, [:note_on, 0, 41, 100], 1]
+    assert Enum.take(shown.events, 2) == [[:out, [:start], 0], [:in, [:note_on, 0, 41, 100], 1]]
     assert {:ok, _json} = Jason.encode(shown)
 
     assert MidiMonitorCell.page_state(%{state | input: nil, output: nil, events: []}).input == nil

@@ -2,10 +2,10 @@
 
 ```elixir
 Mix.install([
-  {:tuning_fork, "~> 0.1.7"},
-  {:tuning_fork_samples, "~> 0.1.7"},
-  {:tuning_fork_midi, "~> 0.1.7"},
-  {:tuning_fork_kino, "~> 0.1.7"}
+  {:tuning_fork, "~> 0.1"},
+  {:tuning_fork_samples, "~> 0.1"},
+  {:tuning_fork_midi, "~> 0.1"},
+  {:tuning_fork_kino, "~> 0.1"}
 ])
 ```
 
@@ -707,10 +707,20 @@ they pass. With no device at all, choose the two virtual ports and point any sof
 "TuningFork Out". The pattern is one expression, as a TF Patterns row is: `stack([...])`
 for several at once.
 
-<!-- livebook:{"attrs":"e30","chunks":null,"kind":"Elixir.KinoTuningFork.MidiMonitorCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJjbG9jayI6dHJ1ZSwiY3BzIjoiMC41IiwiaW5wdXQiOiIiLCJvdXRwdXQiOiIwIiwicGF0dGVybiI6InN0YWNrKFtzKFwiYmQqNCwgaGgqOFwiKSwgbihcIjAgNCA3IDRcIikgfD4gc2NhbGUoXCJjOm1pbm9yXCIpXSkiLCJ2b2ljZSI6ImdtX3BpYW5vIn0","chunks":null,"kind":"Elixir.KinoTuningFork.MidiMonitorCell","livebook_object":"smart_cell"} -->
 
 ```elixir
+unless Process.whereis(TuningFork.Stage), do: Kino.render(KinoTuningFork.stage())
+{:ok, midi} = TuningFork.Midi.Monitor.start_link(voice: "gm_piano")
+:ok = TuningFork.Midi.Monitor.open_output(midi, 0)
 
+{:ok, pattern} =
+  TuningFork.Pattern.Source.parse(
+    "stack([s(\"bd*4, hh*8\"), n(\"0 4 7 4\") |> scale(\"c:minor\")])"
+  )
+
+:ok = TuningFork.Midi.Monitor.play(midi, pattern, cps: 0.5, clock: true)
+midi
 ```
 
 ## The same things from code

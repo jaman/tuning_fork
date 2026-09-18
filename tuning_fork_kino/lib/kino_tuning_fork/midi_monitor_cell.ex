@@ -91,9 +91,12 @@ defmodule KinoTuningFork.MidiMonitorCell do
     |> Map.update!(:input, &port_list/1)
     |> Map.update!(:output, &port_list/1)
     |> Map.update!(:events, fn events ->
-      for {side, event, at} <- Enum.take(events, 12), do: [side, Tuple.to_list(event), at]
+      for {side, event, at} <- Enum.take(events, 12), do: [side, event_list(event), at]
     end)
   end
+
+  defp event_list(event) when is_tuple(event), do: Tuple.to_list(event)
+  defp event_list(event) when is_atom(event), do: [event]
 
   defp port_list(nil), do: nil
   defp port_list({index, name}), do: [index, name]
@@ -203,7 +206,7 @@ defmodule KinoTuningFork.MidiMonitorCell do
   end
 
   def handle_info({:midi_monitor, _monitor, side, event, _at}, ctx) do
-    broadcast_event(ctx, "event", %{side: side, event: Tuple.to_list(event)})
+    broadcast_event(ctx, "event", %{side: side, event: event_list(event)})
     {:noreply, ctx}
   end
 
