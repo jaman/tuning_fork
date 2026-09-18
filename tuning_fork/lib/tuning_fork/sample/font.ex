@@ -89,9 +89,10 @@ defmodule TuningFork.Sample.Font do
     :ok
   end
 
-  @doc "Forget every font loaded."
+  @doc "Forget every font loaded, once any load in flight has finished."
   @spec clear() :: :ok
   def clear do
+    Fetch.settle()
     :ets.delete_all_objects(@table)
     :ok
   end

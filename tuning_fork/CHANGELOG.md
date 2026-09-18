@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.8]
+
+* `TuningFork.Sfz` carries no instruments of its own. The application registers the ones
+  it plays with `TuningFork.Sfz.register/2` (or `register/1` for many), each with its
+  source, licence, credit and what it is, or under `config :tuning_fork, :sfz` as before;
+  `instruments/0` lists what is registered. The FreePats, E-Pianos, Splendid Grand and
+  Karoryfer entries the library used to list are gone from it.
+
 ## 0.1.5
 
 * `TuningFork.Sink.Tcp`'s `:warm_up_ms` defaults to `0`; `:prime_frames` sets how many

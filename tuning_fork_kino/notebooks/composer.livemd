@@ -2,9 +2,10 @@
 
 ```elixir
 Mix.install([
-  {:tuning_fork, "~> 0.1.5"},
-  {:tuning_fork_samples, "~> 0.1.5"},
-  {:tuning_fork_kino, "~> 0.1.5"}
+  {:tuning_fork, "~> 0.1.7"},
+  {:tuning_fork_samples, "~> 0.1.7"},
+  {:tuning_fork_midi, "~> 0.1.7"},
+  {:tuning_fork_kino, "~> 0.1.7"}
 ])
 ```
 
@@ -695,7 +696,8 @@ score
 
 ## A MIDI keyboard, both ways
 
-Plug in a keyboard and pick it under **In**: each key sounds on the cell's own stage with
+This cell needs `tuning_fork_midi` in the setup cell above; without it the cell has
+nothing to show. Plug in a keyboard and pick it under **In**: each key sounds on the cell's own stage with
 the instrument chosen under **Voice** — press **▶ listen** once — and lights up blue on the
 strip, with the pedal, the wheel and any knobs read out underneath. Pick an **Out** — a
 hardware synth, a DAW, or the virtual port the cell offers, which other software on this

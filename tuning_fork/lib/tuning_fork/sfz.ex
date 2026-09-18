@@ -7,11 +7,12 @@ defmodule TuningFork.Sfz do
       {:ok, "fingerbass", 39} = TuningFork.Sfz.load("fingerbass")
       TuningFork.Kit.voice(%{s: "fingerbass", note: "e2"}, 0.5)
 
-  `instruments/0` is the library's own list — free instruments on GitHub, each with its
-  licence and who to credit — plus whatever the application adds under the `:sfz` key of
-  the `:tuning_fork` environment in the same shape; `load/2` takes one of those names, a
-  `github:` source, a URL or a local path. The kit loads a listed name itself the first
-  time a pattern plays it, so `s("fingerbass")` in Strudel needs nothing more.
+  The library carries no instruments. The application registers the ones it uses —
+  `register/2`, or the `:sfz` key of the `:tuning_fork` environment in the same shape —
+  each with its source, its licence and who to credit; `instruments/0` lists them.
+  `load/2` takes a registered name, a `github:` source, a URL or a local path. The kit
+  loads a registered name itself the first time a pattern plays it, so `s("fingerbass")`
+  in Strudel needs nothing more than the registration.
 
       config :tuning_fork, sfz: %{"ours" => %{source: "priv/sfz/ours.sfz", licence: "CC0 1.0", credit: "us", what: "a bell"}}
 
@@ -33,97 +34,47 @@ defmodule TuningFork.Sfz do
   @type entry :: {String.t(), keyword()}
   @type bank :: %{float() => [entry()]}
 
-  @instruments %{
-    "fingerbass" => %{
-      source: "github:freepats/electric-bass-YR/master/FingerBassYR 20190930.sfz",
-      licence: "CC0 1.0",
-      credit: "FreePats, Yamaha RBX bass",
-      what: "an electric bass, fingered"
-    },
-    "pickbass" => %{
-      source: "github:freepats/electric-bass-YR/master/PickedBassYR 20190930.sfz",
-      licence: "CC0 1.0",
-      credit: "FreePats, Yamaha RBX bass",
-      what: "an electric bass, picked"
-    },
-    "jazzguitar" => %{
-      source:
-        "github:freepats/electric-guitar-FSBS-jazz/master/EGuitarFSBS-jazz bridge small 20260807.sfz",
-      licence: "CC0 1.0",
-      credit: "FreePats, Fender Stratocaster",
-      what: "a clean electric guitar with a jazz tone, the small set"
-    },
-    "upright" => %{
-      source: "github:freepats/upright-piano-KW/master/UprightPianoKW-20220221.sfz",
-      licence: "CC0 1.0",
-      credit: "FreePats, Kawai upright",
-      what: "an upright piano in a living room"
-    },
-    "grand" => %{
-      source: "github:sfzinstruments/SplendidGrandPiano/master/Splendid Grand Piano.sfz",
-      licence: "Public domain",
-      credit: "AKAI, Splendid Grand Piano",
-      what: "a Steinway grand"
-    },
-    "wurlitzer" => %{
-      source:
-        "github:sfzinstruments/GregSullivan.E-Pianos/master/Wurlitzer EP200/Wurlitzer EP200.sfz",
-      licence: "CC BY 3.0",
-      credit: "Greg Sullivan",
-      what: "a Wurlitzer EP200 electric piano"
-    },
-    "cp80" => %{
-      source: "github:sfzinstruments/GregSullivan.E-Pianos/master/CP80/CP80.sfz",
-      licence: "CC BY 3.0",
-      credit: "Greg Sullivan",
-      what: "a Yamaha CP80 electric grand"
-    },
-    "pianet" => %{
-      source: "github:sfzinstruments/GregSullivan.E-Pianos/master/Pianet T/Pianet T.sfz",
-      licence: "CC BY 3.0",
-      credit: "Greg Sullivan",
-      what: "a Hohner Pianet T"
-    },
-    "cello" => %{
-      source: "github:sfzinstruments/karoryfer-bigcat.cello/master/Programs/vc_arco_sus_map.sfz",
-      licence: "CC0 1.0",
-      credit: "Karoryfer Samples and bigcat",
-      what: "a cello, bowed and sustained",
-      keys: 24..80
-    },
-    "cello_pizz" => %{
-      source: "github:sfzinstruments/karoryfer-bigcat.cello/master/Programs/vc_pizz_basic.sfz",
-      licence: "CC0 1.0",
-      credit: "Karoryfer Samples and bigcat",
-      what: "a cello, plucked",
-      keys: 24..71
-    },
-    "meatbass" => %{
-      source: "github:sfzinstruments/karoryfer.meatbass/master/Programs/pizz_basic_map.sfz",
-      licence: "CC0 1.0",
-      credit: "Karoryfer Samples, a 1958 Otto Rubner double bass",
-      what: "a double bass, plucked"
-    },
-    "sneakybass" => %{
-      source:
-        "github:sfzinstruments/karoryfer.sneakybass/master/Programs/02-sneakybass_pluck.sfz",
-      licence: "CC0 1.0",
-      credit: "Karoryfer Samples",
-      what: "a double bass plucked very quietly"
-    }
-  }
-
-  @doc "The instruments known by name, the library's and the application's: each a `:source` for `load/2`, its `:licence`, who to `:credit` and `:what` it is."
-  @spec instruments() :: %{
-          String.t() => %{
-            source: String.t(),
-            licence: String.t(),
-            credit: String.t(),
-            what: String.t()
-          }
+  @typedoc "An instrument by name: where its SFZ file is, its licence, who to credit, what it is, and the keys to read."
+  @type instrument :: %{
+          required(:source) => String.t(),
+          required(:licence) => String.t(),
+          required(:credit) => String.t(),
+          required(:what) => String.t(),
+          optional(:keys) => Range.t()
         }
-  def instruments,
-    do: Map.merge(@instruments, Map.new(Application.get_env(:tuning_fork, :sfz, %{})))
+
+  @doc """
+  The instruments the application has registered, by name: each a `:source` for
+  `load/2`, its `:licence`, who to `:credit`, `:what` it is and, when given, the `:keys`
+  read. The library registers none of its own.
+  """
+  @spec instruments() :: %{String.t() => instrument()}
+  def instruments, do: Map.new(Application.get_env(:tuning_fork, :sfz, %{}))
+
+  @doc """
+  Register an instrument under `name`, so `load/2` and the kit know it by that name.
+  `instrument` must carry `:source`, `:licence`, `:credit` and `:what`; `:keys` is optional.
+
+      TuningFork.Sfz.register("fingerbass", %{
+        source: "github:freepats/electric-bass-YR/master/FingerBassYR 20190930.sfz",
+        licence: "CC0 1.0",
+        credit: "FreePats, Yamaha RBX bass",
+        what: "an electric bass, fingered"
+      })
+  """
+  @spec register(String.t(), instrument()) :: :ok
+  def register(name, instrument)
+      when is_binary(name) and is_map_key(instrument, :source) and
+             is_map_key(instrument, :licence) and is_map_key(instrument, :credit) and
+             is_map_key(instrument, :what) do
+    Application.put_env(:tuning_fork, :sfz, Map.put(instruments(), name, instrument))
+  end
+
+  @doc "Register every instrument in `instruments`, a map of name to instrument as `register/2` takes them."
+  @spec register(%{String.t() => instrument()}) :: :ok
+  def register(instruments) when is_map(instruments) do
+    Enum.each(instruments, fn {name, instrument} -> register(name, instrument) end)
+  end
 
   @doc "Whether `name` is one of `instruments/0`."
   @spec instrument?(String.t()) :: boolean()
@@ -151,7 +102,7 @@ defmodule TuningFork.Sfz do
   end
 
   @doc """
-  Register an instrument with the bank: one of `instruments/0` by name, or a source as
+  Read an instrument into the bank: one of `instruments/0` by name, or a source as
   `url/1` takes it, or a local path. The file and its includes are read now; the
   recordings are fetched as they are played, or all at once with `:prefetch`.
 
@@ -160,7 +111,7 @@ defmodule TuningFork.Sfz do
   ## Options
 
     * `:name` — the bank name, default the instrument's name or the file's basename
-    * `:velocity`, `:keys` — as `bank/2` takes them; a listed instrument brings its own `:keys`
+    * `:velocity`, `:keys` — as `bank/2` takes them; a registered instrument brings its own `:keys`
     * `:prefetch` — start fetching every recording in the background, default `false`
   """
   @spec load(String.t(), keyword()) :: {:ok, String.t(), non_neg_integer()} | {:error, term()}

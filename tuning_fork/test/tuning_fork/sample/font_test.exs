@@ -53,6 +53,21 @@ defmodule TuningFork.Sample.FontTest do
   end
 
   @tag :tmp_dir
+  test "clearing waits for a load in flight, so nothing lands after it", %{tmp_dir: dir} do
+    path = Path.join(dir, "slow.js")
+    File.write!(path, js([pcm_zone(0, 127, 6000, 50, 100)]))
+    {:ok, server} = FileServer.start(path)
+    Font.source("http://127.0.0.1:#{server.port}")
+
+    Font.prefetch("slow")
+    Font.clear()
+
+    refute Font.loaded?("slow")
+    Process.sleep(50)
+    refute Font.loaded?("slow")
+  end
+
+  @tag :tmp_dir
   test "a font on the web is fetched and its zones become samples with root and loop", %{
     tmp_dir: dir
   } do

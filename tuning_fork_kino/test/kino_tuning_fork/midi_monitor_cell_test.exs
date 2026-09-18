@@ -30,6 +30,38 @@ defmodule KinoTuningFork.MidiMonitorCellTest do
     assert payload.state.playing == false
   end
 
+  test "the monitor's state reaches the page with its ports and events as lists, so it serializes" do
+    state = %{
+      input: {0, "CASIO USB-MIDI"},
+      output: {:virtual, "TuningFork Out"},
+      voice: {:gm, "piano"},
+      keys: %{60 => 100},
+      sounding: [62],
+      pedal: false,
+      bend: 0,
+      controls: %{1 => 64},
+      program: nil,
+      playing: false,
+      cps: 0.5,
+      clock: false,
+      events:
+        for n <- 1..20 do
+          {:in, {:note_on, 0, 40 + n, 100}, n}
+        end
+    }
+
+    shown = MidiMonitorCell.page_state(state)
+
+    assert shown.input == [0, "CASIO USB-MIDI"]
+    assert shown.output == [:virtual, "TuningFork Out"]
+    refute Map.has_key?(shown, :voice)
+    assert length(shown.events) == 12
+    assert hd(shown.events) == [:in, [:note_on, 0, 41, 100], 1]
+    assert {:ok, _json} = Jason.encode(shown)
+
+    assert MidiMonitorCell.page_state(%{state | input: nil, output: nil, events: []}).input == nil
+  end
+
   test "a field the browser sends is kept" do
     {:noreply, ctx} =
       MidiMonitorCell.handle_event("update_field", %{"field" => "cps", "value" => "0.75"}, ctx())

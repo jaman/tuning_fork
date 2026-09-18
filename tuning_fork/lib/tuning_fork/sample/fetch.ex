@@ -61,6 +61,12 @@ defmodule TuningFork.Sample.Fetch do
   @spec once(term(), (-> term())) :: :done
   def once(key, fun) when is_function(fun, 0), do: key |> start(fun) |> await()
 
+  @doc "Wait until every fetch and background task under way has finished."
+  @spec settle() :: :ok
+  def settle do
+    @supervisor |> Task.Supervisor.children() |> Enum.each(&await/1)
+  end
+
   @doc "Start `fun` under `key` in the background unless one is already running; return at once."
   @spec background(term(), (-> term())) :: :ok
   def background(key, fun) when is_function(fun, 0) do

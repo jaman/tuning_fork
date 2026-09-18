@@ -78,12 +78,25 @@ defmodule KinoTuningFork.MidiMonitorCell do
     }
   end
 
-  defp shown(ctx) do
-    ctx.assigns.monitor
-    |> Monitor.state()
-    |> Map.update!(:events, &Enum.take(&1, 12))
+  defp shown(ctx), do: ctx.assigns.monitor |> Monitor.state() |> page_state()
+
+  @doc """
+  The monitor's state as the page takes it: the ports and the last twelve events as lists
+  rather than tuples, the voice left out.
+  """
+  @spec page_state(Monitor.state()) :: map()
+  def page_state(state) do
+    state
     |> Map.delete(:voice)
+    |> Map.update!(:input, &port_list/1)
+    |> Map.update!(:output, &port_list/1)
+    |> Map.update!(:events, fn events ->
+      for {side, event, at} <- Enum.take(events, 12), do: [side, Tuple.to_list(event), at]
+    end)
   end
+
+  defp port_list(nil), do: nil
+  defp port_list({index, name}), do: [index, name]
 
   @impl true
   def handle_event("update_field", %{"field" => field, "value" => value}, ctx) do

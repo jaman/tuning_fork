@@ -119,22 +119,61 @@ defmodule TuningFork.SfzTest do
     end
   end
 
-  describe "the library" do
-    test "every instrument names a source, a licence and who to credit, and its source resolves to a URL" do
-      assert map_size(Sfz.instruments()) >= 8
+  describe "the instruments an application registers" do
+    setup do
+      on_exit(fn -> Application.delete_env(:tuning_fork, :sfz) end)
+    end
 
-      for {name, instrument} <- Sfz.instruments() do
-        assert name =~ ~r/^[a-z][a-z0-9_]*$/
-        assert %{source: source, licence: licence, credit: credit, what: what} = instrument
-        assert is_binary(licence) and is_binary(credit) and is_binary(what)
-        assert Sfz.url(source) =~ ~r|^https://.+\.sfz$|i
+    test "the library carries none of its own" do
+      assert Sfz.instruments() == %{}
+      refute Sfz.instrument?("fingerbass")
+    end
+
+    test "register/2 adds one by name, with its source, licence, credit and what it is" do
+      assert :ok =
+               Sfz.register("fingerbass", %{
+                 source: "github:freepats/electric-bass-YR/master/FingerBassYR 20190930.sfz",
+                 licence: "CC0 1.0",
+                 credit: "FreePats, Yamaha RBX bass",
+                 what: "an electric bass, fingered"
+               })
+
+      assert Sfz.instrument?("fingerbass") and not Sfz.instrument?("piano")
+      assert %{"fingerbass" => %{licence: "CC0 1.0", credit: "FreePats" <> _}} = Sfz.instruments()
+    end
+
+    test "register/1 adds many, over what the config named, and a key range is kept" do
+      Application.put_env(:tuning_fork, :sfz, %{
+        "a" => %{source: "a.sfz", licence: "CC0 1.0", credit: "a", what: "a"}
+      })
+
+      assert :ok =
+               Sfz.register(%{
+                 "b" => %{
+                   source: "b.sfz",
+                   licence: "CC0 1.0",
+                   credit: "b",
+                   what: "b",
+                   keys: 24..80
+                 },
+                 "c" => %{source: "c.sfz", licence: "CC0 1.0", credit: "c", what: "c"}
+               })
+
+      assert Map.keys(Sfz.instruments()) == ["a", "b", "c"]
+      assert Sfz.instruments()["b"].keys == 24..80
+    end
+
+    test "an instrument without its licence or credit is refused" do
+      assert_raise FunctionClauseError, fn ->
+        Sfz.register("nameless", %{source: "x.sfz", what: "something"})
       end
+    end
 
+    test "a github: source resolves to a raw URL, escaped; a URL stands" do
       assert Sfz.url("github:freepats/electric-bass-YR/master/FingerBassYR 20190930.sfz") ==
                "https://raw.githubusercontent.com/freepats/electric-bass-YR/master/FingerBassYR%2020190930.sfz"
 
       assert Sfz.url("https://a.b/c.sfz") == "https://a.b/c.sfz"
-      assert Sfz.instrument?("fingerbass") and not Sfz.instrument?("piano")
     end
   end
 

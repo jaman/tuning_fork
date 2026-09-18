@@ -227,19 +227,33 @@ into a pitched bank, and the kit plays it by name, fetching each recording the f
 a note asks for it rather than the whole library at once:
 
 ```elixir
-s("fingerbass").note("e2 g2 a2 b2")
 TuningFork.Sfz.load("github:freepats/upright-piano-KW/master/UprightPianoKW-20220221.sfz", name: "kawai")
+s("kawai").note("e2 g2 a2 b2")
 ```
 
-`TuningFork.Sfz.instruments/0` lists what is known by name, with each one's licence and
-credit — from [FreePats](https://freepats.zenvoid.org) (CC0): `fingerbass`, `pickbass`,
-`jazzguitar`, `upright`; from [sfzinstruments](https://sfzinstruments.github.io):
-`grand` (AKAI's Splendid Grand, public domain), `wurlitzer`, `cp80` and `pianet` (Greg
-Sullivan, CC BY 3.0), `cello` and `cello_pizz` (Karoryfer Samples and bigcat, CC0),
-`meatbass` and `sneakybass` (Karoryfer Samples, CC0). An application adds its own under
-`config :tuning_fork, sfz: %{"name" => %{source: ..., licence: ..., credit: ..., what: ...}}`.
-One velocity layer is read (the one holding velocity 100, or `:velocity`); envelopes,
-filters and controllers in the file are not.
+The library carries no instruments of its own; the application registers the ones it
+plays, each with its source, its licence and who to credit, and the kit then loads a
+name the first time a pattern plays it:
+
+```elixir
+TuningFork.Sfz.register("fingerbass", %{
+  source: "github:freepats/electric-bass-YR/master/FingerBassYR 20190930.sfz",
+  licence: "CC0 1.0",
+  credit: "FreePats, Yamaha RBX bass",
+  what: "an electric bass, fingered"
+})
+
+s("fingerbass").note("e2 g2 a2 b2")
+```
+
+or the same under `config :tuning_fork, sfz: %{"name" => %{source: ..., licence: ...,
+credit: ..., what: ...}}`. `TuningFork.Sfz.instruments/0` lists what is registered, so an
+application can print its credits. A source is a `github:user/repo/branch/path.sfz`, a
+URL or a local path; `:keys` narrows an instrument to a range. Free instruments in the
+format: [FreePats](https://freepats.zenvoid.org) and
+[sfzinstruments](https://sfzinstruments.github.io). One velocity layer is read (the one
+holding velocity 100, or `:velocity`); envelopes, filters and controllers in the file are
+not.
 
 ## Where the sound goes
 
@@ -534,12 +548,8 @@ Two projects shaped this library, and it plays their music as written:
   [dough-samples](https://github.com/felixroos/dough-samples) — are fetched from where they
   are published, under their own licences.
 
-The SFZ instruments `TuningFork.Sfz` knows are fetched from where they are published, under
-their own licences: [FreePats](https://freepats.zenvoid.org) by Roberto and Gonzalo
-(CC0), [Greg Sullivan's E-Pianos](https://github.com/sfzinstruments/GregSullivan.E-Pianos)
-(CC BY 3.0), AKAI's [Splendid Grand Piano](https://github.com/sfzinstruments/SplendidGrandPiano)
-(public domain), and [Karoryfer Samples](https://karoryfer.com)' cello with bigcat,
-meatbass and sneakybass (CC0).
+An SFZ instrument an application registers with `TuningFork.Sfz` is fetched from where it
+is published, under its own licence, which the registration names.
 
 Also: [WebAudioFont](https://github.com/surikov/webaudiofont) by Sergey Surikov for the
 General MIDI soundfonts behind `gm_` sounds; Jezar at Dreampoint for Freeverb, which the

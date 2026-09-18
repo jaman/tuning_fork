@@ -161,6 +161,14 @@ defmodule TuningFork.TickTest do
       {:ok, stage: stage}
     end
 
+    defp eventually(check, waited \\ 0) do
+      cond do
+        check.() -> true
+        waited >= 5_000 -> false
+        true -> Process.sleep(50) && eventually(check, waited + 50)
+      end
+    end
+
     defp started(stage, name, source) do
       {:ok, body} = Source.compile(source)
       {:ok, first} = Store.as(name, 0, body)
@@ -173,9 +181,9 @@ defmodule TuningFork.TickTest do
     test "the counter steps as the loop goes round", %{stage: stage} do
       started(stage, :bass, @source)
 
-      Process.sleep(400)
+      assert eventually(fn -> Tick.look(:bass) > 2 end),
+             "a body run once a round should count several"
 
-      assert Tick.look(:bass) > 2, "a body run once a round should have counted several by now"
       assert Stage.loops(stage)[:bass].rounds > 0
     end
 
@@ -183,10 +191,9 @@ defmodule TuningFork.TickTest do
       {:ok, score} = Source.parse(@source)
 
       Stage.start_loop(stage, :fixed, score)
-      Process.sleep(300)
 
+      assert eventually(fn -> Stage.loops(stage)[:fixed].rounds > 0 end)
       assert Tick.look(:fixed) == 0
-      assert Stage.loops(stage)[:fixed].rounds > 0
     end
 
     test "a body that raises after the first round leaves the loop playing", %{stage: stage} do
@@ -196,12 +203,8 @@ defmodule TuningFork.TickTest do
       part(bpm: 480, synth: Kit.voice("hh", 0.03)) |> play(:c3, 1)
       """)
 
-      Process.sleep(400)
-
-      assert Map.has_key?(Stage.loops(stage), :broken), "the loop should still be running"
-
-      assert Stage.loops(stage)[:broken].rounds > 1,
-             "and still going round on the last good score"
+      assert eventually(fn -> Stage.loops(stage)[:broken].rounds > 1 end),
+             "the loop should still be running, going round on the last good score"
     end
 
     test "stopping a loop forgets its body", %{stage: stage} do
@@ -220,10 +223,7 @@ defmodule TuningFork.TickTest do
       started(stage, :one, @source)
       started(stage, :two, @source)
 
-      Process.sleep(400)
-
-      assert Tick.look(:one) > 1
-      assert Tick.look(:two) > 1
+      assert eventually(fn -> Tick.look(:one) > 1 and Tick.look(:two) > 1 end)
     end
   end
 end
