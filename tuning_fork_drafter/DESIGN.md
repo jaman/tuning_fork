@@ -292,3 +292,18 @@ Parses `--cps` (default 0.5, one cycle every two seconds), repeatable `--pattern
 
 Parses repeatable `--loop NAME=SOURCE` into the map `TuningFork.LoopsApp.mount/1` takes.
 Without one the demo loops are used: a drum loop and a bass loop, both four beats long.
+
+## Drafter, as used here
+
+What this application relies on in drafter's API:
+
+- Props go under `:props` — `Drafter.run(App, props: %{project: p})`; options at the top
+  level are not props
+- `mount/1` receives props as a **map**, not a keyword list
+- Mouse events are `{:mouse, %{type: type, x: x, y: y, button: _, mods: _}}`
+- `type` is `:mouse_down`, `:mouse_up`, `:move` or `:scroll`; `:scroll` also carries
+  `:direction`
+- `x` and `y` are **zero-based** from the top left
+- Key events are `{:key, :q}`, `{:key, :left}`, `{:key, :+}` — the character as an atom
+- `update/2` returns the new state, or `{:stop, reason}` to quit
+- Widget helpers used here: `vertical/2`, `label/2`, `header/1`, `footer/1`

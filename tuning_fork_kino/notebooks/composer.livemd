@@ -707,11 +707,12 @@ they pass. With no device at all, choose the two virtual ports and point any sof
 "TuningFork Out". The pattern is one expression, as a TF Patterns row is: `stack([...])`
 for several at once.
 
-<!-- livebook:{"attrs":"eyJjbG9jayI6dHJ1ZSwiY3BzIjoiMC41IiwiaW5wdXQiOiIiLCJvdXRwdXQiOiIwIiwicGF0dGVybiI6InN0YWNrKFtzKFwiYmQqNCwgaGgqOFwiKSwgbihcIjAgNCA3IDRcIikgfD4gc2NhbGUoXCJjOm1pbm9yXCIpXSkiLCJ2b2ljZSI6ImdtX3BpYW5vIn0","chunks":null,"kind":"Elixir.KinoTuningFork.MidiMonitorCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJjbG9jayI6dHJ1ZSwiY3BzIjoiMC41IiwiaW5wdXQiOiIwIiwib3V0cHV0IjoiMCIsInBhdHRlcm4iOiJzdGFjayhbcyhcImJkKjQsIGhoKjhcIiksIG4oXCIwIDQgNyA0XCIpIHw+IHNjYWxlKFwiYzptaW5vclwiKV0pIiwidm9pY2UiOiJnbV9waWFubyJ9","chunks":null,"kind":"Elixir.KinoTuningFork.MidiMonitorCell","livebook_object":"smart_cell"} -->
 
 ```elixir
 unless Process.whereis(TuningFork.Stage), do: Kino.render(KinoTuningFork.stage())
 {:ok, midi} = TuningFork.Midi.Monitor.start_link(voice: "gm_piano")
+:ok = TuningFork.Midi.Monitor.open_input(midi, 0)
 :ok = TuningFork.Midi.Monitor.open_output(midi, 0)
 
 {:ok, pattern} =

@@ -353,20 +353,3 @@ Rather than `cd`-ing here, add it as a dependency and the task comes with it:
 ```
 
 Then `mix tuning_fork.compose` works from your project, and `--out` writes beside your code.
-
-## Notes on Drafter
-
-Facts that are not obvious from its docs, kept here because this app depends on them:
-
-- Props go under `:props` — `Drafter.run(App, props: %{project: p})`. Anything at the top
-  level of the options is silently ignored, so passing `project:` directly means `mount/1`
-  gets `%{}` with no error anywhere
-- `mount/1` receives props as a **map**, not a keyword list
-- Mouse events are `{:mouse, %{type: type, x: x, y: y, button: _, mods: _}}` — `type`, not
-  `action`, whatever `Drafter.Event.mouse/4` suggests
-- `type` is `:mouse_down`, `:mouse_up`, `:move` or `:scroll`; `:scroll` also carries
-  `:direction`
-- `x` and `y` are **zero-based** from the top left
-- Key events are `{:key, :q}`, `{:key, :left}`, `{:key, :+}` — the character as an atom
-- `update/2` returns the new state, or `{:stop, reason}` to quit
-- Widget helpers used here: `vertical/2`, `label/2`, `header/1`, `footer/1`

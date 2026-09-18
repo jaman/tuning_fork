@@ -458,13 +458,12 @@ defmodule TuningFork.StageTest do
 
     logged =
       ExUnit.CaptureLog.capture_log(fn ->
-        pid =
-          start_supervised!(
-            Supervisor.child_spec(
-              {Stage, name: nil, sink: Deaf, sink_opts: [owner: self()], chunk: 256},
-              id: make_ref()
-            )
+        start_supervised!(
+          Supervisor.child_spec(
+            {Stage, name: nil, sink: Deaf, sink_opts: [owner: self()], chunk: 256},
+            id: make_ref()
           )
+        )
 
         assert_receive :written, 1_000
         Process.sleep(100)
