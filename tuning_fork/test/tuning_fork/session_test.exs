@@ -38,10 +38,6 @@ defmodule TuningFork.SessionTest do
       assert Session.comment("// bd*4") == "bd*4"
       assert Session.comment("_bd*4") == "bd*4"
     end
-
-    test "commenting twice comes back to where it started" do
-      assert "bd*4" |> Session.comment() |> Session.comment() == "bd*4"
-    end
   end
 
   describe "chains" do

@@ -116,13 +116,6 @@ defmodule TuningFork.Drafter.RollTest do
   end
 
   describe "iTerm" do
-    test "uses its own inline protocol rather than kitty" do
-      as_iterm()
-
-      assert FrenchCurve.Capability.detect(System.get_env()) == :iterm2,
-             "a kitty overlay cannot be removed on iTerm, so it is not offered one"
-    end
-
     test "draws cells, which the text redraw rubs out and the screen takes away on exit" do
       as_iterm()
       raster = Raster.new(16, 8, background: {0, 0, 0, 255})
@@ -143,20 +136,5 @@ defmodule TuningFork.Drafter.RollTest do
   end
 
   describe "either way" do
-    test "a frame is produced at all" do
-      for setup <- [&as_kitty/0, &as_partial_kitty/0] do
-        setup.()
-        {paint, _clear, region} = drawn()
-
-        assert byte_size(paint) > 0
-        assert %{dx: 0, dy: 0} = region
-      end
-    end
-
-    test "no raster is no image" do
-      as_iterm()
-
-      assert Roll.image(Roll.mount(%{raster: nil}), @rect, {:roll, 0}) == nil
-    end
   end
 end

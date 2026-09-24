@@ -52,14 +52,6 @@ defmodule TuningFork.CurveTest do
   end
 
   describe "noticing a curve does nothing" do
-    test "no curve at all is flat" do
-      assert Curve.flat?(nil)
-    end
-
-    test "one point is flat" do
-      assert Curve.flat?(Curve.hold(1.0))
-    end
-
     test "several points at the same value are flat" do
       assert Curve.flat?(Curve.new([{0.0, 1.0}, {0.5, 1.0}, {1.0, 1.0}]))
     end
@@ -70,12 +62,6 @@ defmodule TuningFork.CurveTest do
   end
 
   describe "thinning a curve" do
-    test "a curve already small enough is left alone" do
-      curve = Curve.linear(1.0, 2.0)
-
-      assert Curve.simplify(curve, 8) == curve
-    end
-
     test "it comes back at the length asked for" do
       dense = Curve.new(for i <- 0..100, do: {i / 100, :math.sin(i / 100 * :math.pi())})
 

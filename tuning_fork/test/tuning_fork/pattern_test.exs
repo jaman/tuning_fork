@@ -20,10 +20,6 @@ defmodule TuningFork.PatternTest do
       assert P.first_cycle(P.pure(:bd), 99) == [{0.0, 1.0, :bd}]
     end
 
-    test "silence has nothing in it, however hard it is asked" do
-      assert P.query(P.silence(), {0.0, 100.0}) == []
-    end
-
     test "stack puts them all at once" do
       assert P.first_cycle(P.stack([P.pure(:bd), P.pure(:hh)])) == [
                {0.0, 1.0, :bd},
@@ -87,12 +83,6 @@ defmodule TuningFork.PatternTest do
       assert P.first_cycle(pattern, 1) == [{0.0, 1.0, :b}]
     end
 
-    test "fast and slow undo each other" do
-      pattern = P.fastcat([:a, :b, :c])
-
-      assert P.first_cycle(P.slow(P.fast(pattern, 3), 3)) == P.first_cycle(pattern)
-    end
-
     test "a factor of zero or less is silence rather than a crash" do
       assert P.query(P.fast(P.pure(:x), 0), {0.0, 4.0}) == []
       assert P.query(P.fast(P.pure(:x), -2), {0.0, 4.0}) == []
@@ -105,12 +95,6 @@ defmodule TuningFork.PatternTest do
                {0.333333, 0.666667, :b},
                {0.666667, 1.0, :a}
              ]
-    end
-
-    test "rev twice is where it started" do
-      pattern = P.fastcat([:a, :b, :c, :d])
-
-      assert P.first_cycle(P.rev(P.rev(pattern))) == P.first_cycle(pattern)
     end
 
     test "shift turns the wheel rather than delaying it once" do

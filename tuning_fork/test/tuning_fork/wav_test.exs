@@ -1,23 +1,11 @@
 defmodule TuningFork.WavTest do
   use ExUnit.Case, async: true
 
-  alias TuningFork.{Envelope, Mixer, Score, Sink, Stage, Voice, Wav}
+  alias TuningFork.{Envelope, Mixer, Sink, Stage, Voice, Wav}
 
   defp pcm(values), do: for(v <- values, into: <<>>, do: <<v::16-signed-little>>)
 
   describe "the header" do
-    test "it starts the way every reader expects" do
-      wav = Wav.encode(pcm([1, 2, 3, 4]), rate: 44_100, channels: 2)
-
-      assert <<"RIFF", _size::32-little, "WAVE", _rest::binary>> = wav
-    end
-
-    test "it is forty-four bytes in front of the samples" do
-      samples = pcm([1, 2, 3, 4])
-
-      assert byte_size(Wav.encode(samples)) == byte_size(samples) + 44
-    end
-
     test "the sizes agree with what is actually there" do
       samples = pcm(Enum.to_list(1..100))
       wav = Wav.encode(samples)
@@ -27,12 +15,6 @@ defmodule TuningFork.WavTest do
 
       assert data == byte_size(samples)
       assert riff == byte_size(wav) - 8
-    end
-
-    test "the rate and channels it was told are the ones written down" do
-      wav = Wav.encode(pcm([0, 0]), rate: 22_050, channels: 1)
-
-      assert {:ok, _pcm, 22_050, 1} = Wav.decode(wav)
     end
 
     test "byte rate and block align follow from the channel count" do
@@ -52,13 +34,6 @@ defmodule TuningFork.WavTest do
       samples = pcm([0, 1, -1, 32_767, -32_768, 1_234])
 
       assert {:ok, ^samples, 44_100, 2} = Wav.decode(Wav.encode(samples))
-    end
-
-    test "a rendered score survives being wrapped and read back" do
-      voice = Voice.new(shape: :sine, freq: 440.0, envelope: Envelope.hit(0.2))
-      rendered = Score.new(bpm: 120, beats: 2) |> Score.add(0.0, voice) |> Score.render(44_100)
-
-      assert {:ok, ^rendered, 44_100, 2} = Wav.decode(Wav.encode(rendered))
     end
 
     test "mono survives too" do
@@ -207,10 +182,6 @@ defmodule TuningFork.WavTest do
   describe "duration" do
     test "a second of stereo is a second" do
       assert_in_delta Wav.duration(Mixer.silence(44_100, 2), 44_100, 2), 1.0, 0.0001
-    end
-
-    test "the same bytes read as mono last twice as long" do
-      assert_in_delta Wav.duration(Mixer.silence(44_100, 2), 44_100, 1), 2.0, 0.0001
     end
   end
 

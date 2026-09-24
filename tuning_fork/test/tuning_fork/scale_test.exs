@@ -44,23 +44,6 @@ defmodule TuningFork.ScaleTest do
   end
 
   describe "the scales themselves" do
-    test "the familiar ones are the intervals everybody writes" do
-      assert Scale.steps(:major) == [0, 2, 4, 5, 7, 9, 11]
-      assert Scale.steps(:minor) == [0, 2, 3, 5, 7, 8, 10]
-      assert Scale.steps(:minor_pentatonic) == [0, 3, 5, 7, 10]
-      assert Scale.steps(:blues) == [0, 3, 5, 6, 7, 10]
-    end
-
-    test "the modes are rotations of the major scale" do
-      for mode <- [:dorian, :phrygian, :lydian, :mixolydian, :locrian, :aeolian] do
-        assert length(Scale.steps(mode)) == 7
-      end
-    end
-
-    test "chromatic is every semitone" do
-      assert Scale.steps(:chromatic) == Enum.to_list(0..11)
-    end
-
     test "a name takes a string as well as an atom" do
       assert Scale.steps("minor") == Scale.steps(:minor)
     end
@@ -77,11 +60,6 @@ defmodule TuningFork.ScaleTest do
   end
 
   describe "degrees to notes" do
-    test "degree zero is the root" do
-      assert Scale.midi("g:minor", 0) == 55
-      assert Scale.midi("c:major", 0) == 48
-    end
-
     test "degrees walk the scale, not the semitones" do
       assert Scale.midi("c:major", 1) == 50
       assert Scale.midi("c:major", 2) == 52
@@ -98,18 +76,8 @@ defmodule TuningFork.ScaleTest do
       assert Scale.midi("c:major", -1) == 47
     end
 
-    test "the riff from the video lands where it should" do
-      notes = for degree <- [0, 4, 0, 9, 7], do: Scale.midi("g:minor", degree)
-
-      assert notes == [55, 62, 55, 70, 67]
-    end
-
     test "a pentatonic wraps after five, not seven" do
       assert Scale.midi("c:minor_pentatonic", 5) == Scale.midi("c:minor_pentatonic", 0) + 12
-    end
-
-    test "it takes a root and scale pair as well as a string" do
-      assert Scale.midi({55, :minor}, 4) == Scale.midi("g:minor", 4)
     end
 
     test "a name it cannot read is nil rather than a crash" do

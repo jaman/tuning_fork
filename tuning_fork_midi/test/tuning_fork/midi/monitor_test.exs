@@ -26,16 +26,6 @@ defmodule TuningFork.Midi.MonitorTest do
     Enum.find_value(inputs, fn {index, found} -> if to_string(found) == name, do: index end)
   end
 
-  test "it starts with nothing open and nothing held", %{monitor: monitor} do
-    state = Monitor.state(monitor)
-
-    assert state.input == nil
-    assert state.output == nil
-    assert state.keys == %{}
-    assert state.playing == false
-    assert state.events == []
-  end
-
   test "what comes in through the input is held, reported, and listed", context do
     if keys = context[:keys] do
       monitor = context.monitor

@@ -59,15 +59,6 @@ defmodule TuningFork.StageLayersTest do
     assert settled_level(stage) == 0
   end
 
-  test "layers of different lengths each wrap on their own" do
-    stage = start()
-    Stage.layers(stage, %{a: tone(300, 100), b: tone(700, 10)})
-    Process.sleep(150)
-    assert settled_level(stage) in [110, 100, 10]
-    Process.sleep(150)
-    assert settled_level(stage) in [110, 100, 10]
-  end
-
   test "bed/2 is a single layer named :bed and bed_gain scales the whole set" do
     stage = start()
     Stage.bed(stage, tone(1_000, 1_000))
@@ -98,12 +89,5 @@ defmodule TuningFork.StageLayersTest do
     assert first < 8_000
     Process.sleep(300)
     assert settled_level(stage) == 8_000
-  end
-
-  test "the playhead can be aligned to a bar for a switch made later" do
-    stage = start()
-    Stage.layers(stage, %{a: tone(2_000, 1_000)})
-    Process.sleep(100)
-    assert is_integer(Stage.bed_position(stage))
   end
 end

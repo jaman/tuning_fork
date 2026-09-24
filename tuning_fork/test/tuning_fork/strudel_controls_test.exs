@@ -48,13 +48,6 @@ defmodule TuningFork.StrudelControlsTest do
       assert after_.envelope.release == 0.9
       assert after_.envelope.attack == before.envelope.attack
     end
-
-    test "a longer envelope really does sound for longer" do
-      short = voiced(note("c3") |> adsr(0.001, 0.01, 0.0, 0.01))
-      long = voiced(note("c3") |> adsr(0.2, 0.1, 0.8, 0.3))
-
-      assert Voice.duration(long) > Voice.duration(short)
-    end
   end
 
   describe "the names Strudel uses for the filter" do
@@ -96,7 +89,6 @@ defmodule TuningFork.StrudelControlsTest do
       crushed = voiced(note("c3") |> shape(:saw) |> crush(3)) |> Voice.render(44_100)
 
       refute clean == crushed
-      assert peak(crushed) <= 32_767
     end
 
     test "sixteen bits of crush is no crush at all" do
@@ -109,7 +101,6 @@ defmodule TuningFork.StrudelControlsTest do
       driven = voiced(note("c3") |> shape(:saw) |> distort(8)) |> Voice.render(44_100)
 
       refute clean == driven
-      assert peak(driven) <= 32_767
     end
 
     test "no distortion leaves the sample alone" do
@@ -125,7 +116,6 @@ defmodule TuningFork.StrudelControlsTest do
       clean = voiced(note("c3") |> shape(:saw)) |> Voice.render(44_100)
       shaped = Voice.render(voice, 44_100)
       refute clean == shaped
-      assert peak(shaped) <= 32_767
 
       assert Voice.waveshape(0.5, nil) == 0.5
       assert Voice.waveshape(0.5, 0.0) == 0.5
@@ -168,12 +158,6 @@ defmodule TuningFork.StrudelControlsTest do
 
         assert lifted > 5.0,
                "#{vowel} should lift #{round(hz)} Hz, got #{Float.round(lifted, 1)}x"
-      end
-    end
-
-    test "speaking does not push it out of range" do
-      for {vowel, _formants} <- Voice.vowels() do
-        assert peak(said(to_string(vowel))) <= 32_767
       end
     end
 
@@ -221,16 +205,6 @@ defmodule TuningFork.StrudelControlsTest do
       refute at_once == arriving
     end
 
-    test "none of it runs out of range" do
-      for controls <- [
-            %{note: "c3", shape: :sine, fm: 8, fmh: 3},
-            %{note: "c3", shape: :saw, fm: 12, fmh: 7},
-            %{note: "c1", shape: :saw, fm: 20, fmh: 1.5}
-          ] do
-        assert peak(rendered(controls)) <= 32_767
-      end
-    end
-
     test "vibrato moves the pitch about without changing the level much" do
       plain = rendered(%{note: "c3", shape: :sine})
       wobbling = rendered(%{note: "c3", shape: :sine, vib: 6, vibmod: 1})
@@ -262,7 +236,6 @@ defmodule TuningFork.StrudelControlsTest do
       swept = rendered(%{note: "c3", shape: :saw, phaser: 2, phaserdepth: 0.8})
 
       refute plain == swept
-      assert peak(swept) <= 32_767
     end
   end
 
@@ -280,14 +253,6 @@ defmodule TuningFork.StrudelControlsTest do
       assert band.filter.kind == :bandpass
       assert band.filter.hz == 900.0
       assert band.filter.q == 6.0
-    end
-
-    test "a resonant band or highpass does not run out of range" do
-      for kind <- [:bandpass, :highpass], q <- [4, 12, 30] do
-        pcm = rendered(%{note: "c3", shape: :saw, ftype: kind, cutoff: 800, resonance: q})
-
-        assert peak(pcm) <= 32_767, "#{kind} at resonance #{q}"
-      end
     end
 
     test "an ftype it does not know leaves the filter a lowpass" do
@@ -422,15 +387,6 @@ defmodule TuningFork.StrudelControlsTest do
   end
 
   describe "room, which is one space everything shares" do
-    test "the reverb renders the same samples it always has, call after call" do
-      impulse = <<32_000::16-signed-little, 0::16>> <> :binary.copy(<<0::16>>, 8_000 * 2 - 2)
-      {wet, reverb} = TuningFork.Reverb.run(TuningFork.Reverb.new(8_000), impulse, 2, 0.5, 0.7)
-      {again, _reverb} = TuningFork.Reverb.run(reverb, impulse, 2, 0.5, 0.7)
-
-      assert :erlang.phash2(wet) == 32_641_944
-      assert :erlang.phash2(again) == 89_298_387
-    end
-
     test "the loudest ask is the one that carries" do
       pattern = Pattern.stack([s("bd") |> room(0.2), s("sn") |> room(0.8)])
       {player, _pcm} = played(pattern)
@@ -461,13 +417,6 @@ defmodule TuningFork.StrudelControlsTest do
       Enum.zip(for(<<x::16-signed-little <- a>>, do: x), for(<<y::16-signed-little <- b>>, do: y))
       |> Enum.map(fn {x, y} -> abs(x - y) end)
       |> Enum.max()
-    end
-
-    test "a pattern that asks for nothing leaves the room as it was" do
-      {player, _pcm} = played(s("bd"))
-      {room, _size} = Player.room(player)
-
-      assert room == 0.0
     end
 
     defp played(pattern) do

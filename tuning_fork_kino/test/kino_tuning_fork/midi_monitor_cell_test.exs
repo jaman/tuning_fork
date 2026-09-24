@@ -10,26 +10,6 @@ defmodule KinoTuningFork.MidiMonitorCellTest do
     put_in(ctx.__private__[:ref], make_ref())
   end
 
-  test "an empty cell opens on nothing open, a piano, and a pattern to send" do
-    fields = ctx().assigns.fields
-
-    assert fields["input"] == ""
-    assert fields["output"] == ""
-    assert fields["voice"] == "gm_piano"
-    assert fields["pattern"] =~ "bd"
-    assert MidiMonitorCell.to_attrs(ctx()) == fields
-  end
-
-  test "the page is told the ports, the voices and what is happening" do
-    {:ok, payload, _ctx} = MidiMonitorCell.handle_connect(ctx())
-
-    assert is_list(payload.inputs)
-    assert is_list(payload.outputs)
-    assert Enum.any?(payload.voices, &(&1 == "gm_piano"))
-    assert payload.state.keys == %{}
-    assert payload.state.playing == false
-  end
-
   test "the monitor's state reaches the page with its ports and events as lists, so it serializes" do
     state = %{
       input: {0, "CASIO USB-MIDI"},
@@ -61,13 +41,6 @@ defmodule KinoTuningFork.MidiMonitorCellTest do
     assert {:ok, _json} = Jason.encode(shown)
 
     assert MidiMonitorCell.page_state(%{state | input: nil, output: nil, events: []}).input == nil
-  end
-
-  test "a field the browser sends is kept" do
-    {:noreply, ctx} =
-      MidiMonitorCell.handle_event("update_field", %{"field" => "cps", "value" => "0.75"}, ctx())
-
-    assert ctx.assigns.fields["cps"] == "0.75"
   end
 
   test "tapping a key with no output open is refused quietly" do

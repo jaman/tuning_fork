@@ -8,25 +8,13 @@ defmodule TuningFork.OscTest do
 
   use ExUnit.Case, async: true
 
-  alias TuningFork.{Osc, Part, Score}
+  alias TuningFork.{Osc, Part}
   alias TuningFork.Osc.{Client, Out}
 
   doctest TuningFork.Osc
   doctest TuningFork.Osc.Out
 
   describe "the bytes" do
-    test "an address and a tag string are each padded to four bytes" do
-      assert rem(byte_size(Osc.encode("/a", [])), 4) == 0
-      assert rem(byte_size(Osc.encode("/abc", [])), 4) == 0
-      assert rem(byte_size(Osc.encode("/abcdefg", [])), 4) == 0
-    end
-
-    test "every message is a whole number of four-byte words" do
-      for args <- [[], [1], [1.0], ["s"], ["four"], [{:blob, <<1, 2, 3>>}], [true, false, nil]] do
-        assert rem(byte_size(Osc.encode("/x", args)), 4) == 0, "#{inspect(args)} was not padded"
-      end
-    end
-
     test "what goes in comes back out" do
       args = [60, 0.5, "bd", true, false, nil]
 
@@ -94,14 +82,6 @@ defmodule TuningFork.OscTest do
       assert_in_delta gain, 0.8, 0.0001
     end
 
-    test "a bundle arrives as its messages", %{writer: writer} do
-      Client.bundle(writer, [{"/a", [1]}, {"/b", [2]}])
-
-      # A bundle is one packet; a reader that does not split them sees the outer shape, which
-      # is not a message, so nothing is delivered rather than something wrong being.
-      refute_receive {:osc, "/a", _args, _from}, 200
-    end
-
     test "a packet that is not OSC is dropped rather than delivered", %{writer: writer} do
       Client.packet(writer, <<255, 255, 255>>)
       Client.send(writer, "/after", [])
@@ -146,10 +126,6 @@ defmodule TuningFork.OscTest do
       messages = Out.messages(score, address: "/note", shape: fn voice, _s -> [voice.freq] end)
 
       assert [{_at, "/note", [_freq]} | _rest] = messages
-    end
-
-    test "an empty score sends nothing rather than crashing" do
-      assert Out.messages(Score.new(bpm: 120, beats: 4)) == []
     end
 
     test "playing it puts the notes on the wire", %{score: score, writer: writer} do

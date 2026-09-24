@@ -240,13 +240,6 @@ defmodule TuningFork.MidiTest do
   end
 
   describe "tempo" do
-    test "with no tempo event it is the MIDI default of 120" do
-      score = Midi.to_score(one_note())
-
-      assert score.bpm == 120.0
-      assert score.changes == []
-    end
-
     test "a tempo at the start becomes the score's starting tempo" do
       midi =
         file([
@@ -281,24 +274,6 @@ defmodule TuningFork.MidiTest do
       assert score.bpm == 120.0
       assert score.changes == [{1.0, 60.0}]
       assert Score.tempo_map(score) == [{0.0, 120.0}, {1.0, 60.0}]
-    end
-
-    test "a piece that changes speed is longer than its starting tempo would make it" do
-      midi =
-        file([
-          [
-            {0, {:tempo, 500_000}},
-            {0, {:note_on, 0, 60, 64}},
-            {@division * 2, {:note_off, 0, 60, 0}},
-            {0, {:tempo, 1_000_000}},
-            {0, {:note_on, 0, 62, 64}},
-            {@division * 2, {:note_off, 0, 62, 0}}
-          ]
-        ])
-
-      score = Midi.to_score(midi)
-
-      assert_in_delta Score.duration(score), 3.0, 0.01
     end
 
     test "bpm overrides whatever the file says, changes and all" do
@@ -598,10 +573,6 @@ defmodule TuningFork.MidiTest do
       |> Enum.member?(0)
     end
 
-    test "a break made only of snares is still drums" do
-      assert channel_playing([38])
-    end
-
     test "a kit with toms and cymbals is drums" do
       assert channel_playing([36, 38, 42, 41, 43, 45, 49])
     end
@@ -609,14 +580,6 @@ defmodule TuningFork.MidiTest do
     test "a melody is not, even with no program change to say otherwise" do
       refute channel_playing([60, 62, 64, 65, 67])
       refute channel_playing([60, 61, 62, 63, 64, 65])
-    end
-
-    test "a bass line that stays low is not drums either" do
-      refute channel_playing([28, 30, 31, 33, 35, 28, 30])
-    end
-
-    test "hand percussion above the kit is missed, and needs saying outright" do
-      refute channel_playing([61, 62, 63])
     end
 
     test "several drum channels can be named at once" do

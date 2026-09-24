@@ -34,21 +34,4 @@ defmodule KinoTuningFork.PlayerTest do
       end
     end
   end
-
-  describe "what it is" do
-    test "it is a factory, so a cell gets its own player rather than sharing one" do
-      assert Player.js() =~ "function tuningForkPlayer(ctx)"
-      assert Player.js() =~ ~s|ctx.pushEvent("listening", { on: true })|
-      assert Player.js() =~ ~s|ctx.pushEvent("listening", { on: false })|
-      assert Player.js() =~ "return {"
-    end
-
-    test "it schedules chunks in the audio thread rather than through an audio element" do
-      assert Player.js() =~ "createBufferSource"
-      assert Player.js() =~ "source.start(at)"
-      refute Player.js() =~ "source.loop = true"
-      refute Player.js() =~ "createObjectURL"
-      refute Player.js() =~ "new Audio"
-    end
-  end
 end

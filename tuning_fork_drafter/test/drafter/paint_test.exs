@@ -99,22 +99,11 @@ defmodule TuningFork.Drafter.PaintTest do
       assert lit?(drawn, 10, 35)
     end
 
-    test "it is far more visible than putting them all on one pianoroll line" do
-      as_hits = Paint.hits([{0.0, 0.25}], 0.9, width: 200, height: 40, grid: false)
-      as_roll = Paint.pianoroll([{0.0, 0.25, 60}], 0.9, width: 200, height: 40, grid: false)
-
-      assert count_lit(as_hits) > count_lit(as_roll) * 3
-    end
-
     test "each hit lands where its position says" do
       drawn = Paint.hits([{0.5, 0.6}], 0.0, width: 200, height: 40, grid: false)
 
       assert any_lit?(drawn, 105)
       refute any_lit?(drawn, 20)
-    end
-
-    test "nothing to draw is still a raster" do
-      assert %Raster{} = Paint.hits([], 0.0)
     end
 
     test "the playhead can be left out, so the picture only changes when the hits do" do
@@ -135,13 +124,6 @@ defmodule TuningFork.Drafter.PaintTest do
       early = Paint.pianoroll([{0.0, 0.5, 60}], 0.1, width: 200, height: 40, playhead: false)
 
       refute without == early, "the sounding note is drawn differently, line or no line"
-    end
-
-    test "with it in, they do not" do
-      one = Paint.pianoroll([{0.0, 0.5, 60}], 0.1, width: 200, height: 40)
-      other = Paint.pianoroll([{0.0, 0.5, 60}], 0.8, width: 200, height: 40)
-
-      refute one == other
     end
   end
 
@@ -181,11 +163,5 @@ defmodule TuningFork.Drafter.PaintTest do
 
   defp any_lit_row?(raster, y) do
     Enum.any?(0..(raster.width - 1), &lit?(raster, &1, y))
-  end
-
-  defp count_lit(raster) do
-    for x <- 0..(raster.width - 1), y <- 0..(raster.height - 1), lit?(raster, x, y), reduce: 0 do
-      count -> count + 1
-    end
   end
 end

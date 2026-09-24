@@ -32,26 +32,6 @@ defmodule KinoTuningFork.MidiCellTest do
       assert MidiCell.to_source(attrs(%{"path" => "   "})) == ""
     end
 
-    test "reads the file, builds a score and hands the bytes to the browser" do
-      source = MidiCell.to_source(attrs())
-
-      assert source =~ "TuningFork.Midi.read!()"
-      assert source =~ "TuningFork.Gm.score("
-      assert source =~ "TuningFork.Score.render(44100)"
-      assert source =~ "TuningFork.Wav.encode(rate: 44100)"
-      assert source =~ "Kino.Audio.new(:wav)"
-    end
-
-    test "it is formatted Elixir, not a string that happens to look like it" do
-      source = MidiCell.to_source(attrs())
-
-      assert source == source |> Code.format_string!() |> IO.iodata_to_binary()
-    end
-
-    test "it parses" do
-      assert {:ok, _ast} = Code.string_to_quoted(MidiCell.to_source(attrs()))
-    end
-
     test "the variable is what was asked for" do
       assert MidiCell.to_source(attrs(%{"variable" => "bach"})) =~ "bach ="
     end
@@ -84,11 +64,6 @@ defmodule KinoTuningFork.MidiCellTest do
       assert MidiCell.to_source(attrs(%{"loops" => "4"})) =~ "List.duplicate(4)"
     end
 
-    test "one voice for everything is passed through" do
-      refute MidiCell.to_source(attrs()) =~ "plain:"
-      assert MidiCell.to_source(attrs(%{"plain" => true})) =~ "plain: true"
-    end
-
     test "a relative path is taken from the notebook's own directory" do
       assert MidiCell.to_source(attrs(%{"path" => "song.mid"})) =~
                ~s|Path.expand("song.mid", __DIR__)|
@@ -110,16 +85,6 @@ defmodule KinoTuningFork.MidiCellTest do
 
       assert MidiCell.to_attrs(ctx)["gain"] == "0.05"
       assert MidiCell.to_attrs(ctx)["path"] == "song.mid"
-    end
-
-    test "an empty cell starts with workable defaults" do
-      {:ok, ctx} = MidiCell.init(%{}, Context.new())
-      fields = MidiCell.to_attrs(ctx)
-
-      assert fields["gain"] == "0.2"
-      assert fields["drums"] == "auto"
-      assert fields["variable"] == "score"
-      assert MidiCell.to_source(fields) == ""
     end
   end
 

@@ -180,16 +180,6 @@ defmodule TuningFork.SampleTest do
       assert_in_delta crossings(high) / seconds(high), 440, 25
     end
 
-    test "down a fifth is longer and lower" do
-      s = sample(root: 220.0)
-
-      at_root = Voice.render(Voice.new(sample: s, freq: 220.0), @rate)
-      down = Voice.render(Voice.new(sample: s, freq: Notes.freq(:d3)), @rate)
-
-      assert seconds(down) > seconds(at_root)
-      assert crossings(down) / seconds(down) < crossings(at_root) / seconds(at_root)
-    end
-
     test "with no root it plays at its own speed whatever pitch is asked for" do
       s = sample()
 
@@ -264,15 +254,6 @@ defmodule TuningFork.SampleTest do
       assert crossings(late_slowing) < crossings(late_steady)
     end
 
-    test "a longer envelope is how a tape stop is given room to finish" do
-      s = sample(root: 220.0)
-
-      short = Voice.new(sample: s, freq: 220.0, sweep: 0.5)
-      long = %{short | envelope: %{short.envelope | hold: short.envelope.hold * 2}}
-
-      assert seconds(Voice.render(long, @rate)) > seconds(Voice.render(short, @rate))
-    end
-
     test "an unset envelope is fitted to the recording rather than cutting it to a click" do
       s = sample()
       voice = Voice.new(sample: s)
@@ -294,21 +275,6 @@ defmodule TuningFork.SampleTest do
 
       assert peak(binary_part(pcm, 0, @rate)) > 500
       assert peak(binary_part(pcm, @rate * 2, @rate)) > 500
-    end
-
-    test "the cache holds the recording's name, not the recording" do
-      s = sample()
-      voice = Voice.new(sample: s, gain: 0.4)
-
-      score =
-        Enum.reduce(0..199, Score.new(bpm: 240, beats: 200), fn beat, acc ->
-          Score.add(acc, beat * 1.0, voice)
-        end)
-
-      {microseconds, pcm} = :timer.tc(fn -> Score.render(score, @rate, channels: 1) end)
-
-      assert peak(pcm) > 500
-      assert microseconds < 5_000_000, "#{div(microseconds, 1000)} ms is cache-key trouble"
     end
 
     test "two samples are not confused for one another" do

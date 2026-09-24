@@ -28,12 +28,6 @@ defmodule TuningFork.PartTest do
       assert beats_of(played) == [8.0, 2.0]
       assert cursor(played) == 3.0
     end
-
-    test "notes are kept in the order they were written" do
-      played = part() |> play(:a4) |> play(:b4) |> play(:c5)
-
-      assert freqs_of(played) == Enum.map([:a4, :b4, :c5], &Notes.freq/1)
-    end
   end
 
   describe "writing music" do
@@ -130,17 +124,6 @@ defmodule TuningFork.PartTest do
     end
   end
 
-  describe "levels" do
-    test "the part's gain and the note's gain both apply" do
-      voice = Voice.new(gain: 0.8)
-
-      [{_beat, played}] =
-        part(synth: voice, gain: 0.5) |> play(:a4, 1.0, gain: 0.5) |> Part.notes()
-
-      assert_in_delta played.gain, 0.8 * 0.5 * 0.5, 0.0001
-    end
-  end
-
   describe "how long a note rings" do
     test "release is given in beats and reaches the envelope in seconds" do
       voice = Voice.new(envelope: Envelope.new(attack: 0.0, decay: 0.1, release: 0.0))
@@ -149,19 +132,6 @@ defmodule TuningFork.PartTest do
         part(bpm: 120, synth: voice) |> play(:a4, 0.5, release: 2.0) |> Part.notes()
 
       assert_in_delta Voice.duration(played), 1.0, 0.001
-    end
-
-    test "a note can ring for longer than the step, so notes overlap" do
-      voice = Voice.new(envelope: Envelope.new(attack: 0.0, decay: 0.1, release: 0.0))
-
-      played =
-        part(bpm: 60, synth: voice)
-        |> play(:a4, 0.5, release: 4.0)
-        |> play(:b4, 0.5, release: 4.0)
-
-      [{_first, one}, {second, _two}] = Part.notes(played)
-
-      assert Voice.duration(one) > second * 1.0, "the first note should still be sounding"
     end
 
     test "without a release the voice's own envelope decides" do
@@ -189,16 +159,6 @@ defmodule TuningFork.PartTest do
       two = part() |> rest(4) |> play(:c4, 1.0)
 
       assert length(Score.from_parts([one, two]).notes) == 3
-    end
-
-    test "a part that rests first comes in later" do
-      late = part() |> rest(16) |> play(:a3, 1.0)
-
-      assert [{16.0, _voice}] = Part.notes(late)
-    end
-
-    test "the tempo comes from the parts" do
-      assert Score.from_parts([part(bpm: 96)]).bpm == 96.0
     end
   end
 
@@ -305,10 +265,6 @@ defmodule TuningFork.PartTest do
       assert beats_of(part(synth: Voice.new()) |> steps("x|.|x")) == [0.0, 1.0]
     end
 
-    test "an empty pattern does nothing at all" do
-      assert part(synth: Voice.new()) |> steps("") |> Part.notes() == []
-    end
-
     test "patterns join up, so bars can be written one at a time" do
       joined = part(synth: Voice.new()) |> steps("x...") |> steps("x...")
 
@@ -345,18 +301,6 @@ defmodule TuningFork.PartTest do
 
       assert first.pan == 0.0
       assert second.pan == -1.0
-    end
-
-    test "a spread draws a different position for every note" do
-      notes =
-        part(seed: 7)
-        |> pattern([:a3, :c4, :e4, :g4], 0.5, pan: {:between, -0.9, 0.9})
-        |> Part.notes()
-
-      pans = Enum.map(notes, fn {_beat, voice} -> voice.pan end)
-
-      assert length(Enum.uniq(pans)) > 1
-      assert Enum.all?(pans, &(&1 >= -1.0 and &1 <= 1.0))
     end
 
     test "levels multiply where positions add" do

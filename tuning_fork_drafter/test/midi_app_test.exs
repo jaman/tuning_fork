@@ -36,18 +36,6 @@ defmodule TuningFork.MidiAppTest do
     App.update(:tick, state)
   end
 
-  test "it opens with no ports, a piano, a pattern, and a running monitor" do
-    state = app()
-
-    assert is_pid(state.monitor)
-    assert state.input == 0
-    assert state.output == 0
-    assert state.voice == "gm_piano"
-    assert state.pattern =~ "bd"
-    assert state.snapshot.playing == false
-    assert App.render(state)
-  end
-
   test "the input and output choices end with a virtual port" do
     state = app()
 

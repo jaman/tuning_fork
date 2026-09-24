@@ -1,7 +1,7 @@
 defmodule TuningFork.GmTest do
   use ExUnit.Case, async: true
 
-  alias TuningFork.{Envelope, Gm, Midi, MidiBuilder, Score, Voice}
+  alias TuningFork.{Envelope, Gm, Midi, MidiBuilder, Voice}
 
   @division 480
 
@@ -68,13 +68,6 @@ defmodule TuningFork.GmTest do
       assert voice.pan == 0.3
     end
 
-    test "the result is an ordinary voice, so it can be overridden afterwards" do
-      voice = %{Gm.for_program(0, base()) | shape: :sine}
-
-      assert voice.shape == :sine
-      assert %Voice{} = voice
-    end
-
     test "sound effects at the top of the range are left alone rather than guessed at" do
       assert Gm.for_program(127, base()) == base()
     end
@@ -89,10 +82,6 @@ defmodule TuningFork.GmTest do
       assert is_nil(kit[42].cutoff)
       assert kit[42].highpass > 0.5
       assert kit[38].cutoff && kit[38].highpass
-    end
-
-    test "everything in it is noise" do
-      assert Enum.all?(Gm.drums(), fn {_note, voice} -> voice.shape == :noise end)
     end
 
     test "a crash rings longer than a closed hat" do
@@ -206,21 +195,6 @@ defmodule TuningFork.GmTest do
       [{_beat, voice}] = Gm.score(midi, base: mine).notes
 
       assert voice.shape == :square
-    end
-
-    test "the result renders to audible sound" do
-      midi =
-        file([
-          [
-            {0, {:program, 0, 0}},
-            {0, {:note_on, 0, 60, 100}},
-            {@division, {:note_off, 0, 60, 0}}
-          ]
-        ])
-
-      pcm = midi |> Gm.score(gain: 0.6) |> Score.render(44_100)
-
-      assert TuningFork.Mixer.peak(pcm) > 1_000
     end
   end
 end

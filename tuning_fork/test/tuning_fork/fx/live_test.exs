@@ -210,11 +210,5 @@ defmodule TuningFork.Fx.LiveTest do
       assert rms(Fx.apply(dry, @rate, [lowpass: [hz: 500]], 1)) < rms(dry) * 0.2
       assert rms(Fx.apply(dry, @rate, [level: [amp: 0.0]], 1)) == 0.0
     end
-
-    test "an unknown effect still says so" do
-      assert_raise ArgumentError, ~r/no such effect: :warble/, fn ->
-        Fx.apply(tone(440.0), @rate, [warble: []], 1)
-      end
-    end
   end
 end

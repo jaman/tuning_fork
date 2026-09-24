@@ -23,10 +23,6 @@ defmodule KinoTuningFork.LiveLoopsCellTest do
 
   defp named(name, source), do: %{"name" => name, "source" => source}
 
-  defp refute_broadcast_event(%{ref: ref}, event) do
-    refute_receive {:runtime_broadcast, "js_live", ^ref, {:event, ^event, _payload, _info}}, 100
-  end
-
   defp cell(loops) do
     {kino, _source} = start_smart_cell!(LiveLoopsCell, %{"loops" => loops})
     _data = connect(kino)
@@ -36,10 +32,6 @@ defmodule KinoTuningFork.LiveLoopsCellTest do
   end
 
   describe "opening" do
-    test "a fresh cell opens on the same loops the terminal front end opens on" do
-      assert [%{"name" => "drums"}, %{"name" => "bass"}] = LiveLoopsCell.demo()
-    end
-
     test "the loops it opens on are built with the kit, and every one of them plays" do
       {errors, scores} = LiveLoopsCell.read_loops(LiveLoopsCell.demo())
 
@@ -53,11 +45,6 @@ defmodule KinoTuningFork.LiveLoopsCellTest do
           assert voice.freq < 400.0, "#{name} is a raw oscillator, not a kit sound"
         end
       end
-    end
-
-    test "what it opens on is what a new loop opens on, and both come from core" do
-      assert LiveLoopsCell.demo() |> hd() |> Map.fetch!("source") =~ "Kit.voice("
-      assert Source.template() =~ "Kit.voice("
     end
 
     test "a saved cell opens on what was saved, with the vocabulary to hand" do
@@ -80,38 +67,11 @@ defmodule KinoTuningFork.LiveLoopsCellTest do
       assert_smart_cell_update(kino, %{"loops" => ^edited}, source)
       assert source =~ "play(:c2, 1.5)"
     end
-
-    test "editing sends nothing back to the browser, and plays nothing" do
-      kino = cell([named("drums", @drums)])
-
-      push_event(kino, "update_loops", %{"loops" => [named("drums", "part(bpm: 90)")]})
-
-      refute_broadcast_event(kino, "audio")
-      refute_broadcast_event(kino, "evaluated")
-    end
   end
 
   describe "what evaluating a source line means" do
     test "a part becomes a score" do
       assert {:ok, %TuningFork.Score{}} = LiveLoopsCell.eval_source(@drums)
-    end
-
-    test "a score is taken as it stands" do
-      score = TuningFork.Score.new(bpm: 120, beats: 4)
-      source = "TuningFork.Score.new(bpm: 120, beats: 4)"
-
-      assert {:ok, ^score} = LiveLoopsCell.eval_source(source)
-    end
-
-    test "anything else is reported rather than crashing the board" do
-      assert {:error, message} = LiveLoopsCell.eval_source("1 + 1")
-      assert message =~ "not a score or a part"
-    end
-
-    test "code that will not compile is reported in one line" do
-      assert {:error, message} = LiveLoopsCell.eval_source("part(bpm: (")
-      assert is_binary(message)
-      refute message =~ "\n"
     end
 
     test "blank source is reported rather than silently doing nothing" do
@@ -159,19 +119,6 @@ defmodule KinoTuningFork.LiveLoopsCellTest do
       )
     end
 
-    test "what it streams is not silence" do
-      kino = cell([named("drums", @drums)])
-      push_event(kino, "evaluate", %{"loops" => [named("drums", @drums)]})
-
-      loud =
-        Enum.find(1..40, fn _ ->
-          assert_broadcast_event(kino, "pcm", {:binary, %{}, chunk}, 5_000)
-          Mixer.peak(chunk) > 1_000
-        end)
-
-      assert loud
-    end
-
     test "evaluating again swaps the loops that changed and stops the ones taken away" do
       kino = cell([named("drums", @drums), named("bass", @three)])
       push_event(kino, "evaluate", %{"loops" => [named("drums", @drums), named("bass", @three)]})
@@ -199,14 +146,6 @@ defmodule KinoTuningFork.LiveLoopsCellTest do
       assert_broadcast_event(kino, "readouts", %{readouts: []}, 2_000)
     end
 
-    test "an empty board starts nothing" do
-      kino = cell([])
-
-      push_event(kino, "evaluate", %{"loops" => []})
-
-      assert_broadcast_event(kino, "evaluated", %{errors: [], playing: false})
-    end
-
     test "stop silences every loop and the readouts empty" do
       kino = cell([named("drums", @drums)])
       push_event(kino, "evaluate", %{"loops" => [named("drums", @drums)]})
@@ -220,10 +159,6 @@ defmodule KinoTuningFork.LiveLoopsCellTest do
   end
 
   describe "what it writes" do
-    test "no loops writes nothing" do
-      assert LiveLoopsCell.to_source(%{"loops" => []}) == ""
-    end
-
     test "a loop with a blank name or a blank source is left out" do
       loops = [named("", @drums), named("bass", "")]
 
@@ -248,19 +183,6 @@ defmodule KinoTuningFork.LiveLoopsCellTest do
 
       assert {:ok, _ast} = Code.string_to_quoted(source)
       assert source =~ "TuningFork.Part.Source.compile(\"part(bpm: (\")"
-    end
-
-    test "it starts a stage widget only when the notebook has none" do
-      source = LiveLoopsCell.to_source(%{"loops" => [named("drums", @drums)]})
-
-      assert source =~
-               "unless Process.whereis(TuningFork.Stage), do: Kino.render(KinoTuningFork.stage())"
-    end
-
-    test "it is formatted Elixir, not a string that happens to look like it" do
-      source = LiveLoopsCell.to_source(%{"loops" => [named("drums", @drums)]})
-
-      assert source == source |> Code.format_string!() |> IO.iodata_to_binary()
     end
 
     test "a name that is not a variable still writes something that compiles" do

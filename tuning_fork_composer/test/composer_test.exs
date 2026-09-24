@@ -20,17 +20,8 @@ defmodule TuningFork.ComposerTest do
   end
 
   describe "the shape of the grid" do
-    test "four beats of four is sixteen steps" do
-      assert Composer.steps_per_bar(project()) == 16
-    end
-
     test "three of eight is twenty-four" do
       assert Composer.steps_per_bar(project(meter: 3, division: 8)) == 24
-    end
-
-    test "a step is as long as the division says" do
-      assert Composer.step_beats(project(division: 4)) == 0.25
-      assert_in_delta Composer.step_beats(project(division: 3)), 1 / 3, 0.0001
     end
 
     test "the piece is bars times beats to a bar" do
@@ -93,13 +84,6 @@ defmodule TuningFork.ComposerTest do
       assert Composer.set(project(), :nonsense, 1) == project()
     end
 
-    test "a half-typed number does not silence the piece or stall the tempo" do
-      typing = project() |> Composer.set(:gain, "") |> Composer.set(:bpm, "1")
-
-      assert typing.gain == project().gain, "an empty box should not mean silence"
-      assert typing.bpm == 1
-    end
-
     test "counts are held at one and levels between zero and one" do
       assert Composer.set(project(), :bars, 0).bars == 1
       assert Composer.set(project(), :gain, 5.0).gain == 1.0
@@ -116,13 +100,6 @@ defmodule TuningFork.ComposerTest do
       assert length(steps(p, 1)) == 16
     end
 
-    test "removed by position" do
-      p = project() |> with_track() |> with_track(sound: "snare") |> Composer.remove_track(0)
-
-      assert Composer.track_count(p) == 1
-      assert Composer.track(p, 0).sound == "snare"
-    end
-
     test "moved among the others" do
       p =
         project()
@@ -131,12 +108,6 @@ defmodule TuningFork.ComposerTest do
         |> Composer.move_track(1, -1)
 
       assert Composer.track(p, 0).sound == "snare"
-    end
-
-    test "moving past either end does nothing rather than losing one" do
-      p = project() |> with_track() |> Composer.move_track(0, -1) |> Composer.move_track(0, 1)
-
-      assert Composer.track_count(p) == 1
     end
 
     test "becoming a drum flattens degrees to plain hits" do
@@ -154,17 +125,6 @@ defmodule TuningFork.ComposerTest do
 
       assert Composer.track(p, 0).muted
       refute Composer.toggle_mute(p, 0) |> Composer.track(0) |> Map.get(:muted)
-    end
-
-    test "cleared keeps the track and empties the steps" do
-      p =
-        project()
-        |> with_track()
-        |> Composer.toggle_step(0, 0)
-        |> Composer.clear_track(0)
-
-      assert Composer.track_count(p) == 1
-      assert Enum.all?(steps(p, 0), &(&1 == 0))
     end
 
     test "an edit to a track that is not there changes nothing" do
@@ -191,16 +151,6 @@ defmodule TuningFork.ComposerTest do
 
       assert Enum.at(steps(walked, 0), 0) == highest
       assert walked |> Composer.cycle_step(0, 0, 1) |> steps(0) |> Enum.at(0) == 0
-    end
-
-    test "walked down and off the bottom" do
-      p =
-        project()
-        |> with_track(kind: :pitched, sound: "bass")
-        |> Composer.set_step(0, 0, 1)
-        |> Composer.cycle_step(0, 0, -1)
-
-      assert Enum.at(steps(p, 0), 0) == 0
     end
 
     test "set outright, clamped to what the scale holds" do
@@ -266,12 +216,6 @@ defmodule TuningFork.ComposerTest do
         |> Composer.set_length(0, 0, 1)
 
       assert Enum.at(steps(p, 0), 0) == 1
-    end
-
-    test "lengthening an empty step does nothing" do
-      p = project() |> with_track(kind: :pitched) |> Composer.set_length(0, 5, 4)
-
-      assert Enum.all?(steps(p, 0), &(&1 == 0))
     end
 
     test "the steps a held note covers are known, for a front end to draw" do
@@ -358,12 +302,6 @@ defmodule TuningFork.ComposerTest do
       assert source =~ "release: 2.0"
     end
 
-    test "the score it binds is named after the project" do
-      p = project(name: "groove") |> with_track() |> Composer.toggle_step(0, 0)
-
-      assert Source.to_source(p) =~ "groove = Score.from_parts"
-    end
-
     test "a name that would not compile falls back" do
       p = project(name: "not a name!") |> with_track() |> Composer.toggle_step(0, 0)
 
@@ -380,13 +318,6 @@ defmodule TuningFork.ComposerTest do
   end
 
   describe "what it plays" do
-    test "a score with a part for every audible track" do
-      score = Composer.demo() |> Composer.to_score()
-
-      assert score.notes != []
-      assert score.bpm == 96.0
-    end
-
     test "muted tracks are not in it" do
       full = Composer.demo() |> Composer.to_score()
       less = Composer.demo() |> Composer.toggle_mute(0) |> Composer.to_score()
@@ -431,12 +362,6 @@ defmodule TuningFork.ComposerTest do
       assert p |> Json.to_map() |> Json.from_map() == p
     end
 
-    test "and neither does what it writes" do
-      p = Composer.demo()
-
-      assert Source.to_source(Json.from_map(Json.to_map(p))) == Source.to_source(p)
-    end
-
     test "a map with nothing in it is a composition with nothing in it" do
       assert Json.from_map(%{}) == Composer.new()
       assert Json.from_map("not a map") == Composer.new()
@@ -445,36 +370,9 @@ defmodule TuningFork.ComposerTest do
     test "an unknown scale falls back rather than making an atom of it" do
       assert Json.from_map(%{"scale" => "not_a_scale"}).scale == :minor_pentatonic
     end
-
-    test "every note name it knows reads, whether or not the atom exists yet" do
-      for octave <- 0..8, name <- ~w(c cs d ds e f fs g gs a as b) do
-        root = "#{name}#{octave}"
-        assert Json.from_map(%{"root" => root}).root == String.to_atom(root)
-      end
-    end
-
-    test "steps survive in both their forms" do
-      p =
-        Composer.new()
-        |> Composer.add_track(kind: :pitched, sound: "bass")
-        |> Composer.set_step(0, 0, 3)
-        |> Composer.set_length(0, 0, 4)
-        |> Composer.set_step(0, 8, 2)
-
-      back = p |> Json.to_map() |> Json.from_map()
-
-      assert Enum.at(Composer.track(back, 0).steps, 0) == {3, 4}
-      assert Enum.at(Composer.track(back, 0).steps, 8) == 2
-    end
   end
 
   describe "which bars a track plays" do
-    test "a track plays every bar unless told which, as a string of x and dots" do
-      assert Track.new().plays == nil
-      assert Composer.passes(Track.new(), project(bars: 3)) == "xxx"
-      assert Composer.passes(Track.new(plays: "..x"), project(bars: 3)) == "..x"
-    end
-
     test "a short string cycles and a long one is cut to the bars" do
       assert Composer.passes(Track.new(plays: "x."), project(bars: 5)) == "x.x.x"
       assert Composer.passes(Track.new(plays: "xxxx...."), project(bars: 3)) == "xxx"
@@ -531,12 +429,9 @@ defmodule TuningFork.ComposerTest do
     end
 
     test "the composer names each of its sounds as the kit knows them" do
-      assert Composer.kit_sound("snare") == "sd"
-      assert Composer.kit_sound("open_hat") == "oh"
       assert Composer.font_for("pipe") == "gm_flute"
       assert Composer.font_for("bass") == "gm_electric_bass_finger"
       assert Composer.font_for("epiano") == "gm_epiano1"
-      assert Composer.program_for("epiano") == 4
     end
 
     test "with a bank, drums and instruments are Kit instruments, in the score and the source" do

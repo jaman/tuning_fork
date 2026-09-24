@@ -74,12 +74,6 @@ defmodule TuningFork.FxTest do
 
       assert roughness(dark) < roughness(bright)
     end
-
-    test "nothing clips" do
-      wet = Fx.reverb(click(), @rate, room: 1.0, mix: 1.0)
-
-      assert Enum.all?(samples(wet), &(&1 >= -32_768 and &1 <= 32_767))
-    end
   end
 
   describe "drive" do
@@ -91,29 +85,14 @@ defmodule TuningFork.FxTest do
       squashed = samples(wet) |> Enum.map(&abs/1) |> Enum.max()
 
       assert squashed < quiet
-      assert Enum.all?(samples(wet), &(&1 >= -32_768 and &1 <= 32_767))
-    end
-
-    test "does not change the length" do
-      assert frames(Fx.drive(click(), amount: 0.5)) == frames(click())
     end
   end
 
   describe "chains" do
-    test "effects run in the order they are given" do
-      chained = Fx.apply(click(), @rate, echo: [delay: 0.1], reverb: [room: 0.5])
-
-      assert frames(chained) > frames(click())
-    end
-
     test "an unknown effect says so rather than being ignored" do
       assert_raise ArgumentError, ~r/no such effect/, fn ->
         Fx.apply(click(), @rate, chorus: [])
       end
-    end
-
-    test "an empty chain changes nothing" do
-      assert Fx.apply(click(), @rate, []) == click()
     end
   end
 

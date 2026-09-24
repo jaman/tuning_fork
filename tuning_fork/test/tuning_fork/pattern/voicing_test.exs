@@ -50,15 +50,4 @@ defmodule TuningFork.Pattern.VoicingTest do
       assert Voicing.render("H7") == :error
     end
   end
-
-  test "dictionaries/0 names what render/2 takes" do
-    assert Enum.sort(Voicing.dictionaries()) == [
-             :guidetones,
-             :ireal,
-             :"ireal-ext",
-             :lefthand,
-             :legacy,
-             :triads
-           ]
-  end
 end

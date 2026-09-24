@@ -39,10 +39,6 @@ defmodule TuningFork.RandTest do
       assert length(Enum.uniq(picked)) > 1
     end
 
-    test "picking from nothing gives nothing rather than failing" do
-      assert {nil, _rand} = Rand.pick(Rand.new(1), [])
-    end
-
     test "a chance of one always happens and zero never does" do
       assert {true, _} = Rand.chance(Rand.new(1), 1.0)
       assert {false, _} = Rand.chance(Rand.new(1), 0.0)

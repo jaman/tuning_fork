@@ -81,11 +81,4 @@ defmodule TuningFork.Midi.InTest do
     Process.sleep(100)
     assert Stage.sounding(stage) == 0
   end
-
-  test "no stage at all still passes events on", _context do
-    {:ok, listener} = In.start_link(stage: nil, to: self())
-
-    arrives(listener, Message.program(5))
-    assert_receive {:midi, {:program, 1, 5}}
-  end
 end

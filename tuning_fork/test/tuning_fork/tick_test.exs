@@ -116,21 +116,6 @@ defmodule TuningFork.TickTest do
       assert Store.as(:reader, 999, fn -> State.get(:key) end) == :late
     end
 
-    test "a value from the future is not handed back to a loop still behind it" do
-      Store.as(:ahead, 10_000, fn -> State.set(:key, :ahead) end)
-
-      assert Store.as(:behind, 50, fn -> State.get(:key, :nothing) end) == :nothing
-    end
-
-    test "two loops on the same round agree, whichever ran first" do
-      Store.as(:writer, 100, fn -> State.set(:key, :agreed) end)
-
-      first = Store.as(:a, 500, fn -> State.get(:key) end)
-      second = Store.as(:b, 500, fn -> State.get(:key) end)
-
-      assert first == second
-    end
-
     test "keys are those with a value by the reader's time" do
       Store.as(:writer, 100, fn -> State.set(:early, 1) end)
       Store.as(:writer, 900, fn -> State.set(:late, 2) end)

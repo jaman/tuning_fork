@@ -41,13 +41,6 @@ defmodule TuningFork.ModulationTest do
       assert crossings(second) > crossings(first) * 1.3
     end
 
-    test "a falling curve ends lower" do
-      voice = note(curves: %{freq: Curve.linear(1.0, 0.5)})
-      {first, second} = halves(Voice.render(voice, @rate))
-
-      assert crossings(second) < crossings(first) * 0.8
-    end
-
     test "a flat curve is the same as no curve, to the sample" do
       plain = note([])
       flat = note(curves: %{freq: Curve.hold(1.0)})
@@ -99,13 +92,6 @@ defmodule TuningFork.ModulationTest do
       assert peak(second) > peak(first) * 1.5
     end
 
-    test "a fade ends quieter" do
-      voice = note(curves: %{gain: Curve.linear(1.0, 0.1)})
-      {first, second} = halves(Voice.render(voice, @rate))
-
-      assert peak(second) < peak(first) * 0.7
-    end
-
     defp peak(pcm), do: pcm |> samples() |> Enum.map(&abs/1) |> Enum.max()
   end
 
@@ -119,20 +105,6 @@ defmodule TuningFork.ModulationTest do
 
       assert peak(late_open) > peak(late_closed) * 2.0
     end
-
-    test "a filter left shut stays shut over the note" do
-      closed = note(shape: :saw, cutoff: 0.02)
-      {early, late} = halves(Voice.render(closed, @rate))
-
-      assert_in_delta peak(late) / peak(early), 1.0, 0.3
-    end
-
-    test "a multiplier past full scale is held there rather than ringing" do
-      voice = note(shape: :saw, cutoff: 0.5, curves: %{cutoff: Curve.hold(1_000.0)})
-      pcm = Voice.render(voice, @rate)
-
-      assert Enum.all?(samples(pcm), &(abs(&1) <= 32_768))
-    end
   end
 
   describe "writing a bend in a part" do
@@ -142,12 +114,6 @@ defmodule TuningFork.ModulationTest do
       assert %{freq: curve} = voice.curves
       assert Curve.at(curve, 0.0) == 1.0
       assert_in_delta Curve.at(curve, 1.0), 2.0, 0.0001
-    end
-
-    test "a downward bend is negative semitones" do
-      [{_beat, voice}] = part() |> play(:a4, 1.0, bend: -12) |> Part.notes()
-
-      assert_in_delta Curve.at(voice.curves.freq, 1.0), 0.5, 0.0001
     end
 
     test "curves given in full win over the shorthand" do

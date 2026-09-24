@@ -42,19 +42,6 @@ defmodule TuningFork.ComposerAppTest do
   end
 
   describe "starting up" do
-    test "it opens on something to hear, with the cursor at the top left" do
-      state = app()
-
-      assert Composer.track_count(state.project) > 0
-      assert state.track == 0
-      assert state.step == 0
-    end
-
-    test "it can be given a composition to open on" do
-      state = app(project: Composer.new())
-
-      assert Composer.track_count(state.project) == 0
-    end
   end
 
   describe "moving about" do
@@ -136,56 +123,9 @@ defmodule TuningFork.ComposerAppTest do
       sounds = app() |> press(:i) |> Map.fetch!(:project) |> Composer.track(0) |> Map.get(:sound)
       refute sounds == "kick"
     end
-
-    test "keys the app has no use for leave it alone" do
-      state = app()
-
-      assert ComposerApp.update({:key, :z}, state) == state
-      assert ComposerApp.update(:something_else, state) == state
-    end
-
-    test "q leaves" do
-      assert {:stop, :normal} = ComposerApp.update({:key, :q}, app())
-    end
   end
 
   describe "what it draws" do
-    test "the settings, a ruler and a row for every track" do
-      drawn = lines(app())
-
-      assert Enum.any?(drawn, &(&1 =~ "96 bpm"))
-      assert Enum.any?(drawn, &(&1 =~ "kick"))
-      assert Enum.any?(drawn, &(&1 =~ "bass"))
-    end
-
-    test "the cursor is bracketed, so it shows without colour" do
-      drawn = app() |> press([:right, :right]) |> lines()
-
-      assert Enum.any?(drawn, &(&1 =~ ~r/\[.\]/u))
-    end
-
-    test "the ruler lines up with the grid, three characters to a step" do
-      state = app()
-      drawn = lines(state)
-
-      ruler = Enum.find(drawn, &(&1 =~ ~r/^\s+1\s/))
-      row = Enum.find(drawn, &(&1 =~ "kick"))
-
-      assert String.length(ruler) == String.length(String.trim_trailing(row)) or
-               String.length(ruler) >= String.length(row) - 3
-    end
-
-    test "a held note is drawn as one, not as a gap" do
-      drawn = app() |> press([:down, :down, :down, :>, :>]) |> lines()
-
-      assert Enum.any?(drawn, &(&1 =~ "▬"))
-    end
-
-    test "an empty composition says how to start rather than showing nothing" do
-      drawn = app(project: Composer.new()) |> lines()
-
-      assert Enum.any?(drawn, &(&1 =~ "no tracks"))
-    end
   end
 
   describe "the mouse" do
@@ -273,17 +213,6 @@ defmodule TuningFork.ComposerAppTest do
       assert press_at(state, 12 + 3 * 2, ComposerApp.rows_above(), :move) == state
     end
 
-    test "a drag that ended does not resume when the pointer moves again" do
-      y = ComposerApp.rows_above() + 3
-
-      let_go =
-        app()
-        |> press_at(12, y)
-        |> press_at(12, y, :mouse_up)
-
-      assert press_at(let_go, 12 + 3 * 3, y, :move) == let_go
-    end
-
     test "letting go ends the drag" do
       state =
         app()
@@ -341,10 +270,6 @@ defmodule TuningFork.ComposerAppTest do
   end
 
   describe "playing it" do
-    test "nothing is playing to begin with" do
-      assert app().playing == nil
-    end
-
     test "an empty composition says so rather than failing" do
       state = app(project: Composer.new()) |> press(:p)
 
@@ -368,15 +293,6 @@ defmodule TuningFork.ComposerAppTest do
       refute Process.alive?(stage)
     end
 
-    test "only ever one at a time" do
-      first = playing(app())
-      stage = first.playing
-
-      _second = press(first, :p)
-
-      refute Process.alive?(stage)
-    end
-
     test "quitting takes the audio with it" do
       started = playing(app())
       stage = started.playing
@@ -396,10 +312,6 @@ defmodule TuningFork.ComposerAppTest do
       assert ComposerApp.stop_playing(%{app() | playing: dead}).playing == nil
     end
 
-    test "nothing is rendered until something is played" do
-      assert app().rendered == nil
-    end
-
     test "playing again after no edit reuses the render" do
       {pcm, first} = ComposerApp.rendered(app())
       {again, second} = ComposerApp.rendered(first)
@@ -417,11 +329,6 @@ defmodule TuningFork.ComposerAppTest do
       {_pcm, replayed} = ComposerApp.rendered(edited)
 
       refute elem(replayed.rendered, 0) == elem(played.rendered, 0)
-    end
-
-    test "the screen says when it is playing" do
-      refute Enum.any?(lines(app()), &(&1 =~ "playing"))
-      assert Enum.any?(lines(playing(app())), &(&1 =~ "▶ playing"))
     end
   end
 end

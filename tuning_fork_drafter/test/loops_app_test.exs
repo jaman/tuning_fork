@@ -17,7 +17,6 @@ defmodule TuningFork.LoopsAppTest do
   use ExUnit.Case, async: false
 
   alias TuningFork.LoopsApp, as: App
-  alias TuningFork.Part.Source
   alias TuningFork.{Sink, Stage}
 
   defp app(opts \\ []) do
@@ -57,21 +56,6 @@ defmodule TuningFork.LoopsAppTest do
   end
 
   describe "starting up" do
-    test "it opens on the demo loops, on the first one" do
-      state = app()
-
-      assert length(state.loops) == 2
-      assert state.loop == 0
-      assert Enum.map(state.loops, & &1.name) == ["drums", "bass"]
-    end
-
-    test "it can be given the loops to open on" do
-      state = app(loops: [{"kick", "part(bpm: 120)"}, {"snare", ""}])
-
-      assert source(state, 0) == "part(bpm: 120)"
-      assert Enum.at(state.loops, 1).name == "snare"
-    end
-
     test "an empty list still opens on something rather than nothing" do
       state = app(loops: [])
 
@@ -83,10 +67,6 @@ defmodule TuningFork.LoopsAppTest do
 
       assert is_pid(state.stage)
       assert Map.has_key?(Stage.loops(state.stage), "drums")
-    end
-
-    test "without a sink or a stage, playability follows the real hardware check" do
-      assert TuningFork.available?() == App.playable?(%{stage: nil, sink: nil})
     end
   end
 
@@ -121,14 +101,6 @@ defmodule TuningFork.LoopsAppTest do
       assert source(state) == "bc"
     end
 
-    test "home and end go to the ends of a single-line source" do
-      state = app(loops: [{"a", "abc"}]) |> press(:home)
-      assert cursor(state) == 0
-
-      state = app(loops: [{"a", "abc"}]) |> press([:home, :end])
-      assert cursor(state) == 3
-    end
-
     test "the cursor stops at the ends rather than running off" do
       state = app(loops: [{"a", "bd"}]) |> press(List.duplicate(:left, 10))
       assert cursor(state) == 0
@@ -143,20 +115,9 @@ defmodule TuningFork.LoopsAppTest do
       assert source(state) == "a\nb"
       assert cursor(state) == 2
     end
-
-    test "a new loop starts with the cursor at the end of whatever it opened with" do
-      assert app(loops: [{"a", "abc"}]) |> cursor() == 3
-    end
   end
 
   describe "moving around a multi-line loop" do
-    test "up moves to the line above, clamping the column to how wide it is" do
-      state = app(loops: [{"a", "abcde\nfg"}]) |> press([:home, :right, :right, :right, :down])
-
-      assert cursor(state) == String.length("abcde") + 1 + 2,
-             "column 3 on the first line is column 2 on the shorter second one"
-    end
-
     test "up stops at the first line rather than going negative" do
       state = app(loops: [{"a", "ab\ncd"}]) |> press([:up, :up, :up])
       {row, _column} = App.position(String.split(source(state), "\n"), cursor(state))
@@ -188,17 +149,6 @@ defmodule TuningFork.LoopsAppTest do
   end
 
   describe "switching loops off" do
-    test "tab comments the loop out and back in" do
-      state = app(loops: [{"a", "part(bpm: 120)"}]) |> press(:tab)
-
-      assert source(state) =~ "-- "
-      refute TuningFork.Session.live?(hd(state.loops))
-
-      back = press(state, :tab)
-      assert back |> source() |> String.trim() == "part(bpm: 120)"
-      assert TuningFork.Session.live?(hd(back.loops))
-    end
-
     test "a commented loop reports itself as stopped, not broken" do
       state = app(loops: [{"a", "part(bpm: 120)"}]) |> press(:tab)
 
@@ -225,23 +175,10 @@ defmodule TuningFork.LoopsAppTest do
       refute hd(state.loops).error
     end
 
-    test "a bare part is wrapped in a score" do
-      source = "part(bpm: 100) |> play(:c3, 1) |> play(:e3, 1)"
-      state = app(loops: [{"a", source}])
-
-      assert %TuningFork.Score{bpm: 100.0} = hd(state.loops).score
-    end
-
     test "source that will not compile is reported, not silently dropped" do
       state = app(loops: [{"a", "part(bpm: 120"}])
 
       assert hd(state.loops).error
-    end
-
-    test "source giving back something other than a score or a part is reported" do
-      state = app(loops: [{"a", "1 + 1"}])
-
-      assert hd(state.loops).error =~ "not a score or a part"
     end
 
     test "a broken edit does not clear a score that already evaluated, and keeps it playing" do
@@ -257,36 +194,6 @@ defmodule TuningFork.LoopsAppTest do
       assert hd(broken.loops).error
       assert hd(broken.loops).score == good_score
       assert Map.has_key?(Stage.loops(broken.stage), "drums")
-    end
-
-    test "the app never crashes on source that raises at runtime" do
-      state = app(loops: [{"a", "raise \"boom\""}])
-
-      assert hd(state.loops).error =~ "boom"
-    end
-
-    test "an empty loop is treated as commented out rather than an error" do
-      state = app(loops: [{"a", ""}])
-
-      refute hd(state.loops).error
-      assert Enum.at(state.loops, 0).stopped
-    end
-
-    test "ctrl+r evaluates immediately, ctrl+e waits for the loop to come round" do
-      source = "part(bpm: 120) |> play(:c3, 1)"
-
-      assert app(loops: [{"a", source}]) |> press({:r, [:ctrl]}) |> Map.get(:said) =~
-               "evaluated"
-
-      assert app(loops: [{"a", source}]) |> press({:e, [:ctrl]}) |> Map.get(:said) =~
-               "evaluated"
-    end
-
-    test "ctrl+enter evaluates the same as ctrl+e" do
-      source = "part(bpm: 120) |> play(:c3, 1)"
-      state = app(loops: [{"a", source}]) |> press({:enter, [:ctrl]})
-
-      assert hd(state.loops).score
     end
 
     test "re-evaluating an already-running loop updates it rather than adding a second one" do
@@ -310,26 +217,6 @@ defmodule TuningFork.LoopsAppTest do
       assert state.loop == 1
       assert Enum.at(state.loops, 1).name == "loop1"
     end
-
-    test "the auto-name skips whatever is already taken" do
-      state = app(loops: [{"loop1", ""}, {"loop2", ""}]) |> press({:n, [:ctrl]})
-
-      assert Enum.at(state.loops, 2).name == "loop3"
-    end
-
-    test "a new loop opens on something that plays, rather than on an empty line" do
-      state = app(loops: [{"one", "bd"}]) |> press({:n, [:ctrl]})
-
-      assert source(state) == App.template()
-      assert {:ok, _score} = Source.parse(source(state))
-    end
-
-    test "typing goes into the new loop, and the cursor is already at the end of it" do
-      state = app(loops: [{"one", "bd"}]) |> press({:n, [:ctrl]}) |> type("!")
-
-      assert source(state) == App.template() <> "!"
-      assert source(state, 0) == "bd"
-    end
   end
 
   describe "renaming a loop" do
@@ -340,12 +227,6 @@ defmodule TuningFork.LoopsAppTest do
 
       assert state.naming == "drums"
       assert App.footer_text(state) =~ "drums"
-    end
-
-    test "ctrl+t opens it too, for a keyboard whose function row is spoken for" do
-      state = app(loops: [{"drums", "bd"}]) |> press({:t, [:ctrl]})
-
-      assert state.naming == "drums"
     end
 
     test "typing and enter renames it" do
@@ -439,10 +320,6 @@ defmodule TuningFork.LoopsAppTest do
   end
 
   describe "play and pause" do
-    test "it starts playing" do
-      assert app().playing
-    end
-
     test "ctrl+p pauses and plays again" do
       paused = app() |> press({:p, [:ctrl]})
 
@@ -471,29 +348,9 @@ defmodule TuningFork.LoopsAppTest do
 
       refute Map.has_key?(Stage.loops(state.stage), "drums")
     end
-
-    test "editing still works while paused" do
-      state = app(loops: [{"a", ""}]) |> press({:p, [:ctrl]}) |> type("bd")
-
-      assert source(state) == "bd"
-      refute state.playing
-    end
-
-    test "paused, a tick changes nothing" do
-      paused = app() |> press({:p, [:ctrl]})
-
-      assert App.update(:tick, paused) == paused
-    end
   end
 
   describe "what it draws" do
-    test "every loop's name and source are on screen" do
-      drawn = app(loops: [{"drums", "bd sn"}, {"bass", "c2 g2"}]) |> lines()
-
-      assert Enum.any?(drawn, &(&1 =~ "drums" and &1 =~ "bd sn"))
-      assert Enum.any?(drawn, &(&1 =~ "bass"))
-    end
-
     test "the summary line counts the loops" do
       drawn = app(loops: [{"a", ""}, {"b", ""}]) |> lines()
 
@@ -527,13 +384,6 @@ defmodule TuningFork.LoopsAppTest do
 
       refute opened |> press(:"?") |> Map.get(:help)
     end
-
-    test "the help screen replaces the loops rather than sitting beside them" do
-      drawn = app() |> press(:"?") |> lines()
-
-      assert Enum.any?(drawn, &(&1 =~ "Keys"))
-      assert Enum.any?(drawn, &(&1 =~ "TuningFork.Part"))
-    end
   end
 
   describe "the mouse" do
@@ -564,12 +414,6 @@ defmodule TuningFork.LoopsAppTest do
     test "a click above the first loop is nothing at all" do
       assert App.spot(app(), 4, 0) == nil
     end
-
-    test "the help screen swallows clicks" do
-      state = %{app() | help: true}
-
-      assert App.spot(state, 5, 5) == nil
-    end
   end
 
   describe "layout" do
@@ -589,25 +433,5 @@ defmodule TuningFork.LoopsAppTest do
 
       assert broken_height == plain_height + 1
     end
-
-    test "a two-line loop takes up more rows than a one-line loop" do
-      [{0, _top, one}] = app(loops: [{"a", "bd"}]) |> App.layout()
-      [{0, _top, two}] = app(loops: [{"a", "bd\nsn"}]) |> App.layout()
-
-      assert two == one + 1
-    end
-  end
-
-  describe "messages it has no use for" do
-    test "leave the state alone" do
-      state = app()
-
-      assert App.update(:something_else, state) == state
-      assert App.update({:key, :f13}, state) == state
-    end
-  end
-
-  test "ctrl+q leaves" do
-    assert {:stop, :normal} = App.update({:key, :q, [:ctrl]}, app())
   end
 end

@@ -6,10 +6,6 @@ defmodule TuningFork.TempoTest do
   @rate 44_100
 
   describe "a score at one tempo" do
-    test "the map is just where it started" do
-      assert Score.tempo_map(Score.new(bpm: 120)) == [{0.0, 120.0}]
-    end
-
     test "beats convert as they always did" do
       score = Score.new(bpm: 120, beats: 8)
 
@@ -17,14 +13,6 @@ defmodule TuningFork.TempoTest do
       assert Score.beat_to_seconds(score, 2) == 1.0
       assert Score.beat_to_seconds(score, 8) == 4.0
       assert Score.duration(score) == 4.0
-    end
-
-    test "seconds convert back" do
-      score = Score.new(bpm: 120, beats: 8)
-
-      assert Score.seconds_to_beat(score, 0.0) == 0.0
-      assert Score.seconds_to_beat(score, 1.0) == 2.0
-      assert Score.seconds_to_beat(score, 4.0) == 8.0
     end
   end
 

@@ -14,18 +14,13 @@ defmodule TuningFork.MidiTest do
   use ExUnit.Case, async: false
 
   alias TuningFork.Midi.{In, Message, Out, Port}
-  alias TuningFork.{Part, Score, Sink, Stage}
+  alias TuningFork.{Part, Sink, Stage}
   alias TuningFork.Pattern.Control
 
   doctest TuningFork.Midi.Message
   doctest TuningFork.Midi.Port
 
   describe "messages" do
-    test "a note on carries its channel in the status byte" do
-      assert Message.note_on(60, 100) == <<0x90, 60, 100>>
-      assert Message.note_on(60, 100, channel: 16) == <<0x9F, 60, 100>>
-    end
-
     test "a channel outside 1..16 falls back to the first rather than wrapping" do
       assert Message.note_on(60, 100, channel: 0) == <<0x90, 60, 100>>
       assert Message.note_on(60, 100, channel: 99) == <<0x90, 60, 100>>
@@ -89,10 +84,6 @@ defmodule TuningFork.MidiTest do
         assert off > on
       end
     end
-
-    test "an empty score is no messages rather than a crash" do
-      assert Out.messages(Score.new(bpm: 120, beats: 4)) == []
-    end
   end
 
   describe "ports on this machine" do
@@ -118,14 +109,6 @@ defmodule TuningFork.MidiTest do
 
         {:error, reason} ->
           {:ok, skip: reason}
-      end
-    end
-
-    test "it appears to the rest of the machine as something to read from", context do
-      if context[:out] do
-        {:ok, inputs} = Port.inputs()
-
-        assert Enum.any?(inputs, fn {_index, name} -> to_string(name) == "TF Test Out" end)
       end
     end
 

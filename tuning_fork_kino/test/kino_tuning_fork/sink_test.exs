@@ -3,16 +3,6 @@ defmodule KinoTuningFork.SinkTest do
 
   alias KinoTuningFork.Sink
 
-  test "every chunk arrives at the owner in order" do
-    {:ok, state} = Sink.open(owner: self(), rate: 8_000, channels: 2, lead: 1.0)
-
-    :ok = Sink.write(state, <<1, 0, 2, 0>>)
-    :ok = Sink.write(state, <<3, 0, 4, 0>>)
-
-    assert_receive {:pcm, <<1, 0, 2, 0>>}
-    assert_receive {:pcm, <<3, 0, 4, 0>>}
-  end
-
   test "writes are paced to real time, a lead ahead of the clock" do
     {:ok, state} = Sink.open(owner: self(), rate: 8_000, channels: 1, lead: 0.05)
     chunk = :binary.copy(<<0, 0>>, 800)

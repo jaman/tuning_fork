@@ -23,7 +23,8 @@ defmodule KinoTuningFork.MidiCell do
   }
 
   def init(attrs, ctx) do
-    fields = Map.new(@defaults, fn {field, default} -> {field, attrs[field] || default} end)
+    fields =
+      Map.new(@defaults, fn {field, default} -> {field, Map.get(attrs, field, default)} end)
 
     {:ok, assign(ctx, fields: fields)}
   end
