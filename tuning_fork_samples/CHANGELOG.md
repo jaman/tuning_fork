@@ -1,5 +1,35 @@
 # Changelog
 
+## [Unreleased]
+
+### Breaking changes
+
+* None since 0.1.11. 1.0.0 marks the API as stable.
+
+## [0.1.11]
+
+* Released alongside the family; no changes to this package.
+
+## [0.1.10]
+
+* Released alongside the family; no changes to this package.
+
+## [0.1.9]
+
+* Released alongside the family; no changes to this package.
+
+## [0.1.8]
+
+* Released alongside the family; no changes to this package.
+
+## [0.1.7]
+
+* Released alongside the family; no changes to this package.
+
+## [0.1.6]
+
+* Released alongside the family; no changes to this package.
+
 ## 0.1.5
 
 * Version brought level with the rest of the family; nothing else changed.

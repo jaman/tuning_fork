@@ -1,5 +1,37 @@
 # Changelog
 
+## [Unreleased]
+
+### Breaking changes
+
+* None since 0.1.11. 1.0.0 marks the API as stable.
+
+## [0.1.11]
+
+* `DESIGN.md` lists the parts of drafter's API the apps rely on.
+
+## [0.1.10]
+
+* Released alongside the family; no changes to this package.
+
+## [0.1.9]
+
+* Released alongside the family; no changes to this package.
+
+## [0.1.8]
+
+* Released alongside the family; no changes to this package.
+
+## [0.1.7]
+
+* The `french_curve` dependency carries `override: true` only when taken from a local
+  path, not from Hex.
+
+## [0.1.6]
+
+* `drafter` (`~> 0.4.0`) and `french_curve` (`~> 0.1.4`) come from Hex, so the package
+  installs without either checked out beside it.
+
 ## 0.1.5
 
 * `mix tuning_fork.compose` plays the grid live on a stage, repeat by repeat, in place of a
