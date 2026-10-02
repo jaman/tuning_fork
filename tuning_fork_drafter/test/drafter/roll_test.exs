@@ -17,12 +17,14 @@ defmodule TuningFork.Drafter.RollTest do
     kept_version = System.get_env("TERM_PROGRAM_VERSION")
     kept_term = System.get_env("TERM")
     kept_window = System.get_env("KITTY_WINDOW_ID")
+    kept_lc = System.get_env("LC_TERMINAL")
 
     on_exit(fn ->
       put("TERM_PROGRAM", kept)
       put("TERM_PROGRAM_VERSION", kept_version)
       put("TERM", kept_term)
       put("KITTY_WINDOW_ID", kept_window)
+      put("LC_TERMINAL", kept_lc)
     end)
 
     :ok
@@ -34,6 +36,7 @@ defmodule TuningFork.Drafter.RollTest do
   defp as_kitty do
     System.delete_env("TERM_PROGRAM")
     System.delete_env("TERM_PROGRAM_VERSION")
+    System.delete_env("LC_TERMINAL")
     System.put_env("TERM", "xterm-kitty")
   end
 
