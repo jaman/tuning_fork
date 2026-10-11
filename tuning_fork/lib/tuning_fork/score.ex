@@ -217,7 +217,7 @@ defmodule TuningFork.Score do
     room = (frames - offset) * Mixer.bytes_per_frame(channels)
 
     case pcm do
-      <<head::binary-size(room), tail::binary>> when tail != <<>> ->
+      <<head::binary-size(^room), tail::binary>> when tail != <<>> ->
         [{offset, head} | wrap(0, tail, frames, channels)]
 
       _fits ->

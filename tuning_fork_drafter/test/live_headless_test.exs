@@ -137,7 +137,7 @@ defmodule TuningFork.LiveHeadlessTest do
       press(ctx, 2, App.transport_row())
       refute get_state(ctx).playing
 
-      send_click(ctx, 2, App.transport_row())
+      send_mouse(ctx, %{type: :mouse_up, x: 2, y: App.transport_row(), button: :left})
       Process.sleep(150)
 
       refute get_state(ctx).playing, "the mouse_up should not play it again"

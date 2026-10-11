@@ -79,7 +79,7 @@ defmodule TuningFork.Flac do
 
   defp metadata(<<last::1, _type::7, length::24, rest::binary>>, %{} = info) do
     case rest do
-      <<_block::binary-size(length), after_block::binary>> ->
+      <<_block::binary-size(^length), after_block::binary>> ->
         if last == 1, do: {:ok, info, after_block}, else: metadata(after_block, info)
 
       _short ->
@@ -99,7 +99,7 @@ defmodule TuningFork.Flac do
     with {:ok, header, rest} <- frame_header(rest, info),
          {:ok, channels, rest} <- subframes(rest, header, []) do
       pad = rem(bit_size(rest), 8)
-      <<_pad::size(pad), _crc::16, next::binary>> = rest
+      <<_pad::size(^pad), _crc::16, next::binary>> = rest
       frames(next, info, [decorrelate(channels, header.assignment) | acc])
     else
       _short -> {:error, :truncated}
@@ -203,7 +203,7 @@ defmodule TuningFork.Flac do
 
   defp subframe_of(0, rest, size, bits) do
     case rest do
-      <<value::signed-size(bits), rest::bits>> -> {:ok, List.duplicate(value, size), rest}
+      <<value::signed-size(^bits), rest::bits>> -> {:ok, List.duplicate(value, size), rest}
       _short -> {:error, :truncated}
     end
   end
@@ -212,8 +212,8 @@ defmodule TuningFork.Flac do
     total = size * bits
 
     case rest do
-      <<raw::bits-size(total), rest::bits>> ->
-        {:ok, for(<<value::signed-size(bits) <- raw>>, do: value), rest}
+      <<raw::bits-size(^total), rest::bits>> ->
+        {:ok, for(<<value::signed-size(^bits) <- raw>>, do: value), rest}
 
       _short ->
         {:error, :truncated}
@@ -245,8 +245,8 @@ defmodule TuningFork.Flac do
     total = order * bits
 
     case rest do
-      <<raw::bits-size(total), rest::bits>> ->
-        {:ok, for(<<value::signed-size(bits) <- raw>>, do: value), rest}
+      <<raw::bits-size(^total), rest::bits>> ->
+        {:ok, for(<<value::signed-size(^bits) <- raw>>, do: value), rest}
 
       _short ->
         {:error, :truncated}
@@ -259,8 +259,8 @@ defmodule TuningFork.Flac do
     total = order * bits
 
     case rest do
-      <<raw::bits-size(total), rest::bits>> ->
-        {:ok, for(<<value::signed-size(bits) <- raw>>, do: value), shift, rest}
+      <<raw::bits-size(^total), rest::bits>> ->
+        {:ok, for(<<value::signed-size(^bits) <- raw>>, do: value), shift, rest}
 
       _short ->
         {:error, :truncated}
@@ -289,8 +289,8 @@ defmodule TuningFork.Flac do
 
     outcome =
       case rest do
-        <<^escape::size(param_bits), raw_bits::5, rest::bits>> -> raw(rest, samples, raw_bits)
-        <<param::size(param_bits), rest::bits>> -> rice(rest, param, samples, [])
+        <<^escape::size(^param_bits), raw_bits::5, rest::bits>> -> raw(rest, samples, raw_bits)
+        <<param::size(^param_bits), rest::bits>> -> rice(rest, param, samples, [])
         _short -> {:error, :truncated}
       end
 
@@ -303,8 +303,8 @@ defmodule TuningFork.Flac do
     total = samples * raw_bits
 
     case rest do
-      <<raw::bits-size(total), rest::bits>> ->
-        {:ok, for(<<value::signed-size(raw_bits) <- raw>>, do: value), rest}
+      <<raw::bits-size(^total), rest::bits>> ->
+        {:ok, for(<<value::signed-size(^raw_bits) <- raw>>, do: value), rest}
 
       _short ->
         {:error, :truncated}
@@ -315,7 +315,7 @@ defmodule TuningFork.Flac do
 
   defp rice(rest, param, remaining, acc) do
     case unary(rest, 0) do
-      {quotient, <<remainder::size(param), rest::bits>>} ->
+      {quotient, <<remainder::size(^param), rest::bits>>} ->
         folded = quotient <<< param ||| remainder
         value = bxor(folded >>> 1, -(folded &&& 1))
         rice(rest, param, remaining - 1, [value | acc])
@@ -329,7 +329,7 @@ defmodule TuningFork.Flac do
 
   defp unary(<<byte::8, _::bits>> = bits, acc) do
     zeros = elem(@clz_table, byte)
-    <<_::size(zeros + 1), rest::bits>> = bits
+    <<_::size(^zeros + 1), rest::bits>> = bits
     {acc + zeros, rest}
   end
 

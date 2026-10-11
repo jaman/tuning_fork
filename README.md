@@ -5,13 +5,15 @@ packages around it, each published to hex.pm on its own.
 
 | Package | What | Hex |
 | --- | --- | --- |
-| [`tuning_fork`](tuning_fork) | Voices, scores, live patterns, Sonic Pi and Strudel spellings, MIDI files, OSC. Pure Elixir, no dependencies | `{:tuning_fork, "~> 0.1.5"}` |
-| [`tuning_fork_speaker`](tuning_fork_speaker) | Playback through this machine's sound device (C, via miniaudio) | `{:tuning_fork_speaker, "~> 0.1.5"}` |
-| [`tuning_fork_midi`](tuning_fork_midi) | MIDI devices: scores and live patterns out, a keyboard in (C, via minimidio) | `{:tuning_fork_midi, "~> 0.1.5"}` |
-| [`tuning_fork_samples`](tuning_fork_samples) | Sonic Pi's 206 recordings by name, fetched as they play | `{:tuning_fork_samples, "~> 0.1.5"}` |
-| [`tuning_fork_composer`](tuning_fork_composer) | A step sequencer as data, writing TuningFork source | `{:tuning_fork_composer, "~> 0.1.5"}` |
-| [`tuning_fork_kino`](tuning_fork_kino) | Livebook: a streaming stage widget and five smart cells | `{:tuning_fork_kino, "~> 0.1.5"}` |
-| [`tuning_fork_drafter`](tuning_fork_drafter) | Terminal front ends drawn with Drafter | from this repository |
+| [`tuning_fork`](tuning_fork) | Voices, scores, live patterns, Sonic Pi and Strudel spellings, MIDI files, OSC. Pure Elixir, no dependencies | `{:tuning_fork, "~> 0.1.12"}` |
+| [`tuning_fork_speaker`](tuning_fork_speaker) | Playback through this machine's sound device (C, via miniaudio) | `{:tuning_fork_speaker, "~> 0.1.12"}` |
+| [`tuning_fork_midi`](tuning_fork_midi) | MIDI devices: scores and live patterns out, a keyboard in (C, via minimidio) | `{:tuning_fork_midi, "~> 0.1.12"}` |
+| [`tuning_fork_samples`](tuning_fork_samples) | Sonic Pi's 206 recordings by name, fetched as they play | `{:tuning_fork_samples, "~> 0.1.12"}` |
+| [`tuning_fork_composer`](tuning_fork_composer) | A step sequencer as data, writing TuningFork source | `{:tuning_fork_composer, "~> 0.1.12"}` |
+| [`tuning_fork_kino`](tuning_fork_kino) | Livebook: a streaming stage widget and five smart cells | `{:tuning_fork_kino, "~> 0.1.12"}` |
+| [`tuning_fork_mt32`](tuning_fork_mt32) | MIDI played as a Roland MT-32 plays it, through your own installation of the Munt emulator | `{:tuning_fork_mt32, "~> 0.1.12"}` |
+| [`tuning_fork_wma`](tuning_fork_wma) | xWMA audio (XACT wave banks and `.xwma` files) decoded in pure Elixir, no `ffmpeg` | `{:tuning_fork_wma, "~> 0.1.12"}` |
+| [`tuning_fork_drafter`](tuning_fork_drafter) | Terminal front ends drawn with Drafter; needs drafter `~> 0.5` | `{:tuning_fork_drafter, "~> 0.1.12"}` |
 
 Start with [`tuning_fork/README.md`](tuning_fork/README.md), or hear it first: the tour
 notebook is one tune written three ways — a grid, Strudel's syntax, Sonic Pi's — on the
@@ -19,7 +21,7 @@ same recordings, and opens straight into Livebook.
 
 [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fjaman%2Ftuning_fork%2Fmain%2Ftuning_fork_kino%2Fnotebooks%2Fcomposer.livemd)
 
-## Working from this repository
+## Contributing
 
 Each package is an ordinary Mix project in its own directory; `mix test`, `mix credo --strict`
 and `mix docs` run inside each. Within the repository the packages depend on each other by

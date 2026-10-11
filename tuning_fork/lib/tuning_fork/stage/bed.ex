@@ -4,12 +4,14 @@ defmodule TuningFork.Stage.Bed do
   playhead, each at its own gain, replaceable at a bar boundary with a cross-fade.
 
   A bed is `nil` when nothing loops. `chunk/3` produces the next chunk of the mix and the
-  bed to carry forward; `replace/3` and `gains/2` change what plays.
+  bed to carry forward; `replace/3`, `gains/2` and `drop/2` change what plays. A layer
+  reads from the playhead less the frame it started at: 0 unless it was added with
+  `from_start: true`, which starts it at its own beginning when it begins to sound.
   """
 
   alias TuningFork.Mixer
 
-  @type layer :: %{pcm: binary(), gain: float()}
+  @type layer :: %{pcm: binary(), gain: float(), start: non_neg_integer() | :fresh}
   @type fade :: %{
           layers: %{term() => layer()},
           position: non_neg_integer(),
@@ -35,14 +37,18 @@ defmodule TuningFork.Stage.Bed do
   def replace(bed, pcms, opts) do
     gains = Keyword.get(opts, :gains, %{})
 
+    start = if Keyword.get(opts, :from_start, false), do: :fresh, else: 0
+
     incoming =
-      Map.new(pcms, fn {name, pcm} -> {name, %{pcm: pcm, gain: Map.get(gains, name, 1.0) / 1}} end)
+      Map.new(pcms, fn {name, pcm} ->
+        {name, %{pcm: pcm, gain: Map.get(gains, name, 1.0) / 1, start: start}}
+      end)
 
     fade_frames = div(Keyword.get(opts, :fade_ms, 0) * Keyword.get(opts, :rate, 44_100), 1000)
 
     case {bed, Keyword.get(opts, :at)} do
       {nil, _at} ->
-        %__MODULE__{layers: incoming}
+        %__MODULE__{layers: started(incoming, 0)}
 
       {%__MODULE__{} = bed, {:bar, bar}} when bar > 0 ->
         %{bed | pending: {merged(bed, incoming, opts), bar, fade_frames}}
@@ -56,16 +62,28 @@ defmodule TuningFork.Stage.Bed do
     if Keyword.get(opts, :keep, false), do: Map.merge(bed.layers, incoming), else: incoming
   end
 
-  defp switch(bed, layers, 0), do: %{bed | layers: layers, pending: nil}
+  defp switch(bed, layers, 0), do: %{bed | layers: started(layers, bed.position), pending: nil}
 
   defp switch(bed, layers, fade_frames) do
     %{
       bed
-      | layers: layers,
+      | layers: started(layers, bed.position),
         pending: nil,
         fade: %{layers: bed.layers, position: bed.position, left: fade_frames, total: fade_frames}
     }
   end
+
+  defp started(layers, position) do
+    Map.new(layers, fn
+      {name, %{start: :fresh} = layer} -> {name, %{layer | start: position}}
+      other -> other
+    end)
+  end
+
+  @doc "The bed without the layers named in `names`; the others play on as they were."
+  @spec drop(t() | nil, [term()]) :: t() | nil
+  def drop(nil, _names), do: nil
+  def drop(%__MODULE__{} = bed, names), do: %{bed | layers: Map.drop(bed.layers, names)}
 
   @doc "Set the gain of the named layers; names not playing are ignored."
   @spec gains(t() | nil, %{term() => number()}) :: t() | nil
@@ -115,8 +133,9 @@ defmodule TuningFork.Stage.Bed do
     wanted = frames * bytes_per_frame
 
     layers
-    |> Enum.map(fn {_name, %{pcm: pcm, gain: gain}} ->
-      pcm |> read_around(position * bytes_per_frame, wanted, bytes_per_frame) |> Mixer.scale(gain)
+    |> Enum.map(fn {_name, %{pcm: pcm, gain: gain} = layer} ->
+      from = max(position - Map.get(layer, :start, 0), 0)
+      pcm |> read_around(from * bytes_per_frame, wanted, bytes_per_frame) |> Mixer.scale(gain)
     end)
     |> Mixer.mix()
     |> pad(wanted)
@@ -164,7 +183,7 @@ defmodule TuningFork.Stage.Bed do
   defp ramp(pcm, from, to, channels) do
     frames = div(byte_size(pcm), Mixer.bytes_per_frame(channels))
 
-    for <<frame::binary-size(channels * 2) <- pcm>>, reduce: {0, <<>>} do
+    for <<frame::binary-size(^channels * 2) <- pcm>>, reduce: {0, <<>>} do
       {index, acc} ->
         gain = from + (to - from) * index / max(frames - 1, 1)
         {index + 1, acc <> Mixer.scale(frame, gain)}

@@ -37,7 +37,7 @@ defmodule TuningFork.Gm do
     * `:drum_gain` — the kit's level against everything else, default 1.0
     * `:plain` — one voice for everything, ignoring the program changes, default false
     * anything `TuningFork.Midi.to_score/2` takes — `:bpm`, `:drum_channels`, `:quantize`,
-      `:bend_range`, `:bend_points`, `:beats`
+      `:bend_range`, `:bend_points`, `:level_points`, `:beats`
   """
   @spec score(Midi.t(), keyword()) :: Score.t()
   def score(%Midi{} = midi, opts \\ []) do

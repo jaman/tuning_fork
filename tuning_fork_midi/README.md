@@ -10,8 +10,12 @@ MIDI device; without it, everything else still works, including writing a `.mid`
 ## Setup
 
 ```elixir
-{:tuning_fork, "~> 0.1"},
-{:tuning_fork_midi, "~> 0.1"}
+def deps do
+  [
+    {:tuning_fork, "~> 0.1.12"},
+    {:tuning_fork_midi, "~> 0.1"}
+  ]
+end
 ```
 
 Building needs a C compiler, and on Linux the ALSA headers (`libasound2-dev`).
@@ -140,18 +144,6 @@ Every function answers `{:error, reason}` rather than raising, so a program that
 with and without MIDI hardware does not have to branch. `TuningFork.Midi.Port.available?/0`
 says whether the NIF loaded at all.
 
-## What this is built on
-
-[minimidio](https://github.com/octetta/minimidio) by Joseph Stewart, MIT, vendored at
-`c_src/minimidio.h`. It is the single-file C library that speaks CoreMIDI, ALSA, WinMM and
-Web MIDI; this package is the NIF over it.
-
-The inbound path follows [erlsci/midiio](https://github.com/erlsci/midiio) (Apache-2.0), which
-worked out the lifecycle a callback from a non-BEAM thread needs: keep the resource for as
-long as a callback might fire, build the message in a fresh process-independent environment,
-send it with a `NULL` caller env because the backend thread is not a scheduler, and monitor
-the owner so an abandoned port is reclaimed. Thanks to that project for doing it first.
-
 ## Files, rather than devices
 
 `TuningFork.Midi.encode/2` and `write!/3` in core turn a score into a Standard MIDI File, and
@@ -164,3 +156,11 @@ none of this package.
 mix run examples/pattern_out.exs   # a live pattern out of a virtual port, with MIDI clock
 mix run examples/keyboard.exs      # the first input played on a stage, as a piano
 ```
+
+## What this is built on
+
+[minimidio](https://github.com/octetta/minimidio) by Joseph Stewart, MIT, vendored at
+`c_src/minimidio.h`. It is the single-file C library that speaks CoreMIDI, ALSA, WinMM and
+Web MIDI; this package is the NIF over it.
+
+The input path follows [erlsci/midiio](https://github.com/erlsci/midiio) (Apache-2.0).

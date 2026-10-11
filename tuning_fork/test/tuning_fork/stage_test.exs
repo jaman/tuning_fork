@@ -366,6 +366,111 @@ defmodule TuningFork.StageTest do
     end
   end
 
+  describe "sounding under a key" do
+    defp tone(seconds),
+      do:
+        Voice.new(shape: :sine, freq: 440.0, envelope: Envelope.new(sustain: 1.0, hold: seconds))
+
+    defp channel(pcm, index) do
+      for <<left::16-signed-little, right::16-signed-little <- pcm>>,
+        do: elem({left, right}, index)
+    end
+
+    defp await_chunk(test) do
+      1_000 |> chunks_for() |> Enum.find(test)
+    end
+
+    defp chunks_for(milliseconds) do
+      until = System.monotonic_time(:millisecond) + milliseconds
+      chunks_until(until, [])
+    end
+
+    defp chunks_until(until, heard) do
+      left = until - System.monotonic_time(:millisecond)
+
+      receive do
+        {:pcm, pcm} when left > 0 -> chunks_until(until, [pcm | heard])
+      after
+        max(left, 0) -> Enum.reverse(heard)
+      end
+    end
+
+    test "a voice played under a key replaces the one already sounding there" do
+      stage = start(rate: 8_000)
+
+      Stage.play(stage, tone(1.0), key: :channel)
+      Stage.play(stage, tone(1.0), key: :channel, fade: 0.01)
+      Process.sleep(200)
+
+      assert Stage.sounding(stage) == 1
+    end
+
+    test "a keyed voice ends with its envelope, without a release" do
+      stage = start(rate: 8_000)
+
+      Stage.play(stage, tone(0.05), key: :channel)
+      Process.sleep(400)
+
+      assert Stage.sounding(stage) == 0
+    end
+
+    test "placing a key hard left empties the right channel while it sounds" do
+      stage = start(rate: 8_000)
+
+      Stage.play(stage, tone(1.0), key: :channel)
+      assert await_sound()
+      Stage.place(stage, :channel, pan: -1.0)
+
+      assert await_chunk(fn pcm -> loud?(pcm) and Enum.all?(channel(pcm, 1), &(&1 == 0)) end)
+    end
+
+    test "a gain of zero silences the key and leaves the voice sounding" do
+      stage = start(rate: 8_000)
+
+      Stage.play(stage, tone(10.0), key: :channel, gain: 1.0)
+      assert await_sound()
+      Stage.place(stage, :channel, gain: 0.0)
+
+      assert await_chunk(&(byte_size(&1) > 0 and not loud?(&1)))
+      assert Stage.sounding(stage) == 1
+    end
+
+    test "a held voice takes its place from the options" do
+      stage = start(rate: 8_000)
+
+      Stage.hold(stage, :note, tone(0.05), pan: 1.0)
+
+      assert await_chunk(fn pcm -> loud?(pcm) and Enum.all?(channel(pcm, 0), &(&1 == 0)) end)
+    end
+
+    test "keyed mono PCM is placed in the field and moved by place" do
+      stage = start(rate: 8_000)
+      mono = for(_ <- 1..16_000, into: <<>>, do: <<8_000::16-signed-little>>)
+
+      Stage.play_pcm(stage, mono, key: :clip, pan: -1.0)
+      assert await_chunk(fn pcm -> loud?(pcm) and Enum.all?(channel(pcm, 1), &(&1 == 0)) end)
+
+      Stage.place(stage, :clip, pan: 1.0)
+      assert await_chunk(fn pcm -> loud?(pcm) and Enum.all?(channel(pcm, 0), &(&1 == 0)) end)
+    end
+
+    test "a voice replaced under a key fades where it was placed, not centred" do
+      stage = start(rate: 8_000)
+
+      Stage.play(stage, tone(1.0), key: :channel, pan: -1.0)
+      assert await_sound()
+      Stage.play(stage, tone(1.0), key: :channel, fade: 0.2)
+
+      heard = chunks_for(300)
+      assert Enum.any?(heard, &loud?/1)
+      assert Enum.all?(heard, fn pcm -> Enum.all?(channel(pcm, 1), &(&1 == 0)) end)
+    end
+
+    test "a negative gain is refused in the caller" do
+      assert_raise ArgumentError, fn -> Stage.play(self(), tone(0.1), key: :k, gain: -1) end
+    end
+  end
+
   describe "stopping" do
     test "takes the writer with it rather than leaving it running" do
       stage = start()

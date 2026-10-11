@@ -22,6 +22,7 @@ defmodule TuningFork.Midi do
           | {:pitch_bend, 0..15, integer()}
           | {:tempo, pos_integer()}
           | {:track_name, binary()}
+          | {:sysex, binary()}
 
   @type t :: %__MODULE__{
           format: 0..2,
@@ -36,6 +37,7 @@ defmodule TuningFork.Midi do
   @gm_percussion 27..87
 
   @kit 35..59
+  @gm_levels {100, 127}
 
   @doc """
   A `TuningFork.Score` as a Standard MIDI File, ready to write.
@@ -165,6 +167,11 @@ defmodule TuningFork.Midi do
   not tracks are skipped, a note on at velocity zero is returned as a note off, and aftertouch
   is dropped.
 
+  A system exclusive message is returned whole as `{:sysex, bytes}`, from its `0xF0` to its
+  closing `0xF7`, at the tick it starts on. A message the file splits across a `0xF0` packet
+  and following `0xF7` packets is joined into one. An `0xF7` packet that continues no open
+  message is dropped.
+
   Fails with `{:error, :not_a_midi_file}`, `{:error, {:unsupported_format, format}}`,
   `{:error, :smpte_division_unsupported}` or `{:error, :zero_division}`.
   """
@@ -190,9 +197,15 @@ defmodule TuningFork.Midi do
   @doc """
   Turn a parsed file into a score.
 
-  Tempo changes become the score's tempo map, note lengths become envelope decay, velocity
-  scales the synth's gain, and pitch bend becomes a frequency multiplier and a `:freq` curve.
-  Control changes other than pitch bend are dropped.
+  Tempo changes become the score's tempo map. A note's length is how long its key is held:
+  the synth's envelope runs at its own speeds and is let go at the note's end, as
+  `TuningFork.Envelope.gated/2` describes; drums keep their own length. Velocity scales the
+  synth's gain, and so do the channel's volume (controller 7) and expression (controller
+  11), as General MIDI has them: volume 100 and expression 127 until the file sets them, a
+  factor of volume / 127 × expression / 127, held as a `:gain` curve when either changes
+  while the note sounds. Pan (controller 10) sets the voice's `:pan`. Pitch bend becomes a
+  frequency multiplier and a `:freq` curve. Curves run over the voice's whole length,
+  release included. Other control changes are dropped.
 
   ## Options
 
@@ -201,10 +214,12 @@ defmodule TuningFork.Midi do
     * `:drum_channels` — which channels those are, default `[9]`. `:auto` to guess, as
       `drum_channels/2` does
     * `:default` — what anything unclaimed is played with, default `TuningFork.Voice.new/1`
+      with an envelope that sounds at full level for as long as the note is held
     * `:bpm` — play at this tempo, ignoring the file's own tempo and every change in it
     * `:quantize` — note lengths rounded to this many seconds, default 0.01. `nil` for none
     * `:bend_range` — semitones a full pitch bend covers, default 2
     * `:bend_points` — most breakpoints kept per bend curve, default 8
+    * `:level_points` — most breakpoints kept per volume and expression curve, default 32
     * `:beats` — how long the score is, default however long the file runs, rounded up
   """
   @spec to_score(t(), keyword()) :: Score.t()
@@ -215,7 +230,12 @@ defmodule TuningFork.Midi do
     opts = Keyword.put(opts, :drum_channels, drum_channels(midi, opts))
 
     notes = paired(events, midi.division)
-    bends = bend_curves(events, midi.division, opts)
+
+    tracks = %{
+      bends: bend_curves(events, midi.division, opts),
+      levels: level_tracks(events, midi.division),
+      pans: pan_tracks(events, midi.division)
+    }
 
     score = %Score{
       bpm: bpm,
@@ -224,7 +244,7 @@ defmodule TuningFork.Midi do
     }
 
     Enum.reduce(notes, score, fn note, acc ->
-      Score.add(acc, note.beat, voice_for(note, seconds_of(score, note), bends, opts))
+      Score.add(acc, note.beat, voice_for(note, seconds_of(score, note), tracks, opts))
     end)
   end
 
@@ -408,13 +428,22 @@ defmodule TuningFork.Midi do
     case event(rest, status) do
       :done -> Enum.reverse(acc)
       {nil, status, rest} -> events(rest, tick, status, acc)
+      {{:sysex_more, more}, status, rest} -> events(rest, tick, status, continue(acc, more))
       {event, status, rest} -> events(rest, tick, status, [{tick, event} | acc])
     end
   end
 
+  defp continue([{tick, {:sysex, open}} | acc], more) do
+    if :binary.last(open) == 0xF7,
+      do: [{tick, {:sysex, open}} | acc],
+      else: [{tick, {:sysex, open <> more}} | acc]
+  end
+
+  defp continue(acc, _more), do: acc
+
   defp event(<<0xFF, type, rest::binary>>, status) do
     {length, rest} = varint(rest)
-    <<data::binary-size(length), rest::binary>> = rest
+    <<data::binary-size(^length), rest::binary>> = rest
 
     case meta(type, data) do
       :end_of_track -> :done
@@ -422,11 +451,18 @@ defmodule TuningFork.Midi do
     end
   end
 
-  defp event(<<sysex, rest::binary>>, status) when sysex in [0xF0, 0xF7] do
+  defp event(<<0xF0, rest::binary>>, status) do
     {length, rest} = varint(rest)
-    <<_data::binary-size(length), rest::binary>> = rest
+    <<data::binary-size(^length), rest::binary>> = rest
 
-    {nil, status, rest}
+    {{:sysex, <<0xF0, data::binary>>}, status, rest}
+  end
+
+  defp event(<<0xF7, rest::binary>>, status) do
+    {length, rest} = varint(rest)
+    <<data::binary-size(^length), rest::binary>> = rest
+
+    {{:sysex_more, data}, status, rest}
   end
 
   defp event(<<byte, _rest::binary>> = data, status) when byte < 0x80 and not is_nil(status) do
@@ -573,15 +609,86 @@ defmodule TuningFork.Midi do
     |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
   end
 
-  defp voice_for(note, seconds, bends, opts) do
+  defp level_tracks(events, division) do
+    {points, _levels} =
+      Enum.flat_map_reduce(events, %{}, fn
+        {tick, {:control, channel, controller, value}}, levels when controller in [7, 11] ->
+          {volume, expression} = Map.get(levels, channel, @gm_levels)
+
+          level =
+            if controller == 7, do: {value, expression}, else: {volume, value}
+
+          {[{channel, {tick / division, loudness(level)}}], Map.put(levels, channel, level)}
+
+        _event, levels ->
+          {[], levels}
+      end)
+
+    Enum.group_by(points, &elem(&1, 0), &elem(&1, 1))
+  end
+
+  defp loudness({volume, expression}), do: volume / 127 * expression / 127
+
+  defp pan_tracks(events, division) do
+    for {tick, {:control, channel, 10, value}} <- events do
+      {channel, {tick / division, max((value - 64) / 63, -1.0)}}
+    end
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+  end
+
+  defp voice_for(note, seconds, tracks, opts) do
     synth = synth_for(note, opts)
     drum? = drum?(note, opts)
+    held = quantise(seconds, opts)
 
-    synth
-    |> pitch(drum?, note)
-    |> level(note, synth)
-    |> lengthen(drum?, quantise(seconds, opts))
-    |> bend(note, bends, opts)
+    voice =
+      synth
+      |> pitch(drum?, note)
+      |> level(note, synth)
+      |> lengthen(drum?, held)
+
+    span = %{note: note, seconds: held, duration: Voice.duration(voice)}
+
+    voice
+    |> panned(note, tracks.pans)
+    |> bend(span, Map.get(tracks.bends, note.channel, []), opts)
+    |> loud(span, Map.get(tracks.levels, note.channel, []), opts)
+  end
+
+  defp panned(voice, note, pans) do
+    case held_at(Map.get(pans, note.channel, []), note.beat, nil) do
+      nil -> voice
+      pan -> %{voice | pan: pan}
+    end
+  end
+
+  defp loud(voice, span, track, opts) do
+    start = held_at(track, span.note.beat, loudness(@gm_levels))
+
+    case moving(track, span) do
+      [] ->
+        %{voice | gain: voice.gain * start}
+
+      moving ->
+        curve =
+          [{0.0, start} | moving]
+          |> Curve.new()
+          |> Curve.simplify(Keyword.get(opts, :level_points, 32))
+
+        if Curve.flat?(curve),
+          do: %{voice | gain: voice.gain * start},
+          else: %{voice | curves: Map.put(voice.curves, :gain, curve)}
+    end
+  end
+
+  defp moving(track, %{note: note, seconds: seconds, duration: duration}) do
+    to = note.beat + note.beats
+
+    for {beat, value} <- track,
+        beat > note.beat and beat < to,
+        at = (beat - note.beat) / note.beats * seconds / duration,
+        at <= 1.0,
+        do: {at, value}
   end
 
   defp synth_for(note, opts) do
@@ -596,7 +703,10 @@ defmodule TuningFork.Midi do
     channel in Keyword.get(opts, :drum_channels, [@drum_channel])
   end
 
-  defp default_synth(opts), do: Keyword.get(opts, :default) || Voice.new()
+  defp default_synth(opts) do
+    Keyword.get(opts, :default) ||
+      Voice.new(envelope: Envelope.new(decay: 0.0, sustain: 1.0))
+  end
 
   defp pitch(synth, true, _note), do: synth
 
@@ -611,40 +721,35 @@ defmodule TuningFork.Midi do
   defp lengthen(voice, true, _seconds), do: voice
 
   defp lengthen(voice, false, seconds) do
-    %{voice | envelope: Envelope.spanning(voice.envelope || Envelope.new(), seconds)}
+    %{voice | envelope: Envelope.gated(voice.envelope || Envelope.new(), seconds)}
   end
 
-  defp bend(voice, note, bends, opts) do
-    from = note.beat
-    to = note.beat + note.beats
-    channel = Map.get(bends, note.channel, [])
-
-    start = held_at(channel, from)
+  defp bend(voice, span, track, opts) do
+    start = held_at(track, span.note.beat, 1.0)
     voice = if start == 1.0, do: voice, else: %{voice | freq: voice.freq * start}
 
-    case Enum.filter(channel, fn {beat, _value} -> beat > from and beat < to end) do
+    case moving(track, span) do
       [] ->
         voice
 
       moving ->
         curve =
-          [
-            {0.0, 1.0}
-            | Enum.map(moving, &{(elem(&1, 0) - from) / note.beats, elem(&1, 1) / start})
-          ]
+          [{0.0, 1.0} | Enum.map(moving, fn {at, value} -> {at, value / start} end)]
           |> Curve.new()
           |> Curve.simplify(Keyword.get(opts, :bend_points, 8))
 
-        if Curve.flat?(curve), do: voice, else: %{voice | curves: %{freq: curve}}
+        if Curve.flat?(curve),
+          do: voice,
+          else: %{voice | curves: Map.put(voice.curves, :freq, curve)}
     end
   end
 
-  defp held_at(bends, beat) do
-    bends
+  defp held_at(track, beat, default) do
+    track
     |> Enum.filter(fn {at, _value} -> at <= beat end)
     |> List.last()
     |> case do
-      nil -> 1.0
+      nil -> default
       {_at, value} -> value
     end
   end

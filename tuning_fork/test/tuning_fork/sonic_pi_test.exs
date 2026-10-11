@@ -87,7 +87,12 @@ defmodule TuningFork.SonicPiTest do
     end
 
     test "a name with no octave sits in octave 4" do
-      {:ok, score} = SonicPi.run_round(fn -> play(:e) && sleep(1) end)
+      {:ok, score} =
+        SonicPi.run_round(fn ->
+          play(:e)
+          sleep(1)
+        end)
+
       assert_in_delta hd(voices(score)).freq, Notes.freq(:e4), 0.01
     end
 
@@ -182,7 +187,12 @@ defmodule TuningFork.SonicPiTest do
     end
 
     test "the default envelope is Sonic Pi's: a one-beat release and nothing else" do
-      {:ok, score} = SonicPi.run_round(fn -> play(:c4) && sleep(1) end)
+      {:ok, score} =
+        SonicPi.run_round(fn ->
+          play(:c4)
+          sleep(1)
+        end)
+
       [voice] = voices(score)
 
       assert voice.envelope.attack == 0.0
@@ -191,7 +201,12 @@ defmodule TuningFork.SonicPiTest do
     end
 
     test "cutoff is a midi note and res is 0 to 1" do
-      {:ok, score} = SonicPi.run_round(fn -> play(:c4, cutoff: 69, res: 0.9) && sleep(1) end)
+      {:ok, score} =
+        SonicPi.run_round(fn ->
+          play(:c4, cutoff: 69, res: 0.9)
+          sleep(1)
+        end)
+
       [voice] = voices(score)
 
       assert_in_delta voice.filter.hz, 440.0, 0.01
@@ -282,7 +297,12 @@ defmodule TuningFork.SonicPiTest do
 
   describe "samples" do
     test "sample plays a recording from the bank for its whole length" do
-      {:ok, score} = SonicPi.run_round(fn -> sample(:bell) && sleep(1) end)
+      {:ok, score} =
+        SonicPi.run_round(fn ->
+          sample(:bell)
+          sleep(1)
+        end)
+
       [voice] = voices(score)
       {:ok, bell} = Bank.fetch(:bell)
 
@@ -306,7 +326,12 @@ defmodule TuningFork.SonicPiTest do
     end
 
     test "rpitch is a rate in semitones" do
-      {:ok, score} = SonicPi.run_round(fn -> sample(:bell, rpitch: 12) && sleep(1) end)
+      {:ok, score} =
+        SonicPi.run_round(fn ->
+          sample(:bell, rpitch: 12)
+          sleep(1)
+        end)
+
       [voice] = voices(score)
       {:ok, bell} = Bank.fetch(:bell)
 
@@ -348,13 +373,21 @@ defmodule TuningFork.SonicPiTest do
     end
 
     test "a path is a sample too" do
-      {:ok, score} = SonicPi.run_round(fn -> sample(@flac) && sleep(1) end)
+      {:ok, score} =
+        SonicPi.run_round(fn ->
+          sample(@flac)
+          sleep(1)
+        end)
+
       assert [%Voice{sample: %Sample{}}] = voices(score)
     end
 
     test "a name the bank does not have says so" do
       assert_raise ArgumentError, ~r/no sample named :nothing/, fn ->
-        SonicPi.run_round(fn -> sample(:nothing) && sleep(1) end)
+        SonicPi.run_round(fn ->
+          sample(:nothing)
+          sleep(1)
+        end)
       end
     end
 
@@ -541,7 +574,11 @@ defmodule TuningFork.SonicPiTest do
     test "with_fx puts the notes inside it on a layer with those effects" do
       {:ok, score} =
         SonicPi.run_round(fn ->
-          with_fx(:reverb, [mix: 0.3, room: 0.8], fn -> play(:c4) && sleep(1) end)
+          with_fx(:reverb, [mix: 0.3, room: 0.8], fn ->
+            play(:c4)
+            sleep(1)
+          end)
+
           play(:d4)
           sleep(1)
         end)
@@ -587,7 +624,10 @@ defmodule TuningFork.SonicPiTest do
       for name <- SonicPi.Effects.names() do
         {:ok, score} =
           SonicPi.run_round(fn ->
-            with_fx(name, [], fn -> play(:c4) && sleep(0.1) end)
+            with_fx(name, [], fn ->
+              play(:c4)
+              sleep(0.1)
+            end)
           end)
 
         assert byte_size(Score.render(score, 8_000)) > 0, "#{name}"
@@ -654,7 +694,11 @@ defmodule TuningFork.SonicPiTest do
     test "with_bpm, with_synth and with_transpose are scoped" do
       {:ok, score} =
         SonicPi.run_round(fn ->
-          with_bpm(120, fn -> play(:c4) && sleep(1) end)
+          with_bpm(120, fn ->
+            play(:c4)
+            sleep(1)
+          end)
+
           with_synth(:saw, fn -> play(:c4) end)
           with_transpose(12, fn -> play(:c4) end)
           play(:c4)
@@ -702,7 +746,12 @@ defmodule TuningFork.SonicPiTest do
         assert message =~ "waiting for :go"
       end)
 
-      Store.as(:lead, 0, fn -> SonicPi.run_round(fn -> cue(:go, rate: 2) && sleep(1) end) end)
+      Store.as(:lead, 0, fn ->
+        SonicPi.run_round(fn ->
+          cue(:go, rate: 2)
+          sleep(1)
+        end)
+      end)
 
       Store.as(:drums, 0, fn ->
         assert {:ok, score} =
@@ -843,7 +892,8 @@ defmodule TuningFork.SonicPiTest do
 
       loud =
         Enum.find(1..30, fn _ ->
-          assert_receive({:pcm, more}, 1_000) && TuningFork.Mixer.peak(more) > 500
+          assert_receive {:pcm, more}, 1_000
+          TuningFork.Mixer.peak(more) > 500
         end)
 
       assert loud || TuningFork.Mixer.peak(chunk) > 500

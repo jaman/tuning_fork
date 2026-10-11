@@ -60,9 +60,15 @@ defmodule TuningFork.Speaker.Keys do
 
   defp loop(owner) do
     case IO.getn("", 1) do
-      :eof -> :ok
-      {:error, _reason} -> :ok
-      key -> send(owner, {:key, key}) && loop(owner)
+      :eof ->
+        :ok
+
+      {:error, _reason} ->
+        :ok
+
+      key ->
+        send(owner, {:key, key})
+        loop(owner)
     end
   end
 

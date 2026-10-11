@@ -13,7 +13,7 @@ defmodule TuningFork.Stage do
 
   alias TuningFork.{Fx, Kit, Mixer, Pattern, Score, Store, Transport, Voice}
   alias TuningFork.Pattern.{Ahead, Player}
-  alias TuningFork.Stage.Bed
+  alias TuningFork.Stage.{Bed, Clip}
 
   @type t :: GenServer.server()
 
@@ -26,6 +26,7 @@ defmodule TuningFork.Stage do
     :voices,
     :writer,
     sounding: [],
+    places: %{},
     bed: nil,
     bed_gain: 1.0,
     muted: false,
@@ -70,10 +71,30 @@ defmodule TuningFork.Stage do
     GenServer.start_link(__MODULE__, opts, name: name)
   end
 
-  @doc "Sound a voice. Returns immediately; the voice is rendered in the stage. Ignored while muted."
-  @spec play(t(), Voice.t()) :: :ok
-  def play(stage \\ __MODULE__, %Voice{} = voice) do
-    GenServer.cast(stage, {:play, voice})
+  @doc """
+  Sound a voice to the end of its envelope. Returns immediately; the voice is rendered in
+  the stage. Ignored while muted.
+
+  ## Options
+
+    * `:key` — sound it under `key`: a voice already sounding under `key` is let go first,
+      and `place/3` moves it while it sounds
+    * `:gain` — the key's level, 0.0 upward, applied on top of the voice's own; default
+      1.0, or what the key was last placed at
+    * `:pan` — the key's place from `-1.0` left to `1.0` right, added to the voice's own
+      pan; default 0.0, or what the key was last placed at
+    * `:fade` — seconds the voice it replaces under `key` takes to fall silent, default
+      0.05
+
+  A voice given `:gain` or `:pan` with no `:key` sounds at that level and place and cannot
+  be moved.
+
+      Stage.play(stage, voice, key: {:entity, 12, :voice}, gain: 0.6, pan: -0.4)
+      Stage.place(stage, {:entity, 12, :voice}, gain: 0.3, pan: 0.2)
+  """
+  @spec play(t(), Voice.t(), keyword()) :: :ok
+  def play(stage \\ __MODULE__, %Voice{} = voice, opts \\ []) do
+    GenServer.cast(stage, {:play, voice, placing!(opts, [:key, :gain, :pan, :fade])})
   end
 
   @doc """
@@ -81,17 +102,32 @@ defmodule TuningFork.Stage do
   envelope's hold is. A voice already held under `key` is released first. Ignored while
   muted.
 
+  Takes `play/3`'s `:gain`, `:pan` and `:fade`.
+
       Stage.hold(stage, {1, 60}, Kit.voice(%{note: 60, s: "gm_piano"}, 1.0))
       Stage.release(stage, {1, 60})
   """
-  @spec hold(t(), term(), Voice.t()) :: :ok
-  def hold(stage \\ __MODULE__, key, %Voice{} = voice) do
-    GenServer.cast(stage, {:hold, key, voice})
+  @spec hold(t(), term(), Voice.t(), keyword()) :: :ok
+  def hold(stage \\ __MODULE__, key, %Voice{} = voice, opts \\ []) do
+    GenServer.cast(stage, {:hold, key, voice, placing!(opts, [:gain, :pan, :fade])})
   end
 
   @doc """
-  Let the voice held under `key` go, fading over `seconds` (default 0.05) from where it is.
-  Nothing happens when no voice is held under `key`.
+  Move what sounds under `key` to `:gain` and `:pan`, as `play/3` takes them; an option
+  left out keeps its value. The move is spread across the next chunk, so it does not click,
+  and holds for the next voice sounded under `key` that is given neither option. Forgotten
+  once nothing sounds under `key`.
+
+      Stage.place(stage, {:entity, 12, :voice}, pan: 0.8)
+  """
+  @spec place(t(), term(), keyword()) :: :ok
+  def place(stage \\ __MODULE__, key, opts) do
+    GenServer.cast(stage, {:place, key, placing!(opts, [:gain, :pan])})
+  end
+
+  @doc """
+  Let what sounds under `key` go, fading over `seconds` (default 0.05) from where it is.
+  Nothing happens when nothing sounds under `key`.
   """
   @spec release(t(), term(), number()) :: :ok
   def release(stage \\ __MODULE__, key, seconds \\ 0.05) do
@@ -99,13 +135,18 @@ defmodule TuningFork.Stage do
   end
 
   @doc """
-  Sound already-rendered PCM.
+  Sound already-rendered PCM. Ignored while muted.
 
-  It must be at the stage's rate and channel count. Ignored while muted.
+  Without options it must be at the stage's rate and channel count. With `play/3`'s
+  `:key`, `:gain` or `:pan` it must be mono at the stage's rate: it is placed in the field
+  like a voice, sounds under its key until it ends or `release/3` lets it go, and
+  `place/3` moves it. `:fade` is as in `play/3`.
+
+      Stage.play_pcm(stage, mono, key: {:entity, 12, :weapon}, gain: 0.8, pan: 0.3)
   """
-  @spec play_pcm(t(), binary()) :: :ok
-  def play_pcm(stage \\ __MODULE__, pcm) when is_binary(pcm) do
-    GenServer.cast(stage, {:play_pcm, pcm})
+  @spec play_pcm(t(), binary(), keyword()) :: :ok
+  def play_pcm(stage \\ __MODULE__, pcm, opts \\ []) when is_binary(pcm) do
+    GenServer.cast(stage, {:play_pcm, pcm, placing!(opts, [:key, :gain, :pan, :fade])})
   end
 
   @doc """
@@ -138,11 +179,18 @@ defmodule TuningFork.Stage do
       multiple of `frames`. Default: at once
     * `:fade_ms` — cross-fade from the old set to the new over this many milliseconds.
       Default `0`
+    * `:from_start` — the new layers begin at their own start when they begin to sound,
+      instead of at the playhead. Default `false`
   """
   @spec layers(t(), %{term() => binary()}, keyword()) :: :ok
   def layers(stage \\ __MODULE__, layers, opts \\ []) when is_map(layers) do
     GenServer.cast(stage, {:layers, layers, opts})
   end
+
+  @doc "Stop the named layers; the rest of the set plays on."
+  @spec drop_layers(t(), [term()]) :: :ok
+  def drop_layers(stage \\ __MODULE__, names) when is_list(names),
+    do: GenServer.cast(stage, {:drop_layers, names})
 
   @doc "Set the gain of the named layers, 0.0 to 1.0, from the next chunk."
   @spec layer_gains(t(), %{term() => number()}) :: :ok
@@ -439,24 +487,37 @@ defmodule TuningFork.Stage do
   end
 
   @impl true
-  def handle_cast({:play, _voice}, %{muted: true} = state), do: {:noreply, state}
+  def handle_cast({:play, _voice, _opts}, %{muted: true} = state), do: {:noreply, state}
 
-  def handle_cast({:play, voice}, state) do
-    {:noreply, add(state, Voice.Live.start(voice, state.rate))}
+  def handle_cast({:play, voice, opts}, state) do
+    live = Voice.Live.start(voice, state.rate)
+
+    case keyed(opts) do
+      nil -> {:noreply, add(state, live)}
+      key -> {:noreply, keep(state, key, live, opts)}
+    end
   end
 
-  def handle_cast({:hold, _key, _voice}, %{muted: true} = state), do: {:noreply, state}
+  def handle_cast({:hold, _key, _voice, _opts}, %{muted: true} = state), do: {:noreply, state}
 
-  def handle_cast({:hold, key, voice}, state) do
+  def handle_cast({:hold, key, voice, opts}, state) do
     live = Voice.Live.start(%{voice | envelope: held(voice.envelope)}, state.rate)
 
-    {:noreply, state |> let_go(key, 0.05) |> add({key, live})}
+    {:noreply, keep(state, key, live, opts)}
   end
+
+  def handle_cast({:place, key, opts}, state), do: {:noreply, moved_to(state, key, opts)}
 
   def handle_cast({:release, key, seconds}, state), do: {:noreply, let_go(state, key, seconds)}
 
-  def handle_cast({:play_pcm, _pcm}, %{muted: true} = state), do: {:noreply, state}
-  def handle_cast({:play_pcm, pcm}, state), do: {:noreply, add(state, pcm)}
+  def handle_cast({:play_pcm, _pcm, _opts}, %{muted: true} = state), do: {:noreply, state}
+
+  def handle_cast({:play_pcm, pcm, opts}, state) do
+    case keyed(opts) do
+      nil -> {:noreply, add(state, pcm)}
+      key -> {:noreply, keep(state, key, Clip.new(pcm), opts)}
+    end
+  end
 
   def handle_cast({:bed, <<>>}, state), do: {:noreply, %{state | bed: nil}}
 
@@ -468,6 +529,9 @@ defmodule TuningFork.Stage do
      %{state | bed: Bed.replace(state.bed, layers, Keyword.put(opts, :rate, state.rate))}}
   end
 
+  def handle_cast({:drop_layers, names}, state),
+    do: {:noreply, %{state | bed: Bed.drop(state.bed, names)}}
+
   def handle_cast({:layer_gains, gains}, state) do
     {:noreply, %{state | bed: Bed.gains(state.bed, gains)}}
   end
@@ -476,7 +540,7 @@ defmodule TuningFork.Stage do
     {:noreply, %{state | bed_gain: max(0.0, min(1.0, gain))}}
   end
 
-  def handle_cast(:stop_all, state), do: {:noreply, %{state | sounding: []}}
+  def handle_cast(:stop_all, state), do: {:noreply, %{state | sounding: [], places: %{}}}
   def handle_cast({:mute, muted?}, state), do: {:noreply, %{state | muted: muted?}}
 
   def handle_cast({:start_score, score, opts}, state) do
@@ -648,6 +712,7 @@ defmodule TuningFork.Stage do
     moved = %{
       state
       | sounding: remaining,
+        places: settle(state.places, remaining),
         bed: bed,
         frame: state.frame + state.chunk,
         transport: transport,
@@ -731,7 +796,7 @@ defmodule TuningFork.Stage do
 
   defp thinned(pcm, channels, points) do
     left =
-      for <<sample::16-signed-little, _rest::binary-size(channels * 2 - 2) <- pcm>>, do: sample
+      for <<sample::16-signed-little, _rest::binary-size(^channels * 2 - 2) <- pcm>>, do: sample
 
     case triggered(left) do
       [] -> []
@@ -811,7 +876,8 @@ defmodule TuningFork.Stage do
   defp let_go(state, key, seconds) do
     sounding =
       Enum.map(state.sounding, fn
-        {^key, live} -> Voice.Live.release(live, seconds)
+        {^key, %Voice.Live{} = live} -> {key, Voice.Live.release(live, seconds)}
+        {^key, %Clip{} = clip} -> {key, Clip.release(clip, max(1, trunc(seconds * state.rate)))}
         other -> other
       end)
 
@@ -825,11 +891,96 @@ defmodule TuningFork.Stage do
   defp next_chunk(%__MODULE__{} = state) do
     {chunks, rest} =
       Enum.reduce(state.sounding, {[], []}, fn sounding, {chunks, rest} ->
-        {chunk, remaining} = take(sounding, state.chunk, state.channels)
+        {chunk, remaining} = taken(sounding, state)
         {[chunk | chunks], if(remaining == :done, do: rest, else: [remaining | rest])}
       end)
 
     {Mixer.mix(chunks), Enum.reverse(rest)}
+  end
+
+  defp taken({key, %Voice.Live{} = live} = keyed, state) do
+    case Map.fetch(state.places, key) do
+      {:ok, place} -> take_placed(key, live, place, state)
+      :error -> take(keyed, state.chunk, state.channels)
+    end
+  end
+
+  defp taken({key, %Clip{} = clip}, state) do
+    place = Map.get(state.places, key, %{at: {1.0, 0.0}, to: {1.0, 0.0}})
+    {mono, clip} = Clip.take(clip, state.chunk)
+    chunk = Mixer.place(mono, place.at, place.to, state.channels)
+
+    {chunk, if(clip == :done, do: :done, else: {key, clip})}
+  end
+
+  defp taken(sounding, state), do: take(sounding, state.chunk, state.channels)
+
+  defp take_placed(key, live, %{at: at, to: to}, state) do
+    {mono, live} = Voice.Live.advance(live, state.chunk)
+    own = live.voice.pan
+    chunk = Mixer.place(mono, offset(at, own), offset(to, own), state.channels)
+
+    {chunk, if(Voice.Live.done?(live), do: :done, else: {key, live})}
+  end
+
+  defp offset({gain, pan}, own), do: {gain, min(max(pan + own, -1.0), 1.0)}
+
+  defp placing!(opts, allowed) do
+    opts = Keyword.validate!(opts, allowed)
+    Enum.each(opts, &placed!/1)
+    opts
+  end
+
+  defp placed!({:key, _key}), do: :ok
+  defp placed!({:gain, gain}) when is_number(gain) and gain >= 0, do: :ok
+  defp placed!({name, value}) when name in [:pan, :fade] and is_number(value), do: :ok
+
+  defp placed!({name, value}),
+    do: raise(ArgumentError, "invalid #{inspect(name)}: #{inspect(value)}")
+
+  defp settle(places, sounding) do
+    keys = for {key, _keyed} <- sounding, into: MapSet.new(), do: key
+
+    for {key, place} <- places, MapSet.member?(keys, key), into: %{} do
+      {key, %{place | at: place.to}}
+    end
+  end
+
+  defp started(state, key, opts) do
+    cond do
+      not Keyword.has_key?(opts, :gain) and not Keyword.has_key?(opts, :pan) ->
+        state
+
+      Map.has_key?(state.places, key) ->
+        moved_to(state, key, opts)
+
+      true ->
+        to = {Keyword.get(opts, :gain, 1.0) / 1, Keyword.get(opts, :pan, 0.0) / 1}
+        %{state | places: Map.put(state.places, key, %{at: to, to: to})}
+    end
+  end
+
+  defp keyed(opts) do
+    cond do
+      Keyword.has_key?(opts, :key) -> Keyword.fetch!(opts, :key)
+      Keyword.has_key?(opts, :gain) or Keyword.has_key?(opts, :pan) -> make_ref()
+      true -> nil
+    end
+  end
+
+  defp keep(state, key, live, opts) do
+    state
+    |> let_go(key, Keyword.get(opts, :fade, 0.05))
+    |> started(key, opts)
+    |> add({key, live})
+  end
+
+  defp moved_to(state, key, opts) do
+    place = Map.get(state.places, key, %{at: {1.0, 0.0}, to: {1.0, 0.0}})
+    {gain, pan} = place.to
+    to = {Keyword.get(opts, :gain, gain) / 1, Keyword.get(opts, :pan, pan) / 1}
+
+    %{state | places: Map.put(state.places, key, %{place | to: to})}
   end
 
   defp take(%Voice.Live{} = live, frames, channels) do

@@ -4,8 +4,12 @@ A step sequencer as data. No process, no screen — a struct and pure functions 
 same composer can be drawn by a terminal, a notebook or a web page.
 
 ```elixir
-{:tuning_fork, "~> 0.1"},
-{:tuning_fork_composer, "~> 0.1"}
+def deps do
+  [
+    {:tuning_fork, "~> 0.1.12"},
+    {:tuning_fork_composer, "~> 0.1"}
+  ]
+end
 ```
 
 ```elixir
@@ -120,5 +124,3 @@ Both skip muted and empty tracks.
 | --- | --- |
 | `tuning_fork_drafter` | Drafter, in a terminal — `mix tuning_fork.compose` |
 | `tuning_fork_kino` | Kino, in Livebook — the **Compose** smart cell |
-
-Neither knows about the other, and this package knows about neither.

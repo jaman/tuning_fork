@@ -1,6 +1,50 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.12]
+
+### Added
+
+* `TuningFork.Stage.layers/3` takes `from_start: true`: the new layers begin at their own
+  start instead of at the playhead. `TuningFork.Stage.drop_layers/2` stops named layers
+  while the rest play on (`TuningFork.Stage.Bed.drop/2`).
+* `TuningFork.Mixer.fit/5`: PCM moved to another rate and channel count.
+* `TuningFork.Xwma`: xWMA audio (WMA v2 packets with their seek table, as XACT wave
+  banks hold it) wrapped as an `.xwma` file and decoded to PCM by the first available
+  `TuningFork.Xwma.Decoder`: `TuningFork.Wma` when a package provides it, else the
+  machine's `ffmpeg` (`TuningFork.Xwma.Ffmpeg`); `:xwma_decoders` sets the order.
+* `TuningFork.Mus` reads DMX MUS, Doom's music format, into the same `TuningFork.Midi`
+  value a MIDI file reads into, so `TuningFork.Gm.score/2` plays it.
+* `TuningFork.Envelope.gated/2` and the envelope's `:gate`: the envelope played as a key
+  held for so many seconds and then let go, releasing from whatever level it had reached.
+* `TuningFork.Stage.play/3` takes `:key`, `:gain`, `:pan` and `:fade`: a voice played
+  under a key replaces the one sounding there and plays to the end of its envelope.
+  `TuningFork.Stage.hold/4` takes `:gain`, `:pan` and `:fade`.
+* `TuningFork.Stage.place/3` moves what sounds under a key to a new `:gain` and `:pan`
+  while it plays, spread across the next chunk; a key's placement carries over to the
+  next voice sounded under it.
+* `TuningFork.Stage.play_pcm/3` takes the same options: mono PCM played under a key is
+  placed and moved like a voice, and `TuningFork.Stage.release/3` fades it. Held in a
+  `TuningFork.Stage.Clip`.
+* `TuningFork.Mixer.place/4`: a mono buffer placed in the field while its gain and pan
+  move in a straight line from one `{gain, pan}` to another.
+
+### Changed
+
+* `TuningFork.Midi.to_score/2` holds each note's key for the note's length and lets it go
+  at the end (`Envelope.gated/2`) rather than stretching the synth's decay over the note:
+  a long note decays in the synth's own time and holds its sustain, and a struck voice
+  dies away rather than ringing to the note's end. The default voice sounds at full level
+  for as long as a note is held.
+* `TuningFork.Midi.to_score/2` plays channel volume (controller 7) and expression (11) as
+  General MIDI does — volume 100 and expression 127 until the file sets them — as a
+  `:gain` curve when they move while a note sounds, and pan (10) as the voice's `:pan`.
+  A file that never sets its volume plays at 100/127 of its former level. `:level_points`
+  caps the curve's breakpoints, default 32.
+
+### Fixed
+
+* A voice or PCM let go under a key keeps its key while it fades, so it fades at its
+  placement and `place/3` still moves it.
 
 ### Breaking changes
 
@@ -73,8 +117,7 @@
 
 * `Stage.pattern_gain/2` and `Pattern.Player.gain/2` scale a pattern's whole output,
   sounding notes included; `0.0` is silence.
-* The README opens the tour notebook in Livebook from a badge, and names the projects this
-  library owes to.
+
 ## 0.1.3
 
 * A `TuningFork.Part` synth may be a function of the note — an instrument — and

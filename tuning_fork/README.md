@@ -12,17 +12,20 @@ image, Livebook, CI, a machine with no sound card and no C compiler.
 def deps do
   [
     {:tuning_fork, "~> 0.1"},
-    {:tuning_fork_speaker, "~> 0.1"},
-    {:tuning_fork_midi, "~> 0.1"},
-    {:tuning_fork_samples, "~> 0.1"}
+    {:tuning_fork_speaker, "~> 0.1.12"},
+    {:tuning_fork_midi, "~> 0.1.12"},
+    {:tuning_fork_samples, "~> 0.1.12"}
   ]
 end
 ```
 
 Only the first is needed. `tuning_fork_speaker` plays through this machine's sound device
 and builds a small C library; `tuning_fork_midi` opens MIDI devices; `tuning_fork_samples`
-registers Sonic Pi's recordings by name. Livebook cells are in `tuning_fork_kino` and
-terminal front ends in `tuning_fork_drafter`. To hear it before reading on, the tour notebook
+registers Sonic Pi's recordings by name. `tuning_fork_mt32` plays MIDI as a Roland MT-32
+does, through your own installation of the Munt emulator. `tuning_fork_wma` decodes xWMA
+audio in pure Elixir, so `.xwma` files and XACT wave banks play without `ffmpeg`. Livebook
+cells are in `tuning_fork_kino` and terminal front ends in `tuning_fork_drafter`. To hear it
+before reading on, the tour notebook
 — one tune written as a grid, in Strudel's syntax and in Sonic Pi's, on the same recordings —
 opens straight into Livebook:
 
@@ -309,8 +312,8 @@ interpolation. Pitch bends, filter sweeps and volume swells are all the same mec
 
 Curves are **data on the voice**, not commands against a sounding one. That is what lets the
 same bend be drawn in an editor, imported from a MIDI file, emitted as source, and rendered
-identically by both renderers below. A voice with no curves costs exactly what it did before
-they existed — the check is made once per note, not once per sample.
+identically by both renderers below. A voice with no curves pays nothing for them: the check
+is made once per note, not once per sample.
 
 ## Layers under everything
 
@@ -379,16 +382,36 @@ On a part (`fx:`), a stage (`fx:`), or a buffer (`Fx.apply/4`):
 `TuningFork.Midi.write!/3` goes the other way, turning a score into a Standard MIDI File for a
 DAW to open. Both directions are pure Elixir with no dependency.
 
-Reading is pure binary pattern matching. Tempo changes become a tempo map, note lengths
-become envelopes, velocity becomes gain, and pitch bend becomes a curve. Which synth plays
-what is yours to say — a MIDI program number has no reliable meaning, though `TuningFork.Gm`
-gives every program a voice when nothing better is known. Control changes other than bend,
-and aftertouch, are dropped. `:quantize` rounds note lengths to a grid (10 ms by default) so
-a performance's hundreds of distinct lengths collapse into tens, which keeps the score's note
-cache working.
+Tempo changes become a tempo map. Each note's key is held for the note's length and then
+released, as `TuningFork.Envelope.gated/2` describes, so a long note holds the synth's
+sustain and a struck voice dies away in its own time. Velocity scales the gain; channel
+volume (controller 7) and expression (controller 11) scale it too, as a `:gain` curve when
+either moves while the note sounds; pan (controller 10) sets the voice's `:pan`; pitch bend
+becomes a `:freq` curve. Other control changes and aftertouch are dropped. `:level_points`
+caps the breakpoints kept per volume and expression curve (32 by default) and `:bend_points`
+per bend curve (8). Which synth plays what is yours to say — a MIDI program number has no
+reliable meaning, though `TuningFork.Gm` gives every program a voice when nothing better is
+known. `:quantize` rounds note lengths to a grid (10 ms by default) so a performance's
+hundreds of distinct lengths collapse into tens, which keeps the score's note cache working.
 
 Playing to a MIDI *device*, reading a keyboard into a stage, or sending a live pattern out as
 MIDI needs `tuning_fork_midi`, a NIF over CoreMIDI, ALSA and WinMM.
+
+## Other formats
+
+* **FLAC** — `TuningFork.Flac.decode/1` reads a FLAC file into 16-bit PCM, and
+  `TuningFork.Sample.load!/2` takes `.flac` as readily as `.wav`.
+* **SFZ** — `TuningFork.Sfz.load/2` reads an SFZ instrument into a pitched bank, as
+  described under [Recordings](#sfz-instruments).
+* **MUS** — `TuningFork.Mus.parse!/1` reads DMX MUS, the music format of Doom and the other
+  games on its engine, into the same value `TuningFork.Midi.read!/1` gives, so
+  `TuningFork.Gm.score/2` plays it.
+* **xWMA** — `TuningFork.Xwma.decode/1` decodes the WMA v2 audio in `.xwma` files and
+  XACT wave banks to PCM, through `tuning_fork_wma` when it is installed, otherwise the
+  machine's `ffmpeg`.
+
+`mix tuning_fork.render song.mid` renders a MIDI file to a WAV without opening an audio
+device; `--bpm`, `--gain`, `--drums`, `--reverb` and `--loops` are among its options.
 
 ## OSC
 

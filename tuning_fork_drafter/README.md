@@ -2,9 +2,20 @@
 
 Four terminal front ends for [tuning_fork](https://hex.pm/packages/tuning_fork), drawn with Drafter.
 
+```elixir
+def deps do
+  [
+    {:tuning_fork_drafter, "~> 0.1"}
+  ]
+end
+```
+
+Requirements: drafter `~> 0.5`, french_curve `~> 0.2`, and a terminal to run in.
+
+The Mix tasks come with the dependency and run from your own project, so `--out` writes
+beside your code:
+
 ```bash
-cd tuning_fork_drafter
-mix deps.get                # first time only
 mix tuning_fork.live        # live coding patterns, like Strudel
 mix tuning_fork.loops       # live coding named loops, like Sonic Pi
 mix tuning_fork.compose     # step sequencer, like a drum machine
@@ -14,13 +25,12 @@ mix tuning_fork.midi        # a MIDI keyboard in, a pattern out, both on one key
 ## Which one
 
 **`compose` is for composing visually rather than by writing code.** Notes are placed on a
-grid with the arrows and the mouse, and nothing has to be typed — which is the whole point of
-it, not a limitation of it. It writes ordinary `TuningFork.Part` source out with `w`, so a
-tune begun on the grid can be carried on in code by anyone who wants to, but it is a complete
-way of working on its own.
+grid with the arrows and the mouse, and nothing has to be typed. It writes ordinary
+`TuningFork.Part` source out with `w`, so a tune begun on the grid can be carried on in code
+by anyone who wants to, but it is a complete way of working on its own.
 
 `live` and `loops` are the two live-coding models, for writing music *as* code. They are
-genuinely different from each other rather than two skins on one thing:
+different from each other rather than two skins on one thing:
 
 | | `mix tuning_fork.live` | `mix tuning_fork.loops` |
 | --- | --- | --- |
@@ -30,13 +40,15 @@ genuinely different from each other rather than two skins on one thing:
 | everything shares | one cycle | nothing — each loop has its own length |
 | an edit lands | at the next cycle line | when that loop comes round |
 
-All three sit on the same core. What a row means is `TuningFork.Session`, what it draws is
+`midi` puts a MIDI keyboard and a pattern on one key strip, in and out.
+
+All four sit on the same core. What a row means is `TuningFork.Session`, what it draws is
 `TuningFork.Session.View`, and what it plays through is `TuningFork.Stage` — none of that
 lives here.
 
 ---
 
-# Live coding
+## Live coding
 
 ```bash
 mix tuning_fork.live
@@ -97,14 +109,14 @@ notation and the keys, generated from the kit itself so it cannot drift.
 | `?` | The sound names and the notation |
 | `Ctrl+Q` | Quit |
 
-## Sound names
+### Sound names
 
 `?` in the app is the live list. In code it is `TuningFork.Kit`:
 
 ```elixir
-TuningFork.Kit.drums()      # every drum name
-TuningFork.Kit.families()   # the same, grouped by kind
-TuningFork.Kit.notes()      # c0 to b8
+TuningFork.Kit.drums()
+TuningFork.Kit.families()
+TuningFork.Kit.notes()
 ```
 
 | | |
@@ -133,23 +145,16 @@ error lands on the line it came from. See `TuningFork.Strudel` for what is read.
 | `--pattern S` | a demo | A row to open on, repeatable |
 | `--text` | off | Block characters even where the terminal could draw pixels |
 
-## Drawing
+### Drawing
 
 Where the terminal has a pixel protocol — kitty, iTerm2 or sixel — each row draws a pianoroll
-through french_curve. Everywhere else it draws blocks. `--text` forces
-blocks.
+through french_curve. Everywhere else it draws blocks. `--text` forces blocks.
 
-An image per row per frame is what makes a terminal flicker, so:
+- Paused, nothing is redrawn.
+- Only rows ending in `pianoroll()` or `scope()` draw a picture.
+- If it flickers on your terminal, pass `--text`.
 
-- **paused, nothing is redrawn at all** — `Ctrl+P` is for the quiet screen as much as the quiet
-  speakers
-- pictures are rebuilt on a 100 ms clock, not every frame, in a process of their own so that
-  building them never sits between a keystroke and the screen
-- **only rows that ask get one** — `pianoroll()` or `scope()` on the end of a chain
-
-If it still flickers on your terminal, `--text` is always steady.
-
-## When the pictures do not keep up
+### Troubleshooting
 
 A terminal app cannot print — the screen belongs to the drawing — so it writes a trace instead:
 
@@ -163,24 +168,7 @@ is what to look for.
 
 ---
 
-# MIDI
-
-```bash
-mix tuning_fork.midi
-mix tuning_fork.midi --voice gm_epiano1 --pattern 's("bd*4, hh*8")'
-```
-
-`i` and `o` walk the inputs and outputs the machine has, ending on a virtual port of the
-app's own that other software sees by name. Keys played on the input sound on this machine
-with the instrument `v` picks and light the strip blue; `p` plays the pattern out of the
-output with MIDI clock and lights what it sends yellow; `←` `→` and enter send one key. `e`
-edits the pattern — one expression, as a row of `mix tuning_fork.live` is; `+` and `-` set
-the cycles per second; the log under the strip shows both streams. With no device at all,
-open the two virtual ports and point a soft synth at "TuningFork Out".
-
----
-
-# Named loops
+## Named loops
 
 ```bash
 mix tuning_fork.loops
@@ -250,7 +238,7 @@ evaluated keeps playing, because the app never hands the stage a score that woul
 
 ---
 
-# Step sequencer
+## Step sequencer
 
 A step sequencer in a terminal, drawn with Drafter over
 `TuningFork.Composer` (tuning_fork_composer).
@@ -277,7 +265,7 @@ Compose
 `▸` marks the row, `[ ]` the step. `█` a drum hit, a digit a scale degree, `▬` a note held
 from earlier, `·` silence. Dimmed rows are muted.
 
-## Mouse
+### Mouse
 
 | Gesture | Effect |
 | --- | --- |
@@ -286,7 +274,7 @@ from earlier, `·` silence. Dimmed rows are muted.
 | Drag right from a note | Hold it over the steps you cross |
 | Wheel over a step | Walk it up or down the scale |
 
-## Keys
+### Keys
 
 | Key | Effect |
 | --- | --- |
@@ -303,7 +291,7 @@ from earlier, `·` silence. Dimmed rows are muted.
 | `w` | Write the source out |
 | `q` | Quit |
 
-## Options
+### Options
 
 ```bash
 mix tuning_fork.compose --bpm 120 --bars 4 --meter 3 --division 8
@@ -323,17 +311,17 @@ mix tuning_fork.compose --empty --out beat.exs
 | `--empty` | off | Start with no tracks |
 | `--out PATH` | song.exs | Where `w` writes |
 
-## What `w` writes
+### What `w` writes
 
 Ordinary `TuningFork.Part` source, ending in a `Wav.write!`. Run it anywhere:
 
 ```bash
-mix run song.exs      # writes song.wav
+mix run song.exs
 ```
 
-Nothing of this package appears in it.
+That writes `song.wav`. Nothing of this package appears in the source.
 
-## Playing
+### Playing
 
 `p` starts, `p` again stops — only ever one at a time, and quitting stops it too.
 
@@ -344,12 +332,19 @@ settings line says which repeat is sounding.
 `p` needs `tuning_fork_speaker`, which is an optional dependency. Without it the editor still
 runs and still writes source — it just says so instead of playing.
 
-## Using it from your own project
+---
 
-Rather than `cd`-ing here, add it as a dependency and the task comes with it:
+## MIDI
 
-```elixir
-{:tuning_fork_drafter, "~> 0.1"}
+```bash
+mix tuning_fork.midi
+mix tuning_fork.midi --voice gm_epiano1 --pattern 's("bd*4, hh*8")'
 ```
 
-Then `mix tuning_fork.compose` works from your project, and `--out` writes beside your code.
+`i` and `o` walk the inputs and outputs the machine has, ending on a virtual port of the
+app's own that other software sees by name. Keys played on the input sound on this machine
+with the instrument `v` picks and light the strip blue; `p` plays the pattern out of the
+output with MIDI clock and lights what it sends yellow; `←` `→` and enter send one key. `e`
+edits the pattern — one expression, as a row of `mix tuning_fork.live` is; `+` and `-` set
+the cycles per second; the log under the strip shows both streams. With no device at all,
+open the two virtual ports and point a soft synth at "TuningFork Out".

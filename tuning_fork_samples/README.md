@@ -5,17 +5,38 @@ fetched from Sonic Pi's repository the first time each is played and kept under
 `$XDG_CACHE_HOME/tuning_fork/samples`.
 
 ```elixir
-{:tuning_fork, "~> 0.1"},
-{:tuning_fork_samples, "~> 0.1"}
+def deps do
+  [
+    {:tuning_fork, "~> 0.1.12"},
+    {:tuning_fork_samples, "~> 0.1"}
+  ]
+end
 ```
 
-With this package started, every name in the bank plays wherever a drum name does:
+With this package started, every name in the bank plays wherever a drum name does.
+
+In a Strudel pattern, with `import TuningFork.Pattern.Control`:
 
 ```elixir
-s("bd_haus*4 elec_blip")                                # a Strudel pattern
-part(bpm: 120, synth: Kit.voice("perc_bell", 1))        # a loop
-sample :perc_bell, rate: 0.5                            # the Sonic Pi vocabulary
-TuningFork.Samples.load!(:ambi_choir)                   # the recording itself
+s("bd_haus*4 elec_blip")
+```
+
+In a loop, with `import TuningFork.Part` and `alias TuningFork.Kit`:
+
+```elixir
+part(bpm: 120, synth: Kit.voice("perc_bell", 1))
+```
+
+In the Sonic Pi vocabulary, with `use TuningFork.SonicPi`:
+
+```elixir
+sample :perc_bell, rate: 0.5
+```
+
+The recording itself, with nothing imported:
+
+```elixir
+TuningFork.Samples.load!(:ambi_choir)
 ```
 
 ## Names

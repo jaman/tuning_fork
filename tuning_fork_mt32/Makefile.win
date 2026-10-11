@@ -1,0 +1,15 @@
+NIF_SRC = c_src\tuning_fork_mt32_nif.c
+NIF_OBJ = priv\tuning_fork_mt32_nif.obj
+NIF_DLL = priv\tuning_fork_mt32_nif.dll
+
+all: $(NIF_DLL)
+
+$(NIF_DLL): $(NIF_SRC)
+	if not exist priv mkdir priv
+	cl /nologo /O2 /W3 /LD /I"$(ERTS_INCLUDE_DIR)" $(NIF_SRC) /Fo$(NIF_OBJ) /Fe$(NIF_DLL)
+
+clean:
+	if exist $(NIF_DLL) del /Q $(NIF_DLL)
+	if exist $(NIF_OBJ) del /Q $(NIF_OBJ)
+
+.PHONY: all clean

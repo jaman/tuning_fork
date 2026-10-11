@@ -165,7 +165,7 @@ defmodule TuningFork.SfzTest do
 
     test "an instrument without its licence or credit is refused" do
       assert_raise FunctionClauseError, fn ->
-        Sfz.register("nameless", %{source: "x.sfz", what: "something"})
+        Sfz.register(%{"nameless" => %{source: "x.sfz", what: "something"}})
       end
     end
 

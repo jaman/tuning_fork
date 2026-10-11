@@ -10,11 +10,15 @@ In the notebook's **setup cell** — the one at the very top, not an ordinary ce
 
 ```elixir
 Mix.install([
-  {:tuning_fork, "~> 0.1.5"},
-  {:tuning_fork_samples, "~> 0.1.5"},
+  {:tuning_fork, "~> 0.1.12"},
+  {:tuning_fork_samples, "~> 0.1.12"},
+  {:tuning_fork_midi, "~> 0.1.12"},
   {:tuning_fork_kino, "~> 0.1"}
 ])
 ```
+
+`tuning_fork_midi` is optional: it is what the **TF MIDI** cell needs, and the other cells
+work without it.
 
 Working from a checkout instead, give each a `path:` — `{:tuning_fork_kino, path: "/absolute/path/to/tuning_fork_kino"}` — and re-run the setup cell after editing the code.
 
@@ -72,8 +76,7 @@ Smart cells are registered when the package's application starts, which happens 
   the menu to see it.
 - Livebook caches installs. After changing the package, re-run with
   `Mix.install([...], force: true)` and reconnect the runtime.
-- Both paths must be absolute. `tuning_fork_kino` depends on `tuning_fork` by relative path,
-  so listing both keeps them pointing at the same copy.
+- When using `path:` dependencies, give every TuningFork package an absolute path.
 
 ## Compose
 
@@ -127,20 +130,16 @@ song = Score.from_parts([drum_kick, pitched_bass], bpm: 96, beats: 8)
 ```
 
 That runs in a Mix project with no Livebook, no Kino, and nothing of this package in sight.
-Convert the cell back to code and it keeps working — which is the point of composing here
-rather than in something that exports a `.mid`.
+Convert the cell back to code and it keeps working.
 
 Notes are written out by name rather than as lookups into a scale, so a line can be read and
 one note changed without working out what index it was. Change the key in the cell and it
-rewrites them; change them in the code and the cell is no longer in charge, which is the
-right way round.
+rewrites them; change them in the code and the cell is no longer in charge.
 
 ### What it cannot do
 
-Sixteen steps, one note per step per track. No chords in a single row — stack two tracks on
-the same instrument instead — and no note lengths, since every step is a sixteenth. Those are
-grid limits, not `TuningFork.Part` limits: take the generated source and it will do whatever
-`part/1` will do.
+One note per step per track; for a chord, stack tracks. That is a grid limit, not a
+`TuningFork.Part` limit: take the generated source and it will do whatever `part/1` will do.
 
 ## MIDI to audio
 

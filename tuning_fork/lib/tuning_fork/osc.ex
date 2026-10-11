@@ -83,9 +83,9 @@ defmodule TuningFork.Osc do
   defp argument_of(?s, rest), do: read_string(rest)
 
   defp argument_of(?b, <<size::big-32, rest::binary>>) do
-    <<blob::binary-size(size), left::binary>> = rest
+    <<blob::binary-size(^size), left::binary>> = rest
     over = rem(4 - rem(size, 4), 4)
-    <<_padding::binary-size(over), after_padding::binary>> = left
+    <<_padding::binary-size(^over), after_padding::binary>> = left
 
     {{:blob, blob}, after_padding}
   end

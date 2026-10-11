@@ -7,15 +7,16 @@ defmodule TuningFork.Speaker.Device do
       :ok = Device.close(device)
   """
 
+  alias TuningFork.Speaker.Native
+
   @on_load :load_nif
 
   @type t :: reference()
 
   @doc false
   def load_nif do
-    :tuning_fork_speaker
-    |> :code.priv_dir()
-    |> :filename.join(~c"tuning_fork_nif")
+    "tuning_fork_nif"
+    |> Native.path()
     |> :erlang.load_nif(0)
     |> case do
       :ok -> :ok

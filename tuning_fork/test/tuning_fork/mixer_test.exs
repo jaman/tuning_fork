@@ -99,6 +99,25 @@ defmodule TuningFork.MixerTest do
     end
   end
 
+  describe "placing while moving" do
+    test "a placement that does not move is the pan at that place" do
+      mono = pcm([1_000, -2_000, 3_000])
+
+      assert Mixer.place(mono, {1.0, -0.5}, {1.0, -0.5}, 2) == Mixer.pan(mono, -0.5, 2)
+    end
+
+    test "the level moves in a straight line from the first frame to the last" do
+      placed = Mixer.place(pcm(List.duplicate(10_000, 5)), {1.0, -1.0}, {0.0, -1.0}, 2)
+
+      assert samples(placed) == [10_000, 0, 7_500, 0, 5_000, 0, 2_500, 0, 0, 0]
+    end
+
+    test "a mono stage moves the gain alone" do
+      assert samples(Mixer.place(pcm([1_000, 1_000, 1_000]), {1.0, -1.0}, {0.0, 1.0}, 1)) ==
+               [1_000, 500, 0]
+    end
+  end
+
   describe "folding to mono" do
     test "the channels average" do
       assert samples(Mixer.to_mono(pcm([100, 200, -50, 50]))) == [150, 0]

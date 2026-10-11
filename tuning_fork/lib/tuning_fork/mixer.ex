@@ -57,12 +57,12 @@ defmodule TuningFork.Mixer do
         {base, buffer}
 
       byte_size(buffer) <= space ->
-        <<before::binary-size(at), rest::binary>> = base
+        <<before::binary-size(^at), rest::binary>> = base
         {before <> mix(rest, buffer), <<>>}
 
       true ->
-        <<fits::binary-size(space), over::binary>> = buffer
-        <<before::binary-size(at), rest::binary>> = base
+        <<fits::binary-size(^space), over::binary>> = buffer
+        <<before::binary-size(^at), rest::binary>> = base
         {before <> mix(rest, fits), over}
     end
   end
@@ -78,7 +78,7 @@ defmodule TuningFork.Mixer do
     wanted = frames * bytes_per_frame(channels)
 
     case buffer do
-      <<chunk::binary-size(wanted), rest::binary>> ->
+      <<chunk::binary-size(^wanted), rest::binary>> ->
         {chunk, rest}
 
       short ->
@@ -100,7 +100,7 @@ defmodule TuningFork.Mixer do
     keep = frames * bytes_per_frame(channels)
 
     case pcm do
-      <<head::binary-size(keep), tail::binary>> when tail != <<>> ->
+      <<head::binary-size(^keep), tail::binary>> when tail != <<>> ->
         over = binary_part(tail, 0, min(byte_size(tail), keep))
         {mixed, _over} = mix_at(head, over, 0, channels)
 
@@ -134,6 +134,54 @@ defmodule TuningFork.Mixer do
         clamp(trunc(sample * right))::16-signed-little>>
     end
   end
+
+  @doc """
+  Place a mono buffer in the field while its gain and pan move from `from` to `to`, each a
+  `{gain, pan}` pair with `pan` as in `pan/3`.
+
+  Each channel's constant-power level moves in a straight line from the first frame to the
+  last, so a placement changed between buffers has no step in it. With `channels` 1 only the
+  gain moves. Equal `from` and `to` place the buffer as `pan/3` and `scale/2` would.
+
+      Mixer.place(mono, {1.0, 0.0}, {0.5, -1.0}, 2)
+  """
+  @spec place(binary(), {float(), float()}, {float(), float()}, pos_integer()) :: binary()
+  def place(<<>>, _from, _to, _channels), do: <<>>
+
+  def place(mono, from, to, channels) do
+    {first, last} = {levels(from, channels), levels(to, channels)}
+    steps = max(div(byte_size(mono), 2) - 1, 1)
+    glide(mono, 0, steps, first, last, channels, <<>>)
+  end
+
+  defp levels({gain, _pan}, 1), do: {max(gain, 0.0), 0.0}
+
+  defp levels({gain, pan}, _channels) do
+    angle = (min(max(pan, -1.0), 1.0) + 1.0) * :math.pi() / 4.0
+    {max(gain, 0.0) * :math.cos(angle), max(gain, 0.0) * :math.sin(angle)}
+  end
+
+  defp glide(<<>>, _index, _steps, _first, _last, _channels, acc), do: acc
+
+  defp glide(<<sample::16-signed-little, rest::binary>>, index, steps, first, last, 1, acc) do
+    level = between(elem(first, 0), elem(last, 0), index / steps)
+    acc = <<acc::binary, clamp(trunc(sample * level))::16-signed-little>>
+    glide(rest, index + 1, steps, first, last, 1, acc)
+  end
+
+  defp glide(<<sample::16-signed-little, rest::binary>>, index, steps, first, last, channels, acc) do
+    progress = index / steps
+    left = between(elem(first, 0), elem(last, 0), progress)
+    right = between(elem(first, 1), elem(last, 1), progress)
+
+    acc =
+      <<acc::binary, clamp(trunc(sample * left))::16-signed-little,
+        clamp(trunc(sample * right))::16-signed-little>>
+
+    glide(rest, index + 1, steps, first, last, channels, acc)
+  end
+
+  defp between(from, to, progress), do: from + (to - from) * progress
 
   @doc "Copy a mono buffer to both channels, at the same constant-power level as `pan/3`."
   @spec centre(binary()) :: binary()
@@ -275,6 +323,57 @@ defmodule TuningFork.Mixer do
   @doc "Bytes one frame occupies: two per channel."
   @spec bytes_per_frame(pos_integer()) :: pos_integer()
   def bytes_per_frame(channels), do: channels * 2
+
+  @doc """
+  `pcm`, signed 16-bit little-endian at `from_rate` with `from_channels` channels, as
+  `to_rate` with `to_channels`: one channel doubled to two, two folded to one
+  (`to_mono/1`), the first two kept of more; a different rate read between frames by
+  straight lines. The same rate and channels give `pcm` back as it is.
+  """
+  @spec fit(binary(), pos_integer(), pos_integer(), pos_integer(), pos_integer()) :: binary()
+  def fit(pcm, rate, channels, rate, channels), do: pcm
+
+  def fit(pcm, from_rate, from_channels, to_rate, to_channels) do
+    pcm
+    |> rechannel(from_channels, to_channels)
+    |> resample(from_rate, to_rate, to_channels)
+  end
+
+  defp rechannel(pcm, same, same), do: pcm
+  defp rechannel(pcm, 1, 2), do: for(<<s::binary-2 <- pcm>>, into: <<>>, do: s <> s)
+  defp rechannel(pcm, 2, 1), do: to_mono(pcm)
+
+  defp rechannel(pcm, from, to) when from > 2 do
+    skip = (from - to) * 2
+    for <<kept::binary-size(^to * 2), _rest::binary-size(^skip) <- pcm>>, into: <<>>, do: kept
+  end
+
+  defp resample(pcm, same, same, _channels), do: pcm
+
+  defp resample(pcm, from_rate, to_rate, channels) do
+    width = channels * 2
+    frames = div(byte_size(pcm), width)
+    out = div(frames * to_rate, from_rate)
+
+    for index <- 0..(out - 1)//1, into: <<>> do
+      at = index * from_rate / to_rate
+      first = min(trunc(at), frames - 1)
+      second = min(first + 1, frames - 1)
+
+      interpolated(
+        binary_part(pcm, first * width, width),
+        binary_part(pcm, second * width, width),
+        at - trunc(at)
+      )
+    end
+  end
+
+  defp interpolated(first, second, weight) do
+    for {<<a::little-signed-16>>, <<b::little-signed-16>>} <-
+          Enum.zip(for(<<s::binary-2 <- first>>, do: s), for(<<s::binary-2 <- second>>, do: s)),
+        into: <<>>,
+        do: <<round(a + (b - a) * weight)::little-signed-16>>
+  end
 
   defp sum(<<x::16-signed-little, ra::binary>>, <<y::16-signed-little, rb::binary>>, acc) do
     sum(ra, rb, <<acc::binary, clamp(x + y)::16-signed-little>>)

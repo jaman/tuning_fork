@@ -8,8 +8,6 @@ defmodule TuningFork.Osc.Client do
 
   use GenServer
 
-  require Logger
-
   alias TuningFork.Osc
 
   @type t :: GenServer.server()

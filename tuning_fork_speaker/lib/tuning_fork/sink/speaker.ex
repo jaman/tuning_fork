@@ -47,7 +47,7 @@ defmodule TuningFork.Sink.Speaker do
         taken = frames * state.channels * 2
 
         case pcm do
-          <<_done::binary-size(taken), rest::binary>> when rest != <<>> -> write(state, rest)
+          <<_done::binary-size(^taken), rest::binary>> when rest != <<>> -> write(state, rest)
           _drained -> :ok
         end
 

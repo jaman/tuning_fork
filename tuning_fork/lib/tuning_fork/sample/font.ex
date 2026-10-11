@@ -141,7 +141,11 @@ defmodule TuningFork.Sample.Font do
 
   def decode(%{data: {:file, bytes}} = zone, name, index) do
     path = Path.join(Fetch.dir(), cached(name, index))
-    unless File.exists?(path), do: File.mkdir_p!(Fetch.dir()) && File.write!(path, bytes)
+
+    unless File.exists?(path) do
+      File.mkdir_p!(Fetch.dir())
+      File.write!(path, bytes)
+    end
 
     with {:ok, wav} <- Decode.to_wav(path) do
       sample = Sample.load!(wav, root: zone.root, name: "#{name}:#{index}")

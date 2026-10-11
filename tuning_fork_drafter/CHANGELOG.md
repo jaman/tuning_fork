@@ -1,14 +1,14 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.12]
 
 ### Breaking changes
 
-* None since 0.1.11. 1.0.0 marks the API as stable.
+* None since 0.1.11.
 
 ## [0.1.11]
 
-* `DESIGN.md` lists the parts of drafter's API the apps rely on.
+* Released with the family; no changes to this package.
 
 ## [0.1.10]
 
@@ -24,8 +24,7 @@
 
 ## [0.1.7]
 
-* The `french_curve` dependency carries `override: true` only when taken from a local
-  path, not from Hex.
+* Installing from Hex no longer forces an override of french_curve.
 
 ## [0.1.6]
 

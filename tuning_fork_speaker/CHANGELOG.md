@@ -1,10 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.12]
+
+### Changed
+
+* The compiled native code is built into and loaded from `priv/native/<system architecture>`
+  instead of `priv/`, so builds for macOS and Linux in one checkout no longer overwrite each
+  other.
 
 ### Breaking changes
 
-* None since 0.1.11. 1.0.0 marks the API as stable.
+* None since 0.1.11.
 
 ## [0.1.11]
 

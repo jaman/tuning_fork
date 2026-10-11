@@ -11,7 +11,7 @@ endif
 
 ERTS_INCLUDE_DIR ?= $(shell erl -noshell -eval 'io:format("~s/include", [code:root_dir() ++ "/erts-" ++ erlang:system_info(version)])' -s init stop)
 
-PRIV_DIR = priv
+PRIV_DIR ?= priv
 NIF_SO = $(PRIV_DIR)/tuning_fork_nif.so
 NIF_SRC = c_src/tuning_fork_nif.c
 

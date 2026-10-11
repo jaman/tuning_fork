@@ -1,10 +1,10 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.12]
 
 ### Breaking changes
 
-* None since 0.1.11. 1.0.0 marks the API as stable.
+* None since 0.1.11.
 
 ## [0.1.11]
 

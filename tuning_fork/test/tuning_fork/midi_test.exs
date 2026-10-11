@@ -177,7 +177,7 @@ defmodule TuningFork.MidiTest do
       assert second.beat == 2.0
     end
 
-    test "sysex and aftertouch are skipped without desynchronising what follows" do
+    test "sysex is kept whole and aftertouch skipped without desynchronising what follows" do
       midi =
         file([
           [
@@ -190,6 +190,25 @@ defmodule TuningFork.MidiTest do
 
       assert [note] = Midi.notes(midi)
       assert note.note == 60
+      assert {0, {:sysex, <<0xF0, 0x7E, 0x00, 0x09, 0x01, 0xF7>>}} in Midi.merged(midi)
+    end
+
+    test "a sysex split across packets is joined, and a stray continuation dropped" do
+      midi =
+        file([
+          [
+            {0, {:raw, <<0xF7, 2, 0x01, 0x02>>}},
+            {0, {:raw, <<0xF0, 3, 0x41, 0x10, 0x16>>}},
+            {10, {:raw, <<0xF7, 3, 0x12, 0x00, 0xF7>>}},
+            {0, {:note_on, 0, 60, 64}}
+          ]
+        ])
+
+      assert [
+               {0, {:sysex, <<0xF0, 0x41, 0x10, 0x16, 0x12, 0x00, 0xF7>>}},
+               {10, {:note_on, 0, 60, 64}}
+             ] =
+               Midi.merged(midi)
     end
 
     test "unknown chunks between tracks are skipped" do
@@ -303,7 +322,7 @@ defmodule TuningFork.MidiTest do
       [{_beat, slow_voice}] = slow.notes
       [{_beat, fast_voice}] = fast.notes
 
-      assert_in_delta Voice.duration(slow_voice) / Voice.duration(fast_voice), 4.0, 0.1
+      assert_in_delta slow_voice.envelope.gate / fast_voice.envelope.gate, 4.0, 1.0e-9
     end
 
     test "a file with no tempo at all can be given one" do
@@ -352,8 +371,8 @@ defmodule TuningFork.MidiTest do
       [{_beat, soft}] =
         Midi.to_score(one_note(velocity: 32), default: synth).notes
 
-      assert_in_delta loud.gain, 0.8, 0.01
-      assert_in_delta soft.gain, 0.8 * 32 / 127, 0.01
+      assert_in_delta loud.gain, 0.8 * 100 / 127, 0.01
+      assert_in_delta soft.gain, 0.8 * 32 / 127 * 100 / 127, 0.01
       assert soft.gain < loud.gain
     end
 
@@ -610,14 +629,103 @@ defmodule TuningFork.MidiTest do
       assert Voice.duration(long_voice) > Voice.duration(short_voice) * 3
     end
 
-    test "the synth's own attack and release survive; only the decay stretches" do
-      synth = Voice.new(envelope: Envelope.new(attack: 0.05, release: 0.1, decay: 0.01))
-      score = Midi.to_score(one_note(length: @division * 2), default: synth, quantize: nil)
-      [{_beat, voice}] = score.notes
+    test "a long note decays in the synth's own time, holds its sustain, and releases at its end" do
+      synth =
+        Voice.new(envelope: Envelope.new(attack: 0.05, decay: 0.1, sustain: 0.5, release: 0.2))
 
-      assert voice.envelope.attack == 0.05
-      assert voice.envelope.release == 0.1
-      assert voice.envelope.decay > 0.5
+      score = Midi.to_score(one_note(length: @division * 8), default: synth, quantize: nil)
+      [{_beat, voice}] = score.notes
+      seconds = Score.beat_to_seconds(score, 8.0)
+
+      assert_in_delta Envelope.level(voice.envelope, 0.2), 0.5, 1.0e-9
+      assert_in_delta Envelope.level(voice.envelope, seconds - 0.01), 0.5, 1.0e-9
+      assert_in_delta Envelope.level(voice.envelope, seconds + 0.1), 0.25, 1.0e-9
+      assert_in_delta Voice.duration(voice), seconds + 0.2, 1.0e-9
+    end
+
+    test "a struck note held long dies away in its own time rather than ringing to the note's end" do
+      synth = Voice.new(envelope: Envelope.new(attack: 0.002, decay: 1.2, release: 0.15))
+      [{_beat, voice}] = Midi.to_score(one_note(length: @division * 16), default: synth).notes
+
+      assert_in_delta Voice.duration(voice), 1.202, 1.0e-9
+    end
+
+    test "a note let go part-way through its decay releases from the level it reached" do
+      synth = Voice.new(envelope: Envelope.new(attack: 0.002, decay: 1.2, release: 0.15))
+      [{_beat, voice}] = Midi.to_score(one_note(length: 48), default: synth, quantize: nil).notes
+      let_go = voice.envelope.gate
+      reached = Envelope.level(voice.envelope, let_go - 1.0e-6)
+
+      assert reached > 0.1
+      assert_in_delta Envelope.level(voice.envelope, let_go + 0.075), reached / 2, 1.0e-3
+      assert_in_delta Voice.duration(voice), let_go + 0.15, 1.0e-9
+    end
+  end
+
+  describe "channel volume, expression and pan" do
+    test "volume and expression set before a note scale its gain" do
+      midi =
+        file([
+          [
+            {0, {:control, 0, 7, 64}},
+            {0, {:control, 0, 11, 127}},
+            {0, {:control, 0, 11, 32}},
+            {0, {:note_on, 0, 60, 127}},
+            {@division, {:note_off, 0, 60, 0}}
+          ]
+        ])
+
+      [{_beat, voice}] = Midi.to_score(midi, default: Voice.new(gain: 1.0)).notes
+
+      assert_in_delta voice.gain, 64 / 127 * 32 / 127, 1.0e-9
+      refute Map.has_key?(voice.curves, :gain)
+    end
+
+    test "a swell during a held note becomes a gain curve over it" do
+      midi =
+        file([
+          [
+            {0, {:control, 0, 7, 0}},
+            {0, {:note_on, 0, 60, 127}},
+            {@division, {:control, 0, 7, 127}},
+            {@division, {:note_off, 0, 60, 0}}
+          ]
+        ])
+
+      [{_beat, voice}] = Midi.to_score(midi).notes
+
+      assert Curve.at(voice.curves.gain, 0.0) == 0.0
+      assert_in_delta Curve.at(voice.curves.gain, 1.0), 1.0, 1.0e-9
+    end
+
+    test "volume on another channel leaves the note alone" do
+      midi =
+        file([
+          [
+            {0, {:control, 1, 7, 0}},
+            {0, {:note_on, 0, 60, 127}},
+            {@division, {:note_off, 0, 60, 0}}
+          ]
+        ])
+
+      [{_beat, voice}] = Midi.to_score(midi, default: Voice.new(gain: 1.0)).notes
+
+      assert_in_delta voice.gain, 100 / 127, 1.0e-9
+    end
+
+    test "pan sets where the note sits" do
+      midi =
+        file([
+          [
+            {0, {:control, 0, 10, 0}},
+            {0, {:note_on, 0, 60, 127}},
+            {@division, {:note_off, 0, 60, 0}}
+          ]
+        ])
+
+      [{_beat, voice}] = Midi.to_score(midi).notes
+
+      assert voice.pan == -1.0
     end
   end
 
@@ -629,7 +737,7 @@ defmodule TuningFork.MidiTest do
             file([[{0, {:note_on, 0, 60, 64}}, {ticks, {:note_off, 0, 60, 0}}]])
 
           [{_beat, voice}] = Midi.to_score(midi, quantize: 0.05).notes
-          voice.envelope.decay
+          voice.envelope.gate
         end
 
       assert length(Enum.uniq(lengths)) == 1,
@@ -642,7 +750,7 @@ defmodule TuningFork.MidiTest do
           midi = file([[{0, {:note_on, 0, 60, 64}}, {ticks, {:note_off, 0, 60, 0}}]])
 
           [{_beat, voice}] = Midi.to_score(midi, quantize: nil).notes
-          voice.envelope.decay
+          voice.envelope.gate
         end
 
       assert length(Enum.uniq(lengths)) == 4

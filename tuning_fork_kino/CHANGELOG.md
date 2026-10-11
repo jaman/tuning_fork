@@ -1,14 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.12]
 
-### Breaking changes
+### Fixed
 
 * `KinoTuningFork.MidiMonitorCell` (TF MIDI) and `KinoTuningFork.MidiCell` keep a saved
   field whose value is `false` or `nil`; only a field missing from the saved attributes
-  takes its default. A notebook saved with **Clock** off opens with clock off — turn it on
-  in the cell where the device needs it.
-* 1.0.0 marks the API as stable.
+  takes its default. A notebook saved with **Clock** off now opens with clock off.
+
+### Breaking changes
+
+* None since 0.1.11.
 
 ## [0.1.11]
 
@@ -43,7 +45,6 @@
 ## [0.1.6]
 
 * `composer.livemd` is saved with each smart cell's generated source.
-* The README asks for `{:tuning_fork_kino, "~> 0.1"}`.
 
 ## 0.1.5
 
