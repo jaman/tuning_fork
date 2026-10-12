@@ -1,7 +1,7 @@
 defmodule TuningForkSpeaker.MixProject do
   use Mix.Project
 
-  @version "0.1.12"
+  @version "0.1.13"
   @source_url "https://github.com/jaman/tuning_fork"
 
   def project do
@@ -21,7 +21,8 @@ defmodule TuningForkSpeaker.MixProject do
       this: drop this dependency and everything but playback through the machine still works,
       including rendering to a buffer or a file.
 
-      Building it needs a C compiler, and on Linux the ALSA headers (libasound2-dev).
+      Building it needs a C compiler: on Linux with the ALSA headers (libasound2-dev), on
+      Windows the Visual Studio Build Tools, run from a Developer Command Prompt.
       """,
       description: "Plays TuningFork audio through the machine's sound device.",
       start_permanent: Mix.env() == :prod,
@@ -39,7 +40,7 @@ defmodule TuningForkSpeaker.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork, "~> 0.1.12", []),
+      family(:tuning_fork, "~> 0.1.13", []),
       {:elixir_make, "~> 0.9", runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
@@ -59,7 +60,8 @@ defmodule TuningForkSpeaker.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib c_src Makefile examples mix.exs README.md DESIGN.md LICENSE CHANGELOG.md)
+      files:
+        ~w(lib c_src Makefile Makefile.win examples mix.exs README.md DESIGN.md LICENSE CHANGELOG.md)
     ]
   end
 

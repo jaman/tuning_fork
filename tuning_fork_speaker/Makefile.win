@@ -1,0 +1,15 @@
+!IFNDEF PRIV_DIR
+PRIV_DIR = priv
+!ENDIF
+
+OUT = $(PRIV_DIR:/=\)
+
+all: $(OUT)\tuning_fork_nif.dll
+
+$(OUT)\tuning_fork_nif.dll: c_src\tuning_fork_nif.c c_src\miniaudio.h
+	if not exist $(OUT) mkdir $(OUT)
+	cl /nologo /LD /O2 /I"$(ERTS_INCLUDE_DIR)" /Ic_src c_src\tuning_fork_nif.c /Fe:$@ ole32.lib
+	if exist tuning_fork_nif.obj del /Q tuning_fork_nif.obj
+
+clean:
+	if exist $(OUT)\tuning_fork_nif.* del /Q $(OUT)\tuning_fork_nif.*

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+* Builds on Windows with the Visual Studio compiler through `Makefile.win`; miniaudio plays through WASAPI.
+
 ## [0.1.12]
 
 ### Changed
