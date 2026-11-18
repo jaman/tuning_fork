@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## [Unreleased]
+
+### Added
+
+- `TuningFork.Speaker.Decoder.decode/1` decodes MP3, FLAC and WAV in-process with miniaudio's decoders.
+- A `static` target in the Makefile builds the NIF as a static archive for `cauldron_native`: compiled as Objective-C for iOS and tvOS, and linked against Core Audio for macOS.
 
 ### Fixed
 

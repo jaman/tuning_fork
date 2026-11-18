@@ -13,7 +13,7 @@ defmodule TuningFork.Stage do
 
   alias TuningFork.{Fx, Kit, Mixer, Pattern, Score, Store, Transport, Voice}
   alias TuningFork.Pattern.{Ahead, Player}
-  alias TuningFork.Stage.{Bed, Clip}
+  alias TuningFork.Stage.{Bed, Clip, Feed}
 
   @type t :: GenServer.server()
 
@@ -147,6 +147,23 @@ defmodule TuningFork.Stage do
   @spec play_pcm(t(), binary(), keyword()) :: :ok
   def play_pcm(stage \\ __MODULE__, pcm, opts \\ []) when is_binary(pcm) do
     GenServer.cast(stage, {:play_pcm, pcm, placing!(opts, [:key, :gain, :pan, :fade])})
+  end
+
+  @doc """
+  Sound a continuous source under `key`: `pcm` is the next block of mono signed 16-bit
+  little-endian samples at `rate`, however it arrives relative to the stream's own clock.
+
+  Blocks given under the same `key` play one after another without gaps or overlaps and are
+  converted to the stage's rate (see `TuningFork.Stage.Feed`). The first block starts a
+  source; it is placed by `:gain` and `:pan` as in `play/3` and moved by `place/3`, and
+  `release/3` fades it. It ends by itself two seconds after its last block. Ignored while
+  muted.
+
+      Stage.feed(stage, {:cabinet, 3}, block, 55_555, gain: 0.6)
+  """
+  @spec feed(t(), term(), binary(), pos_integer(), keyword()) :: :ok
+  def feed(stage, key, pcm, rate, opts \\ []) when is_binary(pcm) and is_integer(rate) and rate > 0 do
+    GenServer.cast(stage, {:feed, key, pcm, rate, placing!(opts, [:gain, :pan])})
   end
 
   @doc """
@@ -519,6 +536,23 @@ defmodule TuningFork.Stage do
     end
   end
 
+  def handle_cast({:feed, _key, _pcm, _rate, _opts}, %{muted: true} = state), do: {:noreply, state}
+
+  def handle_cast({:feed, key, pcm, rate, opts}, state) do
+    if Enum.any?(state.sounding, &match?({^key, %Feed{}}, &1)) do
+      sounding =
+        Enum.map(state.sounding, fn
+          {^key, %Feed{} = feed} -> {key, Feed.append(feed, pcm)}
+          other -> other
+        end)
+
+      {:noreply, %{state | sounding: sounding} |> moved_by(key, opts)}
+    else
+      feed = rate |> Feed.new(state.rate) |> Feed.append(pcm)
+      {:noreply, state |> started(key, opts) |> add({key, feed})}
+    end
+  end
+
   def handle_cast({:bed, <<>>}, state), do: {:noreply, %{state | bed: nil}}
 
   def handle_cast({:bed, pcm}, state),
@@ -878,6 +912,7 @@ defmodule TuningFork.Stage do
       Enum.map(state.sounding, fn
         {^key, %Voice.Live{} = live} -> {key, Voice.Live.release(live, seconds)}
         {^key, %Clip{} = clip} -> {key, Clip.release(clip, max(1, trunc(seconds * state.rate)))}
+        {^key, %Feed{} = feed} -> {key, Feed.release(feed, max(1, trunc(seconds * state.rate)))}
         other -> other
       end)
 
@@ -903,6 +938,14 @@ defmodule TuningFork.Stage do
       {:ok, place} -> take_placed(key, live, place, state)
       :error -> take(keyed, state.chunk, state.channels)
     end
+  end
+
+  defp taken({key, %Feed{} = feed}, state) do
+    place = Map.get(state.places, key, %{at: {1.0, 0.0}, to: {1.0, 0.0}})
+    {mono, feed} = Feed.take(feed, state.chunk)
+    chunk = Mixer.place(mono, place.at, place.to, state.channels)
+
+    {chunk, if(feed == :done, do: :done, else: {key, feed})}
   end
 
   defp taken({key, %Clip{} = clip}, state) do
@@ -973,6 +1016,10 @@ defmodule TuningFork.Stage do
     |> let_go(key, Keyword.get(opts, :fade, 0.05))
     |> started(key, opts)
     |> add({key, live})
+  end
+
+  defp moved_by(state, key, opts) do
+    if Keyword.has_key?(opts, :gain) or Keyword.has_key?(opts, :pan), do: moved_to(state, key, opts), else: state
   end
 
   defp moved_to(state, key, opts) do

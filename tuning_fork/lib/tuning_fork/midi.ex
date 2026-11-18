@@ -57,9 +57,33 @@ defmodule TuningFork.Midi do
   """
   @spec encode(Score.t(), keyword()) :: binary()
   def encode(%Score{} = score, opts \\ []) do
-    track = track_chunk(score, opts)
+    track = track_chunk(score, opts, true)
 
     <<"MThd", 6::32, 0::16, 1::16, @ticks::16>> <> track
+  end
+
+  @doc """
+  Several scores as one format 1 file: a conductor track, then a track per score.
+
+      Midi.encode_tracks(
+        [{bass, name: "bass"}, {drums, name: "drums", channel: 10}],
+        time_signature: {4, 4}
+      )
+
+  Each entry is `{score, options}`, options being `encode/2`'s. Only the conductor carries
+  the tempo and the time signature, so a reader sees the song's tempo once rather than one
+  per track. Returns an empty file (a header and a conductor) when given no scores.
+  """
+  @spec encode_tracks([{Score.t(), keyword()}], keyword()) :: binary()
+  def encode_tracks(tracks, opts \\ []) do
+    tempo = tracks |> List.first() |> tempo_of(opts)
+
+    chunks = [
+      conductor(tempo, opts)
+      | Enum.map(tracks, fn {score, score_opts} -> track_chunk(score, score_opts, false) end)
+    ]
+
+    <<"MThd", 6::32, 1::16, length(chunks)::16, @ticks::16>> <> IO.iodata_to_binary(chunks)
   end
 
   @doc """
@@ -72,14 +96,37 @@ defmodule TuningFork.Midi do
     File.write!(path, encode(score, opts))
   end
 
-  defp track_chunk(score, opts) do
-    events =
-      [{0, tempo_event(score)}] ++
-        name_event(opts) ++
-        (score |> note_events(opts) |> Enum.sort_by(&elem(&1, 0)))
+  defp tempo_of(nil, _opts), do: 120.0
+  defp tempo_of({%Score{bpm: bpm}, _score_opts}, _opts), do: bpm
 
+  defp conductor(bpm, opts) do
+    {beats, unit} = Keyword.get(opts, :time_signature, {4, 4})
+
+    events =
+      [{0, <<0xFF, 0x51, 0x03, round(60_000_000 / bpm)::24>>}, {0, signature_event(beats, unit)}] ++
+        name_event(opts)
+
+    chunk(events)
+  end
+
+  defp signature_event(beats, unit) do
+    power = unit |> :math.log2() |> round()
+    <<0xFF, 0x58, 0x04, beats::8, power::8, 24, 8>>
+  end
+
+  defp track_chunk(score, opts, tempo?) do
+    first = if tempo?, do: [{0, tempo_event(score)}], else: []
+
+    events =
+      first ++ name_event(opts) ++ (score |> note_events(opts) |> Enum.sort_by(&elem(&1, 0)))
+
+    chunk(events)
+  end
+
+  defp chunk(events) do
     body =
       events
+      |> Enum.sort_by(&elem(&1, 0))
       |> Enum.map_reduce(0, fn {at, bytes}, was ->
         {delta(at - was) <> bytes, at}
       end)

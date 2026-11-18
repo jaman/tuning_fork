@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+### Breaking changes
+
+* None since 0.1.13.
+
+### Added
+
+* Sections: `TuningFork.Composer.add_section/4` gives a project named sections, each a
+  length in bars and the tracks that sound in it. `sections/1` lists them,
+  `total_bars/1` is the song's length, and `passes_at/2` is a track's on/off string
+  across the whole song.
+* `TuningFork.Composer.Bake.bake/3` renders a project to a song bundle: `mix.wav`, a WAV
+  per stem, `score.mid` and the `song.json` that names them, all at one rate and
+  channel count. `mix tuning_fork.bake` does the same from the JSON
+  `TuningFork.Composer.Json.to_map/1` writes.
+* `TuningFork.Composer.to_song/2` and `TuningFork.Composer.Song` describe a project as
+  a `TuningFork.Song`: a stem per audible track and an entry per section.
+
 ## [0.1.12]
 
 ### Breaking changes

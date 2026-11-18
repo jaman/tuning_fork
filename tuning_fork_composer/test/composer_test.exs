@@ -459,4 +459,85 @@ defmodule TuningFork.ComposerTest do
       assert Json.from_map(%{}).kit == :synth
     end
   end
+
+  describe "sections" do
+    test "a project with none is one section over its bars" do
+      assert [%{name: "song", bars: 4, tracks: nil}] = Composer.sections(project(bars: 4))
+      assert Composer.total_bars(project(bars: 4)) == 4
+    end
+
+    test "sections add their bars up, and the song follows" do
+      arranged =
+        project(bars: 2)
+        |> Composer.add_section("intro", 4)
+        |> Composer.add_section("verse", 8)
+
+      assert Enum.map(Composer.sections(arranged), & &1.name) == ["intro", "verse"]
+      assert Composer.total_bars(arranged) == 12
+      assert Composer.beats(arranged) == 48
+      assert TuningFork.Score.duration(Composer.to_score(arranged)) == 30.0
+    end
+
+    test "the first section replaces the implicit whole-song one" do
+      assert [%{name: "intro"}] = Composer.sections(project() |> Composer.add_section("intro", 4))
+    end
+
+    test "a track outside a section does not sound there" do
+      arranged =
+        project()
+        |> with_track(sound: "kick")
+        |> with_track(sound: "hat")
+        |> Composer.add_section("intro", 2, tracks: [0])
+        |> Composer.add_section("verse", 2)
+
+      assert Composer.passes_at(arranged, 0) == "xxxx"
+      assert Composer.passes_at(arranged, 1) == "..xx"
+    end
+
+    test "a track's plays starts again with each section" do
+      arranged =
+        project()
+        |> with_track(plays: "x.")
+        |> Composer.add_section("intro", 2)
+        |> Composer.add_section("verse", 2)
+
+      assert Composer.passes_at(arranged, 0) == "x.x."
+    end
+
+    test "one track's score is as long as the song, silent where it does not play" do
+      arranged =
+        project(bpm: 120)
+        |> with_track(sound: "kick", steps: [1])
+        |> with_track(sound: "hat", steps: [1])
+        |> Composer.add_section("intro", 1, tracks: [0])
+        |> Composer.add_section("verse", 1)
+
+      score = Composer.to_score(arranged, tracks: [1])
+
+      assert TuningFork.Score.duration(score) == 4.0
+      assert score.notes != []
+      assert Enum.all?(score.notes, fn {beat, _voice} -> beat >= 4.0 end)
+    end
+
+    test "a section can be set from string-keyed maps" do
+      arranged =
+        Composer.set(project(), :sections, [%{"name" => "intro", "bars" => 3, "tracks" => [0]}])
+
+      assert [%{name: "intro", bars: 3, tracks: [0]}] = Composer.sections(arranged)
+      assert Composer.total_bars(arranged) == 3
+    end
+
+    test "sections survive the JSON round trip" do
+      arranged =
+        project(bars: 2)
+        |> Composer.add_section("intro", 2, tracks: [0])
+        |> Composer.add_section("verse", 4)
+
+      read = arranged |> Json.to_map() |> Json.from_map()
+
+      assert Enum.map(Composer.sections(read), & &1.name) == ["intro", "verse"]
+      assert Composer.total_bars(read) == 6
+      assert [%{tracks: [0]}, %{tracks: nil}] = Composer.sections(read)
+    end
+  end
 end

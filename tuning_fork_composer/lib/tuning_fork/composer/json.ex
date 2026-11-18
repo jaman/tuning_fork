@@ -26,7 +26,8 @@ defmodule TuningFork.Composer.Json do
       "reverb" => project.reverb,
       "kit" => to_string(project.kit),
       "name" => project.name,
-      "tracks" => Enum.map(project.tracks, &track_to_map/1)
+      "tracks" => Enum.map(project.tracks, &track_to_map/1),
+      "sections" => Enum.map(project.sections, &section_to_map/1)
     }
   end
 
@@ -42,6 +43,10 @@ defmodule TuningFork.Composer.Json do
       "plays" => track.plays,
       "steps" => Enum.map(track.steps, &step_to_json/1)
     }
+  end
+
+  defp section_to_map(%{name: name, bars: bars, tracks: tracks}) do
+    %{"name" => name, "bars" => bars, "tracks" => tracks}
   end
 
   defp step_to_json({degree, length}), do: %{"d" => degree, "n" => length}
@@ -68,7 +73,8 @@ defmodule TuningFork.Composer.Json do
         gain: float(attrs["gain"], 0.5),
         reverb: float(attrs["reverb"], 0.0),
         kit: kit(attrs["kit"]),
-        name: to_string(attrs["name"] || "song")
+        name: to_string(attrs["name"] || "song"),
+        sections: sections(attrs["sections"])
       )
 
     tracks =
@@ -81,6 +87,28 @@ defmodule TuningFork.Composer.Json do
   end
 
   def from_map(_not_a_map), do: Composer.new()
+
+  defp sections(list) when is_list(list) do
+    Enum.flat_map(list, fn
+      map when is_map(map) ->
+        [
+          %{
+            name: to_string(map["name"] || "section"),
+            bars: integer(map["bars"], 1),
+            tracks: indexes(map["tracks"])
+          }
+        ]
+
+      _anything_else ->
+        []
+    end)
+  end
+
+  defp sections(_anything_else), do: []
+
+  defp indexes(nil), do: nil
+  defp indexes(list) when is_list(list), do: Enum.filter(list, &is_integer/1)
+  defp indexes(_anything_else), do: nil
 
   defp track_from_map(attrs, width) when is_map(attrs) do
     Track.new(

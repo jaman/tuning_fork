@@ -5,11 +5,11 @@ packages around it, each published to hex.pm on its own.
 
 | Package | What | Hex |
 | --- | --- | --- |
-| [`tuning_fork`](tuning_fork) | Voices, scores, live patterns, Sonic Pi and Strudel spellings, MIDI files, OSC. Pure Elixir, no dependencies | `{:tuning_fork, "~> 0.1.12"}` |
+| [`tuning_fork`](tuning_fork) | Voices, scores, live patterns, Sonic Pi and Strudel spellings, MIDI files, OSC, song bundles. Pure Elixir, no dependencies | `{:tuning_fork, "~> 0.1.12"}` |
 | [`tuning_fork_speaker`](tuning_fork_speaker) | Playback through this machine's sound device (C, via miniaudio) | `{:tuning_fork_speaker, "~> 0.1.12"}` |
 | [`tuning_fork_midi`](tuning_fork_midi) | MIDI devices: scores and live patterns out, a keyboard in (C, via minimidio) | `{:tuning_fork_midi, "~> 0.1.12"}` |
 | [`tuning_fork_samples`](tuning_fork_samples) | Sonic Pi's 206 recordings by name, fetched as they play | `{:tuning_fork_samples, "~> 0.1.12"}` |
-| [`tuning_fork_composer`](tuning_fork_composer) | A step sequencer as data, writing TuningFork source | `{:tuning_fork_composer, "~> 0.1.12"}` |
+| [`tuning_fork_composer`](tuning_fork_composer) | A step sequencer as data, writing TuningFork source and baking song bundles | `{:tuning_fork_composer, "~> 0.1.12"}` |
 | [`tuning_fork_kino`](tuning_fork_kino) | Livebook: a streaming stage widget and five smart cells | `{:tuning_fork_kino, "~> 0.1.12"}` |
 | [`tuning_fork_mt32`](tuning_fork_mt32) | MIDI played as a Roland MT-32 plays it, through your own installation of the Munt emulator | `{:tuning_fork_mt32, "~> 0.1.12"}` |
 | [`tuning_fork_wma`](tuning_fork_wma) | xWMA audio (XACT wave banks and `.xwma` files) decoded in pure Elixir, no `ffmpeg` | `{:tuning_fork_wma, "~> 0.1.12"}` |

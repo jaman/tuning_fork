@@ -6,7 +6,6 @@
  * compiled — no decoding, encoding, resource manager or node graph.
  */
 
-#define MA_NO_DECODING
 #define MA_NO_ENCODING
 #define MA_NO_GENERATION
 #define MA_NO_RESOURCE_MANAGER
@@ -205,6 +204,57 @@ static ERL_NIF_TERM tf_close(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
     return enif_make_atom(env, "ok");
 }
 
+static ERL_NIF_TERM tf_decode(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    ErlNifBinary encoded;
+    ma_decoder decoder;
+    ma_decoder_config config = ma_decoder_config_init(ma_format_s16, 0, 0);
+    ErlNifBinary pcm;
+    size_t used = 0;
+    ma_uint32 frame_bytes;
+
+    if (argc != 1 || !enif_inspect_binary(env, argv[0], &encoded)) {
+        return enif_make_badarg(env);
+    }
+
+    if (ma_decoder_init_memory(encoded.data, encoded.size, &config, &decoder) != MA_SUCCESS) {
+        return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_atom(env, "unsupported"));
+    }
+
+    frame_bytes = decoder.outputChannels * 2;
+
+    if (!enif_alloc_binary(1 << 20, &pcm)) {
+        ma_decoder_uninit(&decoder);
+        return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_atom(env, "out_of_memory"));
+    }
+
+    for (;;) {
+        ma_uint64 room = (pcm.size - used) / frame_bytes;
+        ma_uint64 read = 0;
+
+        if (room == 0) {
+            if (!enif_realloc_binary(&pcm, pcm.size * 2)) {
+                enif_release_binary(&pcm);
+                ma_decoder_uninit(&decoder);
+                return enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_atom(env, "out_of_memory"));
+            }
+            continue;
+        }
+
+        ma_decoder_read_pcm_frames(&decoder, pcm.data + used, room, &read);
+        used += (size_t)read * frame_bytes;
+        if (read < room) break;
+    }
+
+    enif_realloc_binary(&pcm, used);
+
+    ERL_NIF_TERM result = enif_make_tuple4(env, enif_make_atom(env, "ok"), enif_make_binary(env, &pcm),
+                                           enif_make_uint(env, decoder.outputSampleRate),
+                                           enif_make_uint(env, decoder.outputChannels));
+    ma_decoder_uninit(&decoder);
+    return result;
+}
+
 static int tf_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 {
     (void)priv_data;
@@ -220,6 +270,7 @@ static ErlNifFunc tf_funcs[] = {
     {"open", 3, tf_open, 0},
     {"write", 2, tf_write, 0},
     {"space", 1, tf_space, 0},
-    {"close", 1, tf_close, 0}};
+    {"close", 1, tf_close, 0},
+    {"decode", 1, tf_decode, ERL_NIF_DIRTY_JOB_CPU_BOUND}};
 
 ERL_NIF_INIT(Elixir.TuningFork.Speaker.Device, tf_funcs, tf_load, NULL, NULL, NULL)

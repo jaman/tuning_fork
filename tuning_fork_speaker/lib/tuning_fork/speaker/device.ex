@@ -54,6 +54,11 @@ defmodule TuningFork.Speaker.Device do
   @spec close(t()) :: :ok
   def close(_device), do: :erlang.nif_error(:nif_not_loaded)
 
+  @doc false
+  @spec decode(binary()) ::
+          {:ok, binary(), pos_integer(), pos_integer()} | {:error, :unsupported | :out_of_memory}
+  def decode(_encoded), do: :erlang.nif_error(:nif_not_loaded)
+
   @doc """
   Whether the NIF loaded and this machine will open a device.
 

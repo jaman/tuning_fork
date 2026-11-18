@@ -23,6 +23,7 @@ project =
 
 Composer.to_source(project)   # Elixir source, as a string
 Composer.to_score(project)    # a TuningFork.Score, ready to render
+Composer.to_song(project)     # a TuningFork.Song: one section, a stem per track
 ```
 
 ## Modules
@@ -33,6 +34,8 @@ Composer.to_score(project)    # a TuningFork.Score, ready to render
 | `TuningFork.Composer.Track` | One row: its instrument and its steps |
 | `TuningFork.Composer.Source` | Writing a project out as Elixir |
 | `TuningFork.Composer.Json` | To and from string-keyed maps, for the wire |
+| `TuningFork.Composer.Song` | Describing the project as a song bundle |
+| `TuningFork.Composer.Bake` | Rendering the bundle's audio and score |
 
 ## The grid
 
@@ -48,6 +51,26 @@ Composer.to_score(project)    # a TuningFork.Score, ready to render
 
 `Composer.set(project, :meter, 3)` resizes every track for you — grown with rests, or cut
 short.
+
+## Sections
+
+A project with no sections plays its grid `bars` times. Give it sections and they say how
+the song is laid out instead: a name, a length in bars, and the tracks that sound in it.
+
+```elixir
+project
+|> Composer.add_section("intro", 2, tracks: [0, 1])
+|> Composer.add_section("verse", 4)
+|> Composer.add_section("chorus", 4)
+```
+
+`Composer.sections/1` gives them back, and a project without any is one section named after
+`:name`, `:bars` long, so nothing that reads a project has to special-case the simple one.
+A track's `:plays` starts again with each section, so `"x."` is every other bar of every
+section it is in; `Composer.passes_at/2` is the whole song's on/off string for a track.
+
+Baking writes one `sections` entry per section, in order, with the times a game cues them
+by.
 
 ## Steps
 
@@ -117,6 +140,25 @@ File.write!("song.exs", Composer.to_source(project, output: :wav))
 ```
 
 Both skip muted and empty tracks.
+
+## Baking a bundle
+
+A bundle is a directory a game reads with `tuning_fork` alone: the mix, a recording per
+stem, the score, and the `song.json` that names them. Nothing is generated at load.
+
+```console
+$ mix tuning_fork.bake song.json
+test: 2 stems, 1.0s at 44100 Hz -> track/song
+```
+
+```elixir
+{:ok, song} = TuningFork.Composer.Bake.bake(project, "priv/music/night", rate: 48_000)
+TuningFork.Song.validate(song, dir: "priv/music/night")   # :ok
+```
+
+Bake at the rate the game plays at, not the one you monitor at: the bundle stores the rate,
+and a mismatch is resampled at load. `score.mid` is a format 1 file — a conductor track with
+the tempo and time signature, then a track per stem, drums on channel 10.
 
 ## Front ends that exist
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Breaking changes
+
+* None since 0.1.13.
+
+### Added
+
+* `TuningFork.Song`: a song bundle on disk. A directory holds `song.json` and the
+  recordings it names: the mix, a file per stem, the score and the sections. `read/1`
+  and `write/2` load and save it, `validate/2` checks the manifest against the files,
+  `pcm/3` decodes a stem, and `to_piece/2` gives the shape
+  `Cauldron.Audio.Music.piece/3` takes.
+* `TuningFork.Stage.feed/5`: a continuous mono PCM source sounded under a key. Blocks
+  arrive at their own rate and play one after another at the stage's rate
+  (`TuningFork.Stage.Feed`). The source is placed by `:gain` and `:pan`, moved by
+  `place/3` and faded by `release/3`, and ends two seconds after its last block.
+* `TuningFork.Midi.encode_tracks/2`: several scores as one format 1 file, a conductor
+  track with the tempo and time signature followed by a track per score.
+
 ## [0.1.12]
 
 ### Added

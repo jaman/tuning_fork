@@ -1031,4 +1031,50 @@ defmodule TuningFork.MidiTest do
       assert Midi.read!(path) |> Midi.notes() |> length() == 3
     end
   end
+
+  describe "writing several tracks" do
+    setup do
+      {:ok, bass} =
+        Source.parse("""
+        part(bpm: 120, synth: Kit.voice(%{note: "a2", shape: :saw}, 0.5))
+        |> play(:a2, 2)
+        """)
+
+      {:ok, drums} = Source.parse("part(bpm: 120) |> play(:c2, 1)")
+
+      {:ok, bass: bass, drums: drums}
+    end
+
+    test "it is a format 1 file: a conductor and a track per score", %{bass: bass, drums: drums} do
+      assert <<"MThd", 6::32, 1::16, 3::16, 480::16, _rest::binary>> =
+               Midi.encode_tracks([{bass, name: "bass"}, {drums, name: "drums", channel: 10}])
+    end
+
+    test "each score keeps its own channel", %{bass: bass, drums: drums} do
+      notes =
+        [{bass, name: "bass"}, {drums, name: "drums", channel: 10}]
+        |> Midi.encode_tracks()
+        |> Midi.parse!()
+        |> Midi.notes()
+
+      assert Enum.any?(notes, &(&1.channel == 0))
+      assert Enum.any?(notes, &(&1.channel == 9))
+    end
+
+    test "the tempo is written once, on the conductor", %{bass: bass, drums: drums} do
+      %{tracks: tracks} =
+        Midi.encode_tracks([{bass, name: "bass"}, {drums, name: "drums"}]) |> Midi.parse!()
+
+      tempos = for track <- tracks, {_at, {:tempo, _}} <- track, do: :tempo
+
+      assert length(tempos) == 1
+    end
+
+    test "it is a header and a conductor when there is nothing to write" do
+      read = Midi.encode_tracks([]) |> Midi.parse!()
+
+      assert length(read.tracks) == 1
+      assert Midi.notes(read) == []
+    end
+  end
 end

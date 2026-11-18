@@ -111,6 +111,7 @@ defmodule TuningFork.MixProject do
           TuningFork.Wav,
           TuningFork.Flac
         ],
+        Songs: [TuningFork.Song],
         Playing: [
           TuningFork.Stage,
           TuningFork.Transport,

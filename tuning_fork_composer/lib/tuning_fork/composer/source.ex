@@ -25,12 +25,21 @@ defmodule TuningFork.Composer.Source do
   """
   @spec to_source(Composer.t(), keyword()) :: String.t()
   def to_source(%Composer{} = project, opts \\ []) do
-    audible = Enum.filter(project.tracks, &Track.audible?/1)
+    audible =
+      project.tracks
+      |> Enum.with_index()
+      |> Enum.filter(fn {track, _index} -> Track.audible?(track) end)
 
     if audible == [] do
       ""
     else
-      build(project, Enum.zip(audible, names_for(audible)), opts)
+      named =
+        Enum.zip_with(audible, names_for(Enum.map(audible, &elem(&1, 0))), fn {track, index},
+                                                                              name ->
+          {track, index, name}
+        end)
+
+      build(project, named, opts)
     end
   end
 
@@ -46,7 +55,7 @@ defmodule TuningFork.Composer.Source do
 
     #{parts(project, named)}
 
-    #{name} = Score.from_parts([#{Enum.map_join(named, ", ", &elem(&1, 1))}], bpm: #{project.bpm}, beats: #{Composer.beats(project)})
+    #{name} = Score.from_parts([#{Enum.map_join(named, ", ", &elem(&1, 2))}], bpm: #{project.bpm}, beats: #{Composer.beats(project)})
 
     #{tail(project, name, Keyword.get(opts, :output, :score))}\
     """
@@ -65,7 +74,7 @@ defmodule TuningFork.Composer.Source do
   end
 
   defp aliases(project, named) do
-    kinds = named |> Enum.map(fn {track, _name} -> track.kind end) |> MapSet.new()
+    kinds = named |> Enum.map(fn {track, _index, _name} -> track.kind end) |> MapSet.new()
     played = MapSet.member?(kinds, :drum) or MapSet.member?(kinds, :pitched)
 
     used =
@@ -97,8 +106,8 @@ defmodule TuningFork.Composer.Source do
 
     recordings =
       named
-      |> Enum.filter(fn {track, _name} -> track.kind == :sample end)
-      |> Enum.map_join("\n\n", fn {track, name} ->
+      |> Enum.filter(fn {track, _index, _name} -> track.kind == :sample end)
+      |> Enum.map_join("\n\n", fn {track, _index, name} ->
         """
         #{name}_voice =
           Voice.new(
@@ -125,24 +134,24 @@ defmodule TuningFork.Composer.Source do
   defp root_option(_none), do: ""
 
   defp parts(project, named) do
-    Enum.map_join(named, "\n\n", fn {track, name} -> part(project, track, name) end)
+    Enum.map_join(named, "\n\n", fn {track, index, name} -> part(project, track, index, name) end)
   end
 
-  defp part(project, %Track{kind: :drum} = track, name) do
+  defp part(project, %Track{kind: :drum} = track, index, name) do
     """
     #{name} =
       part(bpm: #{project.bpm}, synth: #{drum(project, track)}, gain: #{track.gain})
-      |> repeat(#{passes(project, track)}, fn bar -> steps(bar, "#{pattern(track)}", 1 / #{project.division}) end)\
+      |> repeat(#{passes(project, index)}, fn bar -> steps(bar, "#{pattern(track)}", 1 / #{project.division}) end)\
     """
   end
 
-  defp part(project, track, name) do
+  defp part(project, track, index, name) do
     synth = if track.kind == :sample, do: "#{name}_voice", else: track.sound
 
     """
     #{name} =
       part(bpm: #{project.bpm}, synth: #{synth}, gain: #{track.gain})
-      |> repeat(#{passes(project, track)}, fn bar ->
+      |> repeat(#{passes(project, index)}, fn bar ->
         steps(bar, #{entries(project, track)}, 1 / #{project.division}, release: #{track.ring})
       end)\
     """
@@ -155,10 +164,11 @@ defmodule TuningFork.Composer.Source do
       "%{bank: #{inspect(project.kit)}, gain: #{project.gain}})"
   end
 
-  defp passes(project, track) do
-    passes = Composer.passes(track, project)
+  defp passes(project, index) do
+    bars = Composer.total_bars(project)
+    passes = Composer.passes_at(project, index)
 
-    if passes == String.duplicate("x", project.bars), do: project.bars, else: inspect(passes)
+    if passes == String.duplicate("x", bars), do: bars, else: inspect(passes)
   end
 
   defp pattern(%Track{steps: steps}) do

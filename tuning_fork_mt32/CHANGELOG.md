@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Breaking changes
+
+* None since 0.1.13.
+
 ## [0.1.12]
 
 ### Added

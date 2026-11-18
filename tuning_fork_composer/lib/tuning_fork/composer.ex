@@ -12,9 +12,16 @@ defmodule TuningFork.Composer do
       Composer.to_score(project)
   """
 
-  alias TuningFork.Composer.{Source, Track}
+  alias TuningFork.Composer.{Song, Source, Track}
   alias TuningFork.{Gm, Kit, Notes, Sample, Score, Voice}
   alias TuningFork.Gm.Names
+
+  @typedoc """
+  A stretch of the song: how many bars of the grid it plays, and which tracks sound in it.
+
+  `tracks` lists positions in `:tracks`, or is `nil` for every track.
+  """
+  @type section :: %{name: String.t(), bars: pos_integer(), tracks: [non_neg_integer()] | nil}
 
   @type t :: %__MODULE__{
           bpm: pos_integer(),
@@ -27,7 +34,8 @@ defmodule TuningFork.Composer do
           reverb: float(),
           kit: :synth | String.t(),
           name: String.t(),
-          tracks: [Track.t()]
+          tracks: [Track.t()],
+          sections: [section()]
         }
 
   defstruct bpm: 96,
@@ -40,9 +48,22 @@ defmodule TuningFork.Composer do
             reverb: 0.0,
             kit: :synth,
             name: "song",
-            tracks: []
+            tracks: [],
+            sections: []
 
-  @settings [:bpm, :bars, :meter, :division, :root, :scale, :gain, :reverb, :kit, :name]
+  @settings [
+    :bpm,
+    :bars,
+    :meter,
+    :division,
+    :root,
+    :scale,
+    :gain,
+    :reverb,
+    :kit,
+    :name,
+    :sections
+  ]
 
   @doc """
   A composition. Takes any field of the struct as an option.
@@ -53,7 +74,9 @@ defmodule TuningFork.Composer do
   (`0.0`), `:kit` `:synth` for the kit's own drums and General MIDI synth voices, or a drum
   machine name such as `"RolandTR909"` for its recordings and the General MIDI soundfonts
   (`:synth`), `:name` the variable `to_source/1` binds the score to (`"song"`), `:tracks` a
-  list of `TuningFork.Composer.Track` (`[]`). Every track given is resized to the grid width.
+  list of `TuningFork.Composer.Track` (`[]`), and `:sections` the song's sections, each a
+  name, a number of bars and the tracks that sound in it (`[]`, one whole-song section).
+  Every track given is resized to the grid width.
 
       Composer.new()
       Composer.new(bpm: 120, meter: 3, root: :c3)
@@ -101,9 +124,54 @@ defmodule TuningFork.Composer do
   @spec step_beats(t()) :: float()
   def step_beats(%__MODULE__{division: division}), do: 1 / max(division, 1)
 
+  @doc """
+  The song's sections, in the order they play.
+
+  A composition with none is one section named after the project, `:bars` long, with every
+  track in it — so nothing that reads a project has to special-case the simple one.
+  """
+  @spec sections(t()) :: [section()]
+  def sections(%__MODULE__{} = project) do
+    case project.sections do
+      [] ->
+        [whole(project)]
+
+      list ->
+        case list |> Enum.map(&normalise_section/1) |> Enum.reject(&is_nil/1) do
+          [] -> [whole(project)]
+          sections -> sections
+        end
+    end
+  end
+
+  defp whole(%__MODULE__{bars: bars, name: name}),
+    do: %{name: name, bars: max(bars, 1), tracks: nil}
+
+  @doc """
+  Add a section after the last one, so it plays next.
+
+  `opts` takes `:tracks`, the positions of the tracks that sound in it; all of them when it
+  is not given. A composition with no sections gets this as its first, in place of the
+  implicit whole-song section it was playing.
+  """
+  @spec add_section(t(), String.t(), pos_integer(), keyword()) :: t()
+  def add_section(%__MODULE__{} = project, name, bars, opts \\ []) do
+    section =
+      normalise_section(%{name: name, bars: bars, tracks: Keyword.get(opts, :tracks)})
+
+    existing = if project.sections == [], do: [], else: project.sections
+    %{project | sections: existing ++ [section]}
+  end
+
+  @doc "How many bars the song runs: every section's, added up."
+  @spec total_bars(t()) :: pos_integer()
+  def total_bars(%__MODULE__{} = project) do
+    project |> sections() |> Enum.map(& &1.bars) |> Enum.sum()
+  end
+
   @doc "How long the whole composition runs, in beats."
   @spec beats(t()) :: pos_integer()
-  def beats(%__MODULE__{bars: bars, meter: meter}), do: max(bars, 1) * max(meter, 1)
+  def beats(%__MODULE__{meter: meter} = project), do: total_bars(project) * max(meter, 1)
 
   @doc "The notes a pitched track may reach, low to high."
   @spec scale(t()) :: [atom()]
@@ -164,6 +232,12 @@ defmodule TuningFork.Composer do
   defp cast(:kit, :synth, _current), do: :synth
   defp cast(:kit, value, _current) when is_binary(value), do: kit_named(String.trim(value))
   defp cast(:kit, _value, current), do: current
+
+  defp cast(:sections, value, _current) when is_list(value) do
+    value |> Enum.map(&normalise_section/1) |> Enum.reject(&is_nil/1)
+  end
+
+  defp cast(:sections, _value, current), do: current
   defp cast(_field, value, _current), do: value
 
   defp kit_named(name) when name in ["", "synth"], do: :synth
@@ -179,6 +253,22 @@ defmodule TuningFork.Composer do
   end
 
   defp to_number(_value, default), do: default
+
+  defp normalise_section(section) when is_map(section) do
+    name = section |> field(:name, "section") |> to_string()
+    bars = section |> field(:bars, 1) |> to_number(1) |> trunc() |> max(1)
+
+    %{name: name, bars: bars, tracks: section |> field(:tracks, nil) |> track_indexes()}
+  end
+
+  defp normalise_section(_anything_else), do: nil
+
+  defp field(map, key, default), do: Map.get(map, key, Map.get(map, to_string(key), default))
+
+  defp track_indexes(nil), do: nil
+  defp track_indexes(:all), do: nil
+  defp track_indexes(list) when is_list(list), do: Enum.filter(list, &is_integer/1)
+  defp track_indexes(_anything_else), do: nil
 
   defp refit(%__MODULE__{} = project) do
     width = steps_per_bar(project)
@@ -359,6 +449,18 @@ defmodule TuningFork.Composer do
   defdelegate to_source(project, opts \\ []), to: Source
 
   @doc """
+  The composition as a `TuningFork.Song`: one section, a stem per audible track.
+
+  `TuningFork.Composer.Bake.bake/3` renders the audio the song names, and
+  `mix tuning_fork.bake` does both from a project file. Takes `TuningFork.Composer.Song`'s
+  options.
+
+      project |> Composer.to_song() |> TuningFork.Song.write("priv/music/night")
+  """
+  @spec to_song(t(), keyword()) :: TuningFork.Song.t()
+  defdelegate to_song(project, opts \\ []), to: Song
+
+  @doc """
   The composition as a `TuningFork.Score`, for playing without evaluating source: the whole
   piece, or with `repeat: n` the grid once as it sounds on its `n`th repeat, counted from
   zero and wrapping at the bars — the tracks whose `:plays` say so, `meter` beats long.
@@ -369,22 +471,33 @@ defmodule TuningFork.Composer do
   @spec to_score(t(), keyword()) :: Score.t()
   def to_score(%__MODULE__{} = project, opts \\ []) do
     notes = scale(project)
-    parts = project.tracks |> Enum.filter(&Track.audible?/1)
+
+    playing =
+      for index <- indexes(project, opts),
+          track <- [Enum.at(project.tracks, index)],
+          Track.audible?(track),
+          do: {index, track}
 
     case Keyword.fetch(opts, :repeat) do
       {:ok, repeat} ->
-        at = Integer.mod(repeat, max(project.bars, 1))
+        at = Integer.mod(repeat, total_bars(project))
 
-        parts
-        |> Enum.filter(&(String.at(passes(&1, project), at) == "x"))
-        |> Enum.map(&part_for(&1, project, notes, "x"))
+        playing
+        |> Enum.filter(fn {index, _track} -> String.at(passes_at(project, index), at) == "x" end)
+        |> Enum.map(fn {_index, track} -> part_for(track, project, notes, "x") end)
         |> Score.from_parts(bpm: project.bpm, beats: project.meter)
 
       :error ->
-        parts
-        |> Enum.map(&part_for(&1, project, notes, passes(&1, project)))
+        playing
+        |> Enum.map(fn {index, track} ->
+          part_for(track, project, notes, passes_at(project, index))
+        end)
         |> Score.from_parts(bpm: project.bpm, beats: beats(project))
     end
+  end
+
+  defp indexes(project, opts) do
+    Keyword.get(opts, :tracks) || Enum.to_list(0..(length(project.tracks) - 1)//1)
   end
 
   @doc "The voice every instrument in the piece is derived from."
@@ -407,11 +520,41 @@ defmodule TuningFork.Composer do
   """
   @spec passes(Track.t(), t()) :: String.t()
   def passes(%Track{plays: plays}, %__MODULE__{bars: bars}) when plays in [nil, ""],
-    do: String.duplicate("x", bars)
+    do: String.duplicate("x", max(bars, 1))
 
   def passes(%Track{plays: plays}, %__MODULE__{bars: bars}) do
-    plays |> String.graphemes() |> Stream.cycle() |> Enum.take(bars) |> Enum.join()
+    plays
+    |> String.graphemes()
+    |> Stream.cycle()
+    |> Enum.take(max(bars, 1))
+    |> Enum.join()
   end
+
+  @doc """
+  Which bars of the whole song a track sounds on, one character a bar: `x` plays.
+
+  The sections decide where the track sounds at all, and its own `:plays` starts again with
+  each section, so `"x."` is every other bar of every section it is in.
+
+      Composer.passes_at(project, 0)   # "xxxx....xxxx"
+  """
+  @spec passes_at(t(), non_neg_integer()) :: String.t()
+  def passes_at(%__MODULE__{} = project, index) do
+    track = Enum.at(project.tracks, index)
+
+    project
+    |> sections()
+    |> Enum.map_join(fn section ->
+      cond do
+        is_nil(track) -> String.duplicate(".", section.bars)
+        not in_section?(index, section) -> String.duplicate(".", section.bars)
+        true -> passes(track, %{project | bars: section.bars})
+      end
+    end)
+  end
+
+  defp in_section?(_index, %{tracks: nil}), do: true
+  defp in_section?(index, %{tracks: tracks}), do: index in tracks
 
   @doc """
   The voice a track plays with: a `TuningFork.Voice`, or with a recorded `:kit` a
