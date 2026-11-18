@@ -44,7 +44,8 @@ defmodule TuningFork.Stage.Feed do
 
   @doc "Fade the stream out over `frames` stage frames from the level it has reached."
   @spec release(t(), pos_integer()) :: t()
-  def release(%__MODULE__{} = stream, frames) when frames > 0, do: %{stream | fade: {level(stream), frames, 0}}
+  def release(%__MODULE__{} = stream, frames) when frames > 0,
+    do: %{stream | fade: {level(stream), frames, 0}}
 
   @doc """
   The next `frames` stage frames and the stream after them, or `:done` in place of the stream
@@ -76,7 +77,11 @@ defmodule TuningFork.Stage.Feed do
 
   defp interpolate(%__MODULE__{queue: queue, position: position} = stream, frames, step) do
     reach = min(byte_size(queue), (trunc(position + frames * step) + 3) * 2)
-    window = for(<<sample::16-signed-little <- binary_part(queue, 0, reach)>>, do: sample) |> List.to_tuple()
+
+    window =
+      for(<<sample::16-signed-little <- binary_part(queue, 0, reach)>>, do: sample)
+      |> List.to_tuple()
+
     count = byte_size(queue) |> div(2)
 
     chunk =
@@ -94,7 +99,7 @@ defmodule TuningFork.Stage.Feed do
         end
       end
 
-    advanced = position + frames * step |> min(count - 1.0) |> max(0.0)
+    advanced = (position + frames * step) |> min(count - 1.0) |> max(0.0)
     whole = trunc(advanced)
     rest = binary_part(queue, whole * 2, byte_size(queue) - whole * 2)
     {chunk, %{stream | queue: rest, position: advanced - whole}}
@@ -115,11 +120,13 @@ defmodule TuningFork.Stage.Feed do
     end
   end
 
-  defp available(%__MODULE__{queue: queue, position: position}), do: byte_size(queue) / 2 - position
+  defp available(%__MODULE__{queue: queue, position: position}),
+    do: byte_size(queue) / 2 - position
 
   defp queued_seconds(%__MODULE__{rate: rate} = stream), do: available(stream) / rate
 
-  defp idle(%__MODULE__{idle: idle} = stream, frames), do: %{stream | idle: idle + frames / stream.stage_rate}
+  defp idle(%__MODULE__{idle: idle} = stream, frames),
+    do: %{stream | idle: idle + frames / stream.stage_rate}
 
   defp silence(frames), do: :binary.copy(<<0, 0>>, frames)
 
@@ -136,8 +143,12 @@ defmodule TuningFork.Stage.Feed do
     {faded, %{stream | fade: {level, total, used}}}
   end
 
-  defp finish({chunk, %__MODULE__{fade: {_level, total, gone}}}, _frames) when gone >= total, do: {chunk, :done}
-  defp finish({chunk, %__MODULE__{idle: idle}}, _frames) when idle >= @idle_seconds, do: {chunk, :done}
+  defp finish({chunk, %__MODULE__{fade: {_level, total, gone}}}, _frames) when gone >= total,
+    do: {chunk, :done}
+
+  defp finish({chunk, %__MODULE__{idle: idle}}, _frames) when idle >= @idle_seconds,
+    do: {chunk, :done}
+
   defp finish({chunk, stream}, _frames), do: {chunk, stream}
 
   defp level(%__MODULE__{fade: nil}), do: 1.0

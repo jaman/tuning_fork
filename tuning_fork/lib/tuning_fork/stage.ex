@@ -162,7 +162,8 @@ defmodule TuningFork.Stage do
       Stage.feed(stage, {:cabinet, 3}, block, 55_555, gain: 0.6)
   """
   @spec feed(t(), term(), binary(), pos_integer(), keyword()) :: :ok
-  def feed(stage, key, pcm, rate, opts \\ []) when is_binary(pcm) and is_integer(rate) and rate > 0 do
+  def feed(stage, key, pcm, rate, opts \\ [])
+      when is_binary(pcm) and is_integer(rate) and rate > 0 do
     GenServer.cast(stage, {:feed, key, pcm, rate, placing!(opts, [:gain, :pan])})
   end
 
@@ -536,7 +537,8 @@ defmodule TuningFork.Stage do
     end
   end
 
-  def handle_cast({:feed, _key, _pcm, _rate, _opts}, %{muted: true} = state), do: {:noreply, state}
+  def handle_cast({:feed, _key, _pcm, _rate, _opts}, %{muted: true} = state),
+    do: {:noreply, state}
 
   def handle_cast({:feed, key, pcm, rate, opts}, state) do
     if Enum.any?(state.sounding, &match?({^key, %Feed{}}, &1)) do
@@ -1019,7 +1021,9 @@ defmodule TuningFork.Stage do
   end
 
   defp moved_by(state, key, opts) do
-    if Keyword.has_key?(opts, :gain) or Keyword.has_key?(opts, :pan), do: moved_to(state, key, opts), else: state
+    if Keyword.has_key?(opts, :gain) or Keyword.has_key?(opts, :pan),
+      do: moved_to(state, key, opts),
+      else: state
   end
 
   defp moved_to(state, key, opts) do
