@@ -19,6 +19,12 @@
 * `TuningFork.Composer.to_song/2` and `TuningFork.Composer.Song` describe a project as
   a `TuningFork.Song`: a stem per audible track and an entry per section.
 
+## [0.1.13]
+
+### Changed
+
+* No changes in this package; released with the rest of the tuning_fork packages.
+
 ## [0.1.12]
 
 ### Breaking changes

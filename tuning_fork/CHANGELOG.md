@@ -20,6 +20,12 @@
 * `TuningFork.Midi.encode_tracks/2`: several scores as one format 1 file, a conductor
   track with the tempo and time signature followed by a track per score.
 
+## [0.1.13]
+
+### Changed
+
+* No changes in this package; released with the rest of the tuning_fork packages.
+
 ## [0.1.12]
 
 ### Added
