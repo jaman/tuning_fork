@@ -36,6 +36,13 @@ Composer.to_song(project)     # a TuningFork.Song: one section, a stem per track
 | `TuningFork.Composer.Json` | To and from string-keyed maps, for the wire |
 | `TuningFork.Composer.Song` | Describing the project as a song bundle |
 | `TuningFork.Composer.Bake` | Rendering the bundle's audio and score |
+| `TuningFork.Composer.Arrangement` | A song as tracks of clips placed on bars, with sections and markers |
+| `TuningFork.Composer.Arrangement.Clip` | Notes, steps, a pattern, a Strudel chain, a Sonic Pi loop or a recording |
+| `TuningFork.Composer.Arrangement.Track` | An instrument, its clips, and its level, pan and send |
+| `TuningFork.Composer.Arrangement.Json` | An arrangement to and from JSON-safe maps |
+| `TuningFork.Composer.Arrangement.Render` | A stem per track and the mix |
+| `TuningFork.Composer.Arrangement.Bake` | An arrangement as a song bundle |
+| `TuningFork.Composer.Arrangement.Flatten` | Every clip that can be read as notes, as notes |
 
 ## The grid
 
@@ -159,6 +166,79 @@ TuningFork.Song.validate(song, dir: "priv/music/night")   # :ok
 Bake at the rate the game plays at, not the one you monitor at: the bundle stores the rate,
 and a mismatch is resampled at load. `score.mid` is a format 1 file — a conductor track with
 the tempo and time signature, then a track per stem, drums on channel 10.
+
+## Arrangements
+
+An arrangement is a song laid out on bars rather than repeated from one grid. Each track has
+an instrument and clips, and each clip starts on a bar and runs for a number of beats. A clip
+holds notes, drum steps, a pattern on the track's instrument, a Strudel chain, a Sonic Pi
+loop or a recording.
+
+```elixir
+alias TuningFork.Composer.Arrangement
+alias TuningFork.Composer.Arrangement.{Bake, Clip, Track}
+
+arrangement =
+  Arrangement.new(
+    name: "river",
+    bpm: 132,
+    sections: [%{name: "road", bar: 1, bars: 8}, %{name: "river", bar: 9, bars: 8}],
+    markers: [%{name: "fall", bar: 17, beat: 0.0}],
+    tracks: [
+      Track.new(
+        name: "drums",
+        instrument: "kick",
+        clips: [Clip.new(kind: :steps, beats: 64.0, steps: %{"kick" => "x...x...", "hat" => "x.x.x.x."})]
+      ),
+      Track.new(
+        name: "bass",
+        instrument: "bass",
+        gain_db: -2.0,
+        clips: [Clip.new(kind: :pattern, beats: 64.0, pattern: "x--.x--.", pitches: [38, 41])]
+      ),
+      Track.new(
+        name: "lead",
+        instrument: "gm_flute",
+        send: 0.3,
+        clips: [
+          Clip.new(
+            kind: :notes,
+            bar: 9,
+            beats: 32.0,
+            notes: [%{beat: 0.0, pitch: 69, length: 1.0, velocity: 0.8, sound: nil}]
+          )
+        ]
+      ),
+      Track.new(
+        name: "pad",
+        instrument: "strings",
+        clips: [Clip.new(kind: :strudel, beats: 80.0, strudel: ~S|note("<[d3,f3,a3] [bb2,d3,f3]>").slow(2)|)]
+      )
+    ]
+  )
+
+{:ok, song} = Bake.bake(arrangement, "priv/music/river", rate: 48_000, playable: ["lead"])
+```
+
+Patterns use the compact notation of `TuningFork.Composer.Arrangement.Pattern`: `x` and `X`
+accent, `o` a normal hit, `.` a rest, `-` holds, `|` and spaces are skipped. A pattern on a
+pitched track plays `pitches` or `chords` one per hit, cycling. Steps and patterns repeat to
+fill their clip, and every note is cut at its clip's end.
+
+The baked bundle has a stem per audible track, the arrangement's sections with their
+seconds, its markers under `"markers"`, and every stem's notes (`"notes"`) or drum hits
+(`"hits"`) with their bar and beat, so a game can chart any stem.
+
+`TuningFork.Composer.Arrangement.Json` writes an arrangement as JSON for other programs, with
+`"format": "tuning_fork.arrangement"`, and `mix tuning_fork.bake` bakes such a file:
+
+```console
+$ mix tuning_fork.bake river.arrangement.json --rate 48000 --playable lead
+river: 4 stems, 36.4s at 48000 Hz -> river
+```
+
+A program that plays notes and nothing else takes `TuningFork.Composer.Arrangement.Flatten.with_notes/1`,
+which rewrites steps, patterns and Strudel clips as the notes they play.
 
 ## Front ends that exist
 

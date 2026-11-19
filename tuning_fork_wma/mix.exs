@@ -1,7 +1,7 @@
 defmodule TuningForkWma.MixProject do
   use Mix.Project
 
-  @version "0.1.13"
+  @version "0.1.14"
   @source_url "https://github.com/jaman/tuning_fork"
 
   def project do
@@ -26,7 +26,7 @@ defmodule TuningForkWma.MixProject do
 
   defp deps do
     [
-      family(:tuning_fork, "~> 0.1.13", []),
+      family(:tuning_fork, "~> 0.1.14", []),
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]

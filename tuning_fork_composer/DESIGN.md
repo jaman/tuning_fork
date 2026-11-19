@@ -106,3 +106,51 @@ Rules the written source follows:
 - Only the aliases the piece actually uses are emitted.
 - A track or project name that would not compile as a variable is slugged, and a project
   named `"track"` binds to `song`.
+
+## TuningFork.Composer.Arrangement
+
+The grid composer repeats one grid over a song's bars. An arrangement places clips on bars
+instead, the way a sequencer's timeline does, so a song can change from section to section
+without every track being the same length. It is the model the Studio's song page uses
+(tracks of clips of notes), widened to the kinds of music `tuning_fork` already makes:
+Strudel chains and Sonic Pi loops sit in clips beside notes, and a recording can sit in one.
+
+Rules the model follows:
+
+- A clip's place is a bar counted from 1 and a beat counted from 0 within it; its length is
+  in beats. Bars from 1 match how bundles, charts and sections count; beats from 0 match
+  how a sequencer offsets within a bar.
+- Steps and patterns repeat to fill their clip. Every note is cut at its clip's end, so a
+  clip's length is a promise about where its sound stops.
+- The compact pattern notation is the Studio's (`x`/`X` 1.0, `o`/`O` 0.7, `-` holds, `.`
+  rests), so a pattern means the same thing on both sides.
+- A note's `sound` stands in for the track's instrument for that note, which is how one
+  drum track holds several drums and how a Strudel chain's `s` survives being read as notes.
+- Drum notes keep the drum's own length; pitched notes are released at their length.
+- A stem is the whole song long and folds what rings past the end back over the start, as
+  `TuningFork.Score.render/3` does, so stems loop and add up to the mix.
+- A track's send adds the reverb's return on top of the dry track. `TuningFork.Fx.reverb/3`
+  cross-fades dry and wet, so the render takes the wet signal alone and mixes it in at the
+  send's level. Reverb is applied per track rather than on a shared bus: the reverb is
+  linear, so the sum is the same, and per-track reverb keeps every stem's own reverb in its
+  own file.
+- A Strudel clip plays its bars and then lets what it started ring on for two seconds with
+  the pattern silenced, so a clip's end does not cut a chord. A Sonic Pi loop and a
+  recording are cut at the clip's end with a 10 ms fade, because a loop keeps its own time
+  and would start new rounds in any ring-out.
+
+### The JSON form
+
+`Arrangement.Json` is the exchange format with programs that do not use this library, the
+Studio among them. It is strict on reading: a wrong value is an error that names its path
+(`tracks[2].clips[0]: kind "midi" is not one of ...`) rather than a silent default, because
+the other side needs to know what it sent wrong. Fields it does not know are kept in
+`:extra` and written back, so the Studio can keep its own instrument ids on a track and get
+them back after a round trip.
+
+### Flattening
+
+A program that plays notes only (the Studio's renderer) cannot run a Strudel chain.
+`Flatten.with_notes/1` queries a Strudel clip's pattern over its cycles and writes the events
+that start there as notes, with the pitch the value names and its `s` as the note's sound.
+Loops and recordings stay as they are; a program receiving them says it cannot play them.

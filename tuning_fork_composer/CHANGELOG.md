@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.14]
 
 ### Breaking changes
 
@@ -8,6 +8,21 @@
 
 ### Added
 
+* Arrangements: `TuningFork.Composer.Arrangement` is a song as tracks of clips placed on
+  bars, with named sections and markers. A clip (`Arrangement.Clip`) holds notes, drum
+  steps, a pattern with pitches or chords, a Strudel chain, a Sonic Pi loop or a
+  recording. A track (`Arrangement.Track`) has an instrument (a drum, a composer
+  instrument, a `gm_` soundfont, `"sample:"` and a file, or a sample bank), a level, pan,
+  reverb send, mute, solo and mono.
+* `Arrangement.Render.stems/2` renders a stem per audible track, the whole song long, and
+  `Arrangement.Bake.bake/3` writes the arrangement as a song bundle: the mix, the stems,
+  the backing for `:playable` stems, `score.mid` at exact pitches and lengths, sections
+  with their seconds, markers, and every stem's notes or hits by bar and beat.
+* `Arrangement.Json` writes an arrangement as JSON (`"format": "tuning_fork.arrangement"`)
+  and reads it back, reporting what is wrong and where. `mix tuning_fork.bake` bakes such
+  a file as well as a grid composition.
+* `Arrangement.Flatten.with_notes/1` rewrites steps, patterns and Strudel clips as the
+  notes they play, for programs that only play notes.
 * Sections: `TuningFork.Composer.add_section/4` gives a project named sections, each a
   length in bars and the tracks that sound in it. `sections/1` lists them,
   `total_bars/1` is the song's length, and `passes_at/2` is a track's on/off string
