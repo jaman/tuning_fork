@@ -8,3 +8,5 @@
 *.wav
 erl_crash.dump
 SONG_BUNDLES.md
+GAPS.md
+.expert/
